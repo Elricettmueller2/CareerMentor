@@ -1,108 +1,127 @@
 # 📋 Issue Templates
 
+<div style="border: 1px solid #e74c3c; border-radius: 5px; padding: 15px; margin-bottom: 20px; background-color: #fadbd8;">
+
 ## 🐛 Bug Report
 
-### Beschreibung
-> *Beschreibe klar und prägnant, was das Problem ist.*
+### Description
+> *Clearly describe the issue you're experiencing*
 
-### Reproduktion
-1. Gehe zu '...'
-2. Klicke auf '...'
-3. Scrolle nach unten zu '...'
-4. Siehe Fehler
+### Steps to Reproduce
+1. Go to '...'
+2. Click on '...'
+3. Scroll down to '...'
+4. See error
 
-### Erwartetes Verhalten
-> *Was sollte stattdessen passieren?*
+### Expected Behavior
+> *What should happen instead?*
 
 ### Screenshots / Logs
-> *Füge relevante Screenshots, Konsolenfehler oder Logs ein*
+> *Add relevant screenshots, console errors, or logs*
 
-### Umgebung
-- **Betriebssystem:** 
-- **Browser/Plattform:** 
-- **Version:** 
+### Priority
+- [ ] High
+- [ ] Medium
+- [ ] Low
 
-### Priorität
-- [ ] Hoch
-- [ ] Mittel
-- [ ] Niedrig
+</div>
+
+<div style="border: 1px solid #3498db; border-radius: 5px; padding: 15px; margin-bottom: 20px; background-color: #ebf5fb;">
 
 ## ✨ Feature Request
 
-### Beschreibung
-> *Was möchtest du hinzufügen? Beschreibe das Feature.*
+### Description
+> *What feature would you like to add? Describe it clearly.*
 
 ### Use Case
-> *Warum ist dieses Feature wichtig? Für wen bringt es Mehrwert?*
+> *What use case should this feature address?*
 
-### Technische Idee *(optional)*
-> *Wie könnte es umgesetzt werden?*
+### Technical Approach *(optional)*
+> *How might this be implemented?*
 
-### Priorität
-- [ ] Hoch
-- [ ] Mittel
-- [ ] Niedrig
+### Priority
+- [ ] High
+- [ ] Medium
+- [ ] Low
 
-## 🧪 Verbesserung / Refactoring
+</div>
 
-### Was soll verbessert werden?
-> *Beschreibe den Bereich im Code/UI/UX/etc.*
+<div style="border: 1px solid #2ecc71; border-radius: 5px; padding: 15px; margin-bottom: 20px; background-color: #eafaf1;">
 
-### Warum?
-> *Was ist das Problem mit der aktuellen Lösung?*
+## 🧪 Improvement / Refactoring
 
-### Vorschlag zur Umsetzung
-> *Wie könnte man es verbessern?*
+### Target Area
+> *Describe the area in code/UI/UX/etc. that needs improvement*
 
-### Impact
+### Reason
+> *What issues exist with the current solution?*
+
+### Proposed Approach
+> *How could this be improved?*
+
+### Impact Areas
 - [ ] Performance
-- [ ] Wartbarkeit
+- [ ] Maintainability
 - [ ] UX
-- [ ] Codequalität
+- [ ] Code Quality
 
-## 📄 Dokumentation
+</div>
 
-### Was fehlt oder ist unklar?
-> *Konkretisiere das Dokumentationsthema.*
+<div style="border: 1px solid #9b59b6; border-radius: 5px; padding: 15px; margin-bottom: 20px; background-color: #f5eef8;">
 
-### Vorschlag
-> *Welche Änderungen sind nötig?*
+## 📔 Documentation
 
-### Betroffene Stellen
+### Issue
+> *What documentation is missing or unclear?*
+
+### Suggestion
+> *What changes are needed?*
+
+### Affected Areas
 - [ ] README
-- [ ] Code-Kommentare
-- [ ] Entwicklerdokumentation
-- [ ] API-Referenz
+- [ ] Code Comments
+- [ ] Developer Documentation
+- [ ] API Reference
 
-## 🧰 Aufgaben / ToDos
+</div>
 
-### Beschreibung
-> *Was soll getan werden?*
+<div style="border: 1px solid #f39c12; border-radius: 5px; padding: 15px; margin-bottom: 20px; background-color: #fef5e7;">
 
-### Teilaufgaben
+## 🧰 Tasks / ToDos
+
+### Description
+> *What needs to be done?*
+
+### Subtasks
 - [ ] Task 1
 - [ ] Task 2
 
-### Abhängigkeiten
-> *Blockiert durch: #...*
+### Dependencies
+> *Blocked by: #...*
 
-### Deadline *(falls vorhanden)*
+### Deadline *(if applicable)*
 > *YYYY-MM-DD*
 
-## 🔍 Research / Analyse
+</div>
 
-### Fragestellung
-> *Was soll analysiert oder herausgefunden werden?*
+<div style="border: 1px solid #95a5a6; border-radius: 5px; padding: 15px; margin-bottom: 20px; background-color: #ecf0f1;">
 
-### Hintergrund
-> *Warum ist diese Analyse wichtig?*
+## 🔍 Research / Analysis
 
-### Ziel
-> *Was soll am Ende stehen (z.B. Entscheidungsgrundlage)?*
+### Question
+> *What needs to be analyzed or discovered?*
 
-### Vorschlag zur Vorgehensweise
-> *Beschreibe mögliche Schritte zur Durchführung*
+### Background
+> *Why is this analysis important?*
+
+### Goal
+> *What should be the outcome (e.g., decision basis)?*
+
+### Proposed Approach
+> *Describe possible steps to conduct this research*
+
+</div>
 
 ---
 
-*Erstellt am: YYYY-MM-DD*
+*Created on: 30.05.2025*
