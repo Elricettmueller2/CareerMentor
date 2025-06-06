@@ -4,8 +4,12 @@ WORKDIR /app
 
 RUN pip install --no-cache-dir poetry
 
-COPY main.py pyproject.toml poetry.lock* ./
+# Copy dependency files first for better caching
+COPY pyproject.toml poetry.lock* ./
 RUN poetry install --no-root --no-interaction
+
+# Copy the entire project directory
+COPY . .
 
 EXPOSE 8000
 
