@@ -1,0 +1,12 @@
+task1:
+  description: >
+    Please correct grammar, punctuation, and formatting for the following text **without adding new content or changing the meaning**.
+    
+    Only improve clarity, grammar, and structure. Do not rewrite or extend the original content.
+
+    Text: {input}
+
+  expected_output: >
+     A grammatically correct, readable, and well-structured text, presented in a clear and professional manner.
+  agent: test_agent
+
