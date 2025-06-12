@@ -17,32 +17,47 @@ export default function ResumeRefinerScreen() {
   const pickAndUpload = async () => {
     console.log("🖱️ Upload button pressed");
     setLoading(true);
+  
     try {
+      // Launch document picker
       const res = await DocumentPicker.getDocumentAsync({ type: 'application/pdf' });
       console.log("📄 Picker result:", res);
-      if (res.type === 'success') {
-        const uri = res.uri;
-        const file = await fetch(uri);
-        const blob = await file.blob();
+  
+      // Handle new Expo DocumentPicker API
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        const asset = res.assets[0];
+        const uri = asset.uri;
+        const name = asset.name;
+  
+        // Fetch file data and build form
+        const fileResponse = await fetch(uri);
+        const blob = await fileResponse.blob();
         const form = new FormData();
-        form.append('file', blob, res.name);
-
+        form.append('file', blob, name);
+  
+        // Upload to backend
         console.log("🔗 POST →", `${API_BASE_URL}/resumes/upload`);
         const resp = await fetch(`${API_BASE_URL}/resumes/upload`, {
           method: 'POST',
-          body: form
+          body: form,
         });
+  
+        // Log response for debugging
         console.log("⏳ Upload status:", resp.status);
-        console.log("📥 Response body:", await resp.text());
-        const data = await resp.json();
+        const text = await resp.text();
+        console.log("📥 Response body:", text);
+  
+        // Parse JSON and proceed
+        const data = JSON.parse(text);
         setUploadId(data.upload_id);
         setUploadStarted(true);
         analyzeResume(data.upload_id);
       }
     } catch (e) {
-      console.error(e);
+      console.error("Upload error:", e);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const analyzeResume = async (id: string) => {
