@@ -4,6 +4,7 @@ import { Text } from '@/components/Themed';
 import * as DocumentPicker from 'expo-document-picker';
 
 export default function ResumeRefinerScreen() {
+  console.log("🏁 ResumeRefinerScreen rendered");
   const [uploadStarted, setUploadStarted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [feedbackMessages, setFeedbackMessages] = useState<Array<{text: string, section: string}>>([]);
@@ -11,12 +12,14 @@ export default function ResumeRefinerScreen() {
   const [matchResult, setMatchResult] = useState<{match_score: number, missing_keywords: string[], suggestions: string[]} | null>(null);
   const [uploadId, setUploadId] = useState<string>('');
 
-  const API_BASE_URL = 'http://localhost:8000';
+  const API_BASE_URL = 'http://192.168.178.24:8000';
 
   const pickAndUpload = async () => {
+    console.log("🖱️ Upload button pressed");
     setLoading(true);
     try {
       const res = await DocumentPicker.getDocumentAsync({ type: 'application/pdf' });
+      console.log("📄 Picker result:", res);
       if (res.type === 'success') {
         const uri = res.uri;
         const file = await fetch(uri);
@@ -24,10 +27,13 @@ export default function ResumeRefinerScreen() {
         const form = new FormData();
         form.append('file', blob, res.name);
 
+        console.log("🔗 POST →", `${API_BASE_URL}/resumes/upload`);
         const resp = await fetch(`${API_BASE_URL}/resumes/upload`, {
           method: 'POST',
           body: form
         });
+        console.log("⏳ Upload status:", resp.status);
+        console.log("📥 Response body:", await resp.text());
         const data = await resp.json();
         setUploadId(data.upload_id);
         setUploadStarted(true);

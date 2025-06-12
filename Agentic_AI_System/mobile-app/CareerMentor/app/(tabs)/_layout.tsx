@@ -48,7 +48,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="ResumeRefinerScreen"
+        name="resume-refiner"
         options={{
           title: 'ResumeRefiner',
           tabBarIcon: ({ color }) => <TabBarIcon name="file-text" color={color} size={20} />,

@@ -1,4 +1,3 @@
-# crews/resume_refiner/run_resume_refiner_cre.py
 from crews.resume_refiner.crew import ResumeRefinerCrew
 
 def run_parse(upload_id):

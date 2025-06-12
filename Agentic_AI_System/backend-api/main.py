@@ -35,6 +35,9 @@ app.add_middleware(
 # Mount static files if needed
 # app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# One-time initialization of ResumeParser
+parser = ResumeParser()
+
 # Pydantic models for request validation
 class CommandRequest(BaseModel):
     command: str
@@ -103,17 +106,35 @@ async def test_endpoint(request: AgentRequest):
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
 
 
-@app.post("/agents/resume_refiner/parse", tags=["Agents", "ResumeRefiner"])
-async def parse_resume(request: AgentRequest):
-    # speichere Upload elsewhere und erhalte upload_id
-    upload_id = request.data.get("upload_id")
-    return {"response": run_parse(upload_id)}
+#Resume Refiner Agent Endpoints
+@app.post("/resumes/upload", tags=["ResumeRefiner"])
+async def upload_resume(file: UploadFile = File(...)):
+    if file.content_type != "application/pdf":
+        raise HTTPException(400, "Only PDF files are supported")
+    # Optional: check size if file.spool_max_size is set
+    upload_id = parser.save_upload(file)
+    return {"upload_id": upload_id}
 
-@app.post("/agents/resume_refiner/refine/{upload_id}", tags=["Agents", "ResumeRefiner"])
+
+@app.post("/agents/resume_refiner/parse", tags=["ResumeRefiner"])
+async def parse_resume(request: dict):
+    uid = request.get("data", {}).get("upload_id")
+    if not uid:
+        raise HTTPException(400, "upload_id is required")
+    result = run_parse(uid)
+    return {"response": result}
+
+
+@app.post("/agents/resume_refiner/refine/{upload_id}", tags=["ResumeRefiner"])
 async def refine_resume(upload_id: str):
-    return {"response": run_refine(upload_id)}
+    result = run_refine(upload_id)
+    return {"response": result}
 
-@app.post("/agents/resume_refiner/match/{upload_id}", tags=["Agents", "ResumeRefiner"])
-async def match_resume(upload_id: str, request: AgentRequest):
-    job_text = request.data.get("job_text")
-    return {"response": run_match(upload_id, job_text)}
+
+@app.post("/agents/resume_refiner/match/{upload_id}", tags=["ResumeRefiner"])
+async def match_resume(upload_id: str, request: dict):
+    job_text = request.get("data", {}).get("job_text")
+    if not job_text:
+        raise HTTPException(400, "job_text is required")
+    result = run_match(upload_id, job_text)
+    return {"response": result}
