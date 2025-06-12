@@ -8,7 +8,7 @@ export default function ResumeRefinerScreen() {
   const [uploadStarted, setUploadStarted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [feedbackMessages, setFeedbackMessages] = useState<Array<{text: string, section: string}>>([]);
-  const [jobText, setJobText] = useState('');
+  const [jobDescription, setJobDescription] = useState('');
   const [matchResult, setMatchResult] = useState<{match_score: number, missing_keywords: string[], suggestions: string[]} | null>(null);
   const [uploadId, setUploadId] = useState<string>('');
 
@@ -125,15 +125,96 @@ export default function ResumeRefinerScreen() {
           }
           
           const msgs: Array<{ text: string, section: string }> = [];
-          Object.entries(fb).forEach(([section, tips]) => {
-            if (Array.isArray(tips)) {
-              (tips as string[]).forEach(tip => {
-                msgs.push({ section, text: tip });
+          // Handle different possible formats of the feedback
+          if (typeof fb === 'object' && fb !== null) {
+            // Check if we're dealing with the character-by-character issue
+            // (where each key is a number and each value is a single character)
+            const keys = Object.keys(fb);
+            const isCharacterByCharacter = keys.length > 100 && 
+              keys.every(key => !isNaN(Number(key))) &&
+              keys.every(key => {
+                const val = fb[key];
+                return typeof val === 'string' && val.length <= 1;
+              });
+            
+            if (isCharacterByCharacter) {
+              // Reconstruct the original string
+              console.log('📝 Detected character-by-character response, reconstructing...');
+              const sortedKeys = keys.map(Number).sort((a, b) => a - b);
+              const reconstructedText = sortedKeys.map(key => fb[key]).join('');
+              
+              // Process the reconstructed text
+              if (reconstructedText.trim()) {
+                // Try to split by common section markers
+                const sections = reconstructedText.split(/\n\s*(?:\*|\-|\d+\.)\s+/);
+                
+                if (sections.length > 1) {
+                  // If we found sections, use them
+                  sections.forEach((section, index) => {
+                    if (section.trim()) {
+                      msgs.push({ 
+                        section: `Feedback ${index + 1}`, 
+                        text: section.trim() 
+                      });
+                    }
+                  });
+                } else {
+                  // If no clear sections, split by paragraphs
+                  const paragraphs = reconstructedText.split(/\n\s*\n/);
+                  paragraphs.forEach((para, index) => {
+                    if (para.trim()) {
+                      msgs.push({ 
+                        section: `Feedback ${index + 1}`, 
+                        text: para.trim() 
+                      });
+                    }
+                  });
+                }
+              }
+            } else {
+              // Normal object processing
+              Object.entries(fb).forEach(([section, tips]) => {
+                if (Array.isArray(tips)) {
+                  (tips as string[]).forEach(tip => {
+                    msgs.push({ section, text: tip });
+                  });
+                } else if (typeof tips === 'string') {
+                  msgs.push({ section, text: tips });
+                } else {
+                  console.warn(`⚠️ Tips for section ${section} has unexpected type:`, typeof tips);
+                }
+              });
+            }
+          } else if (typeof fb === 'string') {
+            // If fb is just a string, treat it as a single feedback message
+            // Try to extract structured feedback if the string contains bullet points or sections
+            const feedbackText = fb.trim();
+            // Try to split by common section markers
+            const sections = feedbackText.split(/\n\s*(?:\*|\-|\d+\.)\s+/);
+            
+            if (sections.length > 1) {
+              // If we found sections, use them
+              sections.forEach((section, index) => {
+                if (section.trim()) {
+                  msgs.push({ 
+                    section: `Feedback ${index + 1}`, 
+                    text: section.trim() 
+                  });
+                }
               });
             } else {
-              console.warn(`⚠️ Tips for section ${section} is not an array:`, tips);
+              // If no clear sections, split by paragraphs
+              const paragraphs = feedbackText.split(/\n\s*\n/);
+              paragraphs.forEach((para, index) => {
+                if (para.trim()) {
+                  msgs.push({ 
+                    section: `Feedback ${index + 1}`, 
+                    text: para.trim() 
+                  });
+                }
+              });
             }
-          });
+          }
           
           setFeedbackMessages(msgs.length > 0 ? msgs : [{ 
             section: 'Info', 
@@ -168,13 +249,75 @@ export default function ResumeRefinerScreen() {
     if (!uploadStarted) return;
     setLoading(true);
     try {
-      const resp = await fetch(`${API_BASE_URL}/agents/resume_refiner/match/${uploadId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: { job_text: jobText } })
-      });
-      const data = await resp.json();
-      setMatchResult(data.response);
+      // Proceed with job matching if we have a job description
+      if (jobDescription) {
+        try {
+          console.log(`🔄 Calling match endpoint with id: ${uploadId}`);
+          const matchResp = await fetch(`${API_BASE_URL}/agents/resume_refiner/match/${uploadId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: { job_text: jobDescription } })
+          });
+          
+          console.log(`📊 Match response status: ${matchResp.status}`);
+          const matchRawText = await matchResp.text();
+          console.log(`📥 Match response body: ${matchRawText.substring(0, 200)}...`);
+          
+          if (matchResp.status === 200) {
+            try {
+              const matchData = JSON.parse(matchRawText);
+              
+              // Parse nested JSON if needed
+              let matchResult;
+              if (typeof matchData.response === 'string') {
+                try {
+                  matchResult = JSON.parse(matchData.response);
+                  console.log('✅ Successfully parsed nested JSON in match response');
+                } catch (nestedJsonError) {
+                  console.warn('⚠️ Match response field is not valid JSON, using as-is');
+                  matchResult = matchData.response;
+                }
+              } else {
+                matchResult = matchData.response;
+              }
+              console.log('📋 Match result:', matchResult);
+              
+              // Extract match score
+              let matchScore = 0;
+              let missingKeywords: string[] = [];
+              let suggestions: string[] = [];
+              
+              if (typeof matchResult === 'object' && matchResult !== null) {
+                if ('match_score' in matchResult) {
+                  matchScore = matchResult.match_score;
+                }
+                if ('missing_keywords' in matchResult && Array.isArray(matchResult.missing_keywords)) {
+                  missingKeywords = matchResult.missing_keywords;
+                }
+                if ('suggestions' in matchResult && Array.isArray(matchResult.suggestions)) {
+                  suggestions = matchResult.suggestions;
+                }
+              } else if (typeof matchResult === 'string') {
+                // Try to extract a number from the string
+                const scoreMatch = matchResult.match(/(\d+(\.\d+)?)/);
+                if (scoreMatch) {
+                  matchScore = parseFloat(scoreMatch[0]);
+                }
+              }
+              
+              setMatchResult({ 
+                match_score: matchScore, 
+                missing_keywords: missingKeywords, 
+                suggestions: suggestions 
+              });
+            } catch (jsonError) {
+              console.error('❌ Failed to parse match response as JSON:', jsonError);
+            }
+          }
+        } catch (matchError) {
+          console.error('❌ Error during job matching:', matchError);
+        }
+      }
     } catch (e) {
       console.error(e);
     }
@@ -205,8 +348,8 @@ export default function ResumeRefinerScreen() {
             style={styles.input}
             placeholder="Paste job description..."
             multiline
-            value={jobText}
-            onChangeText={setJobText}
+            value={jobDescription}
+            onChangeText={setJobDescription}
           />
           <TouchableOpacity style={styles.button} onPress={matchResume} disabled={loading}>
             <Text style={styles.buttonText}>Match Resume to Job</Text>
