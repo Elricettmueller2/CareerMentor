@@ -1,0 +1,20 @@
+start_interview: 
+  description: >
+    Start a job interview for the specified position and experience level.
+    Begin with a brief introduction and ask an appropriate opening question.
+  expected_output: >
+    A professional introduction and first interview question
+  agent: interview_agent
+
+
+respond_to_answer:
+  description: Respond
+  expected_output: >
+    A relevant follow-up question or response
+  agent: interview_agent
+
+review_interview:
+  description: Review the interview
+  expected_output: >
+    A detailed review of the interview with feedback
+  agent: interview_agent
