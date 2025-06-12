@@ -64,29 +64,104 @@ export default function ResumeRefinerScreen() {
     setLoading(true);
     try {
       // Parse
+      console.log(`🔍 Calling parse endpoint with upload_id: ${id}`);
       const parseResp = await fetch(`${API_BASE_URL}/agents/resume_refiner/parse`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data: { upload_id: id } })
       });
-      const parseData = await parseResp.json();
-      // Refine
-      const refResp = await fetch(`${API_BASE_URL}/agents/resume_refiner/refine/${id}`, {
-        method: 'POST'
-      });
-      const refData = await refResp.json();
-      const fb = refData.response;
-      const msgs: Array<{ text: string, section: string }> = [];
-      Object.entries(fb).forEach(([section, tips]) => {
-        (tips as string[]).forEach(tip => {
-          msgs.push({ section, text: tip });
+      
+      console.log(`📊 Parse response status: ${parseResp.status}`);
+      // Get the raw text first for debugging
+      const parseRawText = await parseResp.text();
+      console.log(`📥 Parse response body: ${parseRawText.substring(0, 200)}...`);
+      
+      // Skip the refine step for now until we fix the parse step
+      if (parseResp.status !== 200) {
+        console.error(`❌ Parse request failed with status: ${parseResp.status}`);
+        setFeedbackMessages([{ 
+          section: 'Error', 
+          text: `Resume parsing failed. Server returned status ${parseResp.status}. Please try again later.` 
+        }]);
+        return;
+      }
+      
+      try {
+        // Try to parse the JSON response
+        const parseData = JSON.parse(parseRawText);
+        console.log('✅ Successfully parsed JSON response');
+        
+        // Now try the refine step
+        console.log(`🔄 Calling refine endpoint with id: ${id}`);
+        const refResp = await fetch(`${API_BASE_URL}/agents/resume_refiner/refine/${id}`, {
+          method: 'POST'
         });
-      });
-      setFeedbackMessages(msgs);
+        
+        console.log(`📊 Refine response status: ${refResp.status}`);
+        const refRawText = await refResp.text();
+        console.log(`📥 Refine response body: ${refRawText.substring(0, 200)}...`);
+        
+        if (refResp.status !== 200) {
+          console.error(`❌ Refine request failed with status: ${refResp.status}`);
+          setFeedbackMessages([{ 
+            section: 'Error', 
+            text: `Resume refinement failed. Server returned status ${refResp.status}. Please try again later.` 
+          }]);
+          return;
+        }
+        
+        try {
+          const refData = JSON.parse(refRawText);
+          console.log('✅ Successfully parsed refine JSON response');
+          
+          const fb = refData.response;
+          if (!fb) {
+            console.error('❌ No response field in refine data');
+            setFeedbackMessages([{ 
+              section: 'Error', 
+              text: 'Resume refinement returned an invalid response. Please try again later.' 
+            }]);
+            return;
+          }
+          
+          const msgs: Array<{ text: string, section: string }> = [];
+          Object.entries(fb).forEach(([section, tips]) => {
+            if (Array.isArray(tips)) {
+              (tips as string[]).forEach(tip => {
+                msgs.push({ section, text: tip });
+              });
+            } else {
+              console.warn(`⚠️ Tips for section ${section} is not an array:`, tips);
+            }
+          });
+          
+          setFeedbackMessages(msgs.length > 0 ? msgs : [{ 
+            section: 'Info', 
+            text: 'Resume analyzed successfully, but no specific feedback was provided.' 
+          }]);
+        } catch (jsonError) {
+          console.error('❌ Failed to parse refine response as JSON:', jsonError);
+          setFeedbackMessages([{ 
+            section: 'Error', 
+            text: 'Failed to process the refinement results. The server response was not valid JSON.' 
+          }]);
+        }
+      } catch (jsonError) {
+        console.error('❌ Failed to parse parse response as JSON:', jsonError);
+        setFeedbackMessages([{ 
+          section: 'Error', 
+          text: 'Failed to process the parsing results. The server response was not valid JSON.' 
+        }]);
+      }
     } catch (e) {
-      console.error(e);
+      console.error('❌ Network or other error:', e);
+      setFeedbackMessages([{ 
+        section: 'Error', 
+        text: `An error occurred: ${e.message}. Please check your connection and try again.` 
+      }]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const matchResume = async () => {
