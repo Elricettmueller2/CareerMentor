@@ -1,0 +1,23 @@
+suggest_roles:
+  description: >
+    Analyze the user's academic background, skills, and interests to recommend 3–5 well-matching career paths.
+    Each suggestion should include a short explanation of why it fits.
+  expected_output: >
+    A list of 3–5 suggested career paths with match rationale.
+  agent: career_strategy_agent
+
+match_jobs:
+  description: >
+    Based on the selected career path and the user's profile, find relevant internships or job roles.
+    Include job titles and types of companies where this role is common.
+  expected_output: >
+    A list of 3–5 relevant job or internship titles with company types or industries.
+  agent: career_strategy_agent
+
+set_goal_and_gap:
+  description: >
+    Given a selected career goal, identify the skill gap based on the user's current profile,
+    and suggest concrete learning tasks or actions to close the gap.
+  expected_output: >
+    A short roadmap of 3–5 learning steps to progress toward the selected goal.
+  agent: career_strategy_agent
