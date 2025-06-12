@@ -1,0 +1,28 @@
+parse_resume:
+  description: >
+    Extract and normalize full text from the uploaded resume file (PDF or DOCX),
+    preserving section headers and bullet structure.
+  expected_output: >
+    A single string containing the cleaned, concatenated resume text.
+  agent: resume_refiner_agent
+
+refine_resume:
+  description: >
+    Analyze the parsed resume text and generate categorized, actionable improvement suggestions:
+    section completeness, formatting, grammar, and keyword optimization for the target role.
+    Start with a concise summary of strengths and areas for improvement.
+  expected_output: >
+    An object with:
+      - summary: brief overview of candidate’s key strengths and main improvement areas
+      - feedback: list of entries each tagged with category (e.g., “Formatting”, “Grammar”, “Keywords”)
+  agent: resume_refiner_agent
+
+match_resume:
+  description: >
+    Compare the resume content against a given job description, compute a match score,
+    and identify the top 5 missing or underrepresented keywords. Offer concrete wording suggestions.
+  expected_output: >
+    An object with:
+      - match_score: float between 0.0 and 1.0
+      - suggestions: array of up to 5 strings recommending keyword additions or rephrases
+  agent: resume_refiner_agent
