@@ -8,7 +8,8 @@ import os
 from dotenv import load_dotenv
 
 # Import crew functions
-from crews.mock_mate.run_mock_mate_crew import run_respond_to_answer, run_start_interview, run_review_interview
+# from crews.mock_mate.run_mock_mate_crew import run_respond_to_answer, run_start_interview, run_review_interview
+from crews.track_pal.run_track_pal_crew import run_check_reminders
 from crews.test.run_test_crew import run_test_crew
 
 # Load environment variables
@@ -55,33 +56,46 @@ def run_command(request: CommandRequest):
         return {"message": f"Unknown command: {command}!"}
 
 # Agent endpoints
-@app.post("/agents/mock_mate/{action}", tags=["Agents", "MockMate"])
-async def mock_mate_endpoint(action: str, request: AgentRequest):
-    """Route requests to the MockMate agent based on the action"""
-    # Extract request data
+# @app.post("/agents/mock_mate/{action}", tags=["Agents", "MockMate"])
+# async def mock_mate_endpoint(action: str, request: AgentRequest):
+#     """Route requests to the MockMate agent based on the action"""
+#     # Extract request data
+#     data = request.data
+#     
+#     # Route to the appropriate method based on action
+#     try:
+#         if action == "respond":
+#             result = run_respond_to_answer(
+#                 user_response=data.get("user_response")
+#             )
+#             return {"response": result}
+#         elif action == "start_interview":
+#             result = run_start_interview(
+#                 job_role=data.get("job_role"),
+#                 experience_level=data.get("experience_level")
+#             )
+#             return {"response": result}
+#         elif action == "review":
+#             result = run_review_interview(
+#                 interview_history=data.get("interview_history")
+#             )
+#             return {"response": result}
+#         else:
+#             raise HTTPException(status_code=400, detail=f"Unknown action: {action}")
+#             
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+
+@app.post("/agents/track_pal/{action}", tags=["Agents", "TrackPal"])
+async def track_pal_endpoint(action: str, request: AgentRequest):
+    """Route requests to the TrackPal agent based on the action"""
     data = request.data
-    
-    # Route to the appropriate method based on action
     try:
-        if action == "respond":
-            result = run_respond_to_answer(
-                user_response=data.get("user_response")
-            )
-            return {"response": result}
-        elif action == "start_interview":
-            result = run_start_interview(
-                job_role=data.get("job_role"),
-                experience_level=data.get("experience_level")
-            )
-            return {"response": result}
-        elif action == "review":
-            result = run_review_interview(
-                interview_history=data.get("interview_history")
-            )
+        if action == "check_reminders":
+            result = run_check_reminders(user_id=data.get("user_id"))
             return {"response": result}
         else:
             raise HTTPException(status_code=400, detail=f"Unknown action: {action}")
-            
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
 

@@ -1,0 +1,20 @@
+check_for_followups:
+  description: >
+    Check if any applications are older than 7-10 days without a response and suggest following up.
+  expected_output: >
+    A list of applications to follow up on and a short message for the user.
+  agent: trackpal_agent
+
+analyze_rejections:
+  description: >
+    Detect if the user has received multiple rejections and suggest improvements or help from ResumeRefiner.
+  expected_output: >
+    Message recommending to revise the CV or seek feedback.
+  agent: trackpal_agent
+
+reminder_summary:
+  description: >
+    Provide a weekly overview of pending applications and next steps.
+  expected_output: >
+    Text-based summary of application statuses and action items.
+  agent: trackpal_agent
