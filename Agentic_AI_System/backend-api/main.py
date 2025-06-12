@@ -109,6 +109,7 @@ async def test_endpoint(request: AgentRequest):
 #Resume Refiner Agent Endpoints
 @app.post("/resumes/upload", tags=["ResumeRefiner"])
 async def upload_resume(file: UploadFile = File(...)):
+    print("🖨️ upload_resume called")
     if file.content_type != "application/pdf":
         raise HTTPException(400, "Only PDF files are supported")
     # Optional: check size if file.spool_max_size is set
