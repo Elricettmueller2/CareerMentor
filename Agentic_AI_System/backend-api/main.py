@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query, HTTPException
+from fastapi import FastAPI, Query, HTTPException, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
@@ -10,6 +10,9 @@ from dotenv import load_dotenv
 # Import crew functions
 #from crews.mock_mate.run_mock_mate_crew import run_respond_to_answer, run_start_interview, run_review_interview
 from crews.test.run_test_crew import run_test_crew
+
+from crews.resume_refiner.run_resume_refiner_crew import run_parse, run_refine, run_match
+from crews.resume_refiner.parser import ResumeParser
 
 # Load environment variables
 load_dotenv()
@@ -98,3 +101,19 @@ async def test_endpoint(request: AgentRequest):
         return {"response": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+
+
+@app.post("/agents/resume_refiner/parse", tags=["Agents", "ResumeRefiner"])
+async def parse_resume(request: AgentRequest):
+    # speichere Upload elsewhere und erhalte upload_id
+    upload_id = request.data.get("upload_id")
+    return {"response": run_parse(upload_id)}
+
+@app.post("/agents/resume_refiner/refine/{upload_id}", tags=["Agents", "ResumeRefiner"])
+async def refine_resume(upload_id: str):
+    return {"response": run_refine(upload_id)}
+
+@app.post("/agents/resume_refiner/match/{upload_id}", tags=["Agents", "ResumeRefiner"])
+async def match_resume(upload_id: str, request: AgentRequest):
+    job_text = request.data.get("job_text")
+    return {"response": run_match(upload_id, job_text)}

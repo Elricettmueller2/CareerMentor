@@ -1,6 +1,6 @@
 parse_resume:
   description: >
-    Extract and normalize full text from the uploaded resume file (PDF or DOCX),
+    Extract and normalize full text from the uploaded resume file (PDF),
     preserving section headers and bullet structure.
   expected_output: >
     A single string containing the cleaned, concatenated resume text.
