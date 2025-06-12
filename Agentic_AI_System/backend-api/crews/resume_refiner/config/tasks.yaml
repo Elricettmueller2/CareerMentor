@@ -8,13 +8,46 @@ parse_resume:
 
 refine_resume:
   description: >
-    Analyze the parsed resume text and generate categorized, actionable improvement suggestions:
-    section completeness, formatting, grammar, and keyword optimization for the target role.
-    Start with a concise summary of strengths and areas for improvement.
+    Analyze the parsed resume text and generate a comprehensive evaluation with scores and feedback.
+    Evaluate the resume across four main categories:
+    
+    1. Format & Layout (0-100 points)
+       - Übersichtlichkeit: klare Abschnitte, konsistenter Weißraum
+       - Einheitliche Formatierung: Schriftgrößen, Bullet-Styles, Ränder
+    
+    2. Inhalt & Struktur (0-100 points)
+       - Vollständige Kernabschnitte (Profil, Berufserfahrung, Ausbildung, Skills)
+       - Logischer Aufbau und Fluss zwischen den Abschnitten
+    
+    3. Sprache & Stil (0-100 points)
+       - Aktive, präzise Formulierungen
+       - Rechtschreibung, Grammatik und Tonalität
+    
+    4. Ergebnis-Orientierung (0-100 points)
+       - Fokus auf quantifizierbare Erfolge (KPIs, Zahlen, Prozentwerte)
+       - Klare Herausstellung von Impact und Verantwortungsbereichen
+    
+    For each category, provide a score and specific feedback with improvement suggestions.
+    Calculate an overall score as the weighted average of all categories.
   expected_output: >
-    An object with:
-      - summary: brief overview of candidate’s key strengths and main improvement areas
-      - feedback: list of entries each tagged with category (e.g., “Formatting”, “Grammar”, “Keywords”)
+    A JSON object with the exact structure:
+    {
+      "scores": {
+        "format_layout": 75,
+        "inhalt_struktur": 80,
+        "sprache_stil": 65,
+        "ergebnis_orientierung": 70,
+        "overall": 72.5
+      },
+      "feedback": {
+        "format_layout": ["Feedback point 1", "Feedback point 2"],
+        "inhalt_struktur": ["Feedback point 1", "Feedback point 2"],
+        "sprache_stil": ["Feedback point 1", "Feedback point 2"],
+        "ergebnis_orientierung": ["Feedback point 1", "Feedback point 2"]
+      }
+    }
+    
+    The response must be valid JSON with no text outside this structure.
   agent: resume_refiner_agent
 
 match_resume:

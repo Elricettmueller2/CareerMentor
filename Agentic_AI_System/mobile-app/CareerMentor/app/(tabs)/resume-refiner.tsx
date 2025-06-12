@@ -11,6 +11,15 @@ export default function ResumeRefinerScreen() {
   const [jobDescription, setJobDescription] = useState('');
   const [matchResult, setMatchResult] = useState<{match_score: number, missing_keywords: string[], suggestions: string[]} | null>(null);
   const [uploadId, setUploadId] = useState<string>('');
+  
+  // New state for category scores
+  const [categoryScores, setCategoryScores] = useState<{
+    format_layout: number;
+    inhalt_struktur: number;
+    sprache_stil: number;
+    ergebnis_orientierung: number;
+    overall: number;
+  } | null>(null);
 
   const API_BASE_URL = 'http://192.168.178.24:8000';
 
@@ -111,20 +120,44 @@ export default function ResumeRefinerScreen() {
         }
         
         try {
+          // Try to parse the JSON response
           const refData = JSON.parse(refRawText);
           console.log('✅ Successfully parsed refine JSON response');
           
-          const fb = refData.response;
+          // Extract response from the refine data
+          let responseData = refData.response;
+          
+          // Check if responseData is a string (which might be a JSON string)
+          if (typeof responseData === 'string') {
+            try {
+              // Try to parse it as JSON
+              responseData = JSON.parse(responseData);
+              console.log('📊 Parsed nested JSON in response');
+            } catch (nestedJsonError) {
+              console.warn('⚠️ Response is a string but not valid JSON:', nestedJsonError);
+              // Keep it as a string if it's not valid JSON
+            }
+          }
+          
+          // Process scores if they exist in the response
+          if (responseData && typeof responseData === 'object' && responseData.scores) {
+            console.log('📊 Found scores in response:', responseData.scores);
+            setCategoryScores(responseData.scores);
+          } else {
+            console.warn('⚠️ No scores found in response');
+            setCategoryScores(null);
+          }
+          
+          // Process feedback
+          let fb = responseData?.feedback || responseData;
           if (!fb) {
-            console.error('❌ No response field in refine data');
-            setFeedbackMessages([{ 
-              section: 'Error', 
-              text: 'Resume refinement returned an invalid response. Please try again later.' 
-            }]);
+            console.warn('⚠️ No feedback found in response');
+            setFeedbackMessages([{ section: 'Info', text: 'No feedback available.' }]);
             return;
           }
           
           const msgs: Array<{ text: string, section: string }> = [];
+          
           // Handle different possible formats of the feedback
           if (typeof fb === 'object' && fb !== null) {
             // Check if we're dealing with the character-by-character issue
@@ -172,18 +205,47 @@ export default function ResumeRefinerScreen() {
                 }
               }
             } else {
-              // Normal object processing
-              Object.entries(fb).forEach(([section, tips]) => {
-                if (Array.isArray(tips)) {
-                  (tips as string[]).forEach(tip => {
-                    msgs.push({ section, text: tip });
-                  });
-                } else if (typeof tips === 'string') {
-                  msgs.push({ section, text: tips });
-                } else {
-                  console.warn(`⚠️ Tips for section ${section} has unexpected type:`, typeof tips);
-                }
-              });
+              // Check if the feedback is in the new category-based format
+              const categoryKeys = ['format_layout', 'inhalt_struktur', 'sprache_stil', 'ergebnis_orientierung'];
+              const isCategoryFormat = categoryKeys.some(key => key in fb);
+              
+              if (isCategoryFormat) {
+                // Process category-based feedback
+                Object.entries(fb).forEach(([category, tips]) => {
+                  // Skip the 'scores' key if it exists in the feedback object
+                  if (category === 'scores') return;
+                  
+                  // Format category name for display
+                  let displayCategory = category;
+                  if (category === 'format_layout') displayCategory = 'Format & Layout';
+                  else if (category === 'inhalt_struktur') displayCategory = 'Inhalt & Struktur';
+                  else if (category === 'sprache_stil') displayCategory = 'Sprache & Stil';
+                  else if (category === 'ergebnis_orientierung') displayCategory = 'Ergebnis-Orientierung';
+                  
+                  if (Array.isArray(tips)) {
+                    (tips as string[]).forEach(tip => {
+                      msgs.push({ section: displayCategory, text: tip });
+                    });
+                  } else if (typeof tips === 'string') {
+                    msgs.push({ section: displayCategory, text: tips });
+                  } else {
+                    console.warn(`⚠️ Tips for category ${category} has unexpected type:`, typeof tips);
+                  }
+                });
+              } else {
+                // Normal object processing (old format)
+                Object.entries(fb).forEach(([section, tips]) => {
+                  if (Array.isArray(tips)) {
+                    (tips as string[]).forEach(tip => {
+                      msgs.push({ section, text: tip });
+                    });
+                  } else if (typeof tips === 'string') {
+                    msgs.push({ section, text: tips });
+                  } else {
+                    console.warn(`⚠️ Tips for section ${section} has unexpected type:`, typeof tips);
+                  }
+                });
+              }
             }
           } else if (typeof fb === 'string') {
             // If fb is just a string, treat it as a single feedback message
@@ -218,31 +280,31 @@ export default function ResumeRefinerScreen() {
           
           setFeedbackMessages(msgs.length > 0 ? msgs : [{ 
             section: 'Info', 
-            text: 'Resume analyzed successfully, but no specific feedback was provided.' 
+            text: 'No specific feedback available.' 
           }]);
-        } catch (jsonError) {
-          console.error('❌ Failed to parse refine response as JSON:', jsonError);
+          
+        } catch (refJsonError) {
+          console.error('❌ Failed to parse refine response as JSON:', refJsonError);
           setFeedbackMessages([{ 
             section: 'Error', 
-            text: 'Failed to process the refinement results. The server response was not valid JSON.' 
+            text: 'Failed to parse refinement response. Please try again later.' 
           }]);
         }
-      } catch (jsonError) {
-        console.error('❌ Failed to parse parse response as JSON:', jsonError);
+      } catch (refError) {
+        console.error('❌ Error during refinement:', refError);
         setFeedbackMessages([{ 
           section: 'Error', 
-          text: 'Failed to process the parsing results. The server response was not valid JSON.' 
+          text: 'An error occurred during refinement. Please try again later.' 
         }]);
       }
     } catch (e) {
-      console.error('❌ Network or other error:', e);
+      console.error(e);
       setFeedbackMessages([{ 
         section: 'Error', 
-        text: `An error occurred: ${e.message}. Please check your connection and try again.` 
+        text: 'An unexpected error occurred. Please try again later.' 
       }]);
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   const matchResume = async () => {
@@ -324,6 +386,12 @@ export default function ResumeRefinerScreen() {
     setLoading(false);
   };
 
+  const getScoreColor = (score: number) => {
+    if (score < 33) return styles.scoreBarLow;
+    else if (score < 66) return styles.scoreBarMedium;
+    else return styles.scoreBarHigh;
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Resume Refiner</Text>
@@ -337,6 +405,84 @@ export default function ResumeRefinerScreen() {
       ) : (
         <ScrollView style={styles.chatContainer}>
           {loading && <ActivityIndicator size="large" />}
+          
+          {/* Display category scores if available */}
+          {categoryScores && (
+            <View style={styles.scoreContainer}>
+              <Text style={styles.sectionHeader}>Resume Score</Text>
+              <View style={styles.overallScoreContainer}>
+                <Text style={styles.overallScoreText}>
+                  {categoryScores.overall.toFixed(1)}
+                </Text>
+                <Text style={styles.overallScoreLabel}>/100</Text>
+              </View>
+              
+              <Text style={styles.categoryHeader}>Category Scores</Text>
+              
+              {/* Format & Layout Score */}
+              <View style={styles.categoryRow}>
+                <Text style={styles.categoryLabel}>Format & Layout</Text>
+                <View style={styles.scoreBarContainer}>
+                  <View 
+                    style={[
+                      styles.scoreBar, 
+                      { width: `${categoryScores.format_layout}%` },
+                      getScoreColor(categoryScores.format_layout)
+                    ]} 
+                  />
+                </View>
+                <Text style={styles.scoreValue}>{categoryScores.format_layout}</Text>
+              </View>
+              
+              {/* Inhalt & Struktur Score */}
+              <View style={styles.categoryRow}>
+                <Text style={styles.categoryLabel}>Inhalt & Struktur</Text>
+                <View style={styles.scoreBarContainer}>
+                  <View 
+                    style={[
+                      styles.scoreBar, 
+                      { width: `${categoryScores.inhalt_struktur}%` },
+                      getScoreColor(categoryScores.inhalt_struktur)
+                    ]} 
+                  />
+                </View>
+                <Text style={styles.scoreValue}>{categoryScores.inhalt_struktur}</Text>
+              </View>
+              
+              {/* Sprache & Stil Score */}
+              <View style={styles.categoryRow}>
+                <Text style={styles.categoryLabel}>Sprache & Stil</Text>
+                <View style={styles.scoreBarContainer}>
+                  <View 
+                    style={[
+                      styles.scoreBar, 
+                      { width: `${categoryScores.sprache_stil}%` },
+                      getScoreColor(categoryScores.sprache_stil)
+                    ]} 
+                  />
+                </View>
+                <Text style={styles.scoreValue}>{categoryScores.sprache_stil}</Text>
+              </View>
+              
+              {/* Ergebnis-Orientierung Score */}
+              <View style={styles.categoryRow}>
+                <Text style={styles.categoryLabel}>Ergebnis-Orientierung</Text>
+                <View style={styles.scoreBarContainer}>
+                  <View 
+                    style={[
+                      styles.scoreBar, 
+                      { width: `${categoryScores.ergebnis_orientierung}%` },
+                      getScoreColor(categoryScores.ergebnis_orientierung)
+                    ]} 
+                  />
+                </View>
+                <Text style={styles.scoreValue}>{categoryScores.ergebnis_orientierung}</Text>
+              </View>
+            </View>
+          )}
+          
+          {/* Display feedback messages */}
+          <Text style={styles.sectionHeader}>Detailed Feedback</Text>
           {feedbackMessages.map((msg, index) => (
             <View key={index} style={styles.messageBubble}>
               <Text style={styles.messageText}>[{msg.section}] {msg.text}</Text>
@@ -389,4 +535,17 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 18, fontWeight: '500' },
   cardSubtitle: { fontSize: 16, fontWeight: '500', marginTop: 10 },
   cardText: { fontSize: 14, marginVertical: 2 },
+  scoreContainer: { padding: 20, backgroundColor: '#f9f9f9', borderRadius: 5, marginVertical: 10 },
+  overallScoreContainer: { flexDirection: 'row', alignItems: 'center' },
+  overallScoreText: { fontSize: 24, fontWeight: 'bold' },
+  overallScoreLabel: { fontSize: 16, marginLeft: 5 },
+  categoryHeader: { fontSize: 18, fontWeight: '500', marginTop: 10 },
+  categoryRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 5 },
+  categoryLabel: { fontSize: 16, flex: 1 },
+  scoreBarContainer: { height: 10, width: '60%', backgroundColor: '#ddd', borderRadius: 5, marginRight: 10 },
+  scoreBar: { height: 10, borderRadius: 5 },
+  scoreBarLow: { backgroundColor: '#ff0000' },
+  scoreBarMedium: { backgroundColor: '#ffff00' },
+  scoreBarHigh: { backgroundColor: '#00ff00' },
+  scoreValue: { fontSize: 16 },
 });
