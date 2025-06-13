@@ -21,3 +21,11 @@ set_goal_and_gap:
   expected_output: >
     A short roadmap of 3–5 learning steps to progress toward the selected goal.
   agent: career_strategy_agent
+
+search_jobs_online:
+  description: >
+    Search online job listings based on the user's query and return relevant job postings.
+    Include job title, company, location, description, requirements, and other relevant details.
+  expected_output: >
+    A list of job postings matching the search query with complete details.
+  agent: job_scraper_agent

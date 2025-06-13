@@ -1,170 +1,161 @@
-import React, { useState } from 'react';
-import { StyleSheet, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, Keyboard, View } from 'react-native';
-import { Text } from '@/components/Themed';
-import { useRouter } from 'expo-router';
+from crews.path_finder.job_scraper import job_scraper
+from typing import Dict, Any, List
+from database.db_utils import (
+    save_job_for_user, 
+    unsave_job_for_user, 
+    get_saved_jobs_for_user, 
+    add_search_history, 
+    get_search_history_for_user,
+    is_job_saved
+)
 
-export default function PathFinderScreen() {
-  const [search, setSearch] = useState('');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<Array<any>>([]);
-  const [error, setError] = useState<string | null>(null);
+def suggest_roles(query: str) -> Dict[str, Any]:
+    """
+    Generate search suggestions based on partial input.
+    
+    Args:
+        query: The partial search query
+        
+    Returns:
+        Dictionary with suggestions
+    """
+    suggestions = job_scraper.suggest_search_terms(query)
+    return {"suggestions": suggestions}
 
-  const API_BASE_URL = 'http://localhost:8000';
-  const router = useRouter();
 
-  // Autosuggest: Hole Vorschläge beim Tippen
-  const handleSuggest = async (text: string) => {
-    setSearch(text);
-    if (text.length < 2) {
-      setSuggestions([]);
-      return;
+def search_jobs_online(query: str, user_id: str = None, limit: int = 10) -> Dict[str, Any]:
+    """
+    Search for jobs matching the query.
+    
+    Args:
+        query: The search query
+        user_id: Optional user ID to track search history
+        limit: Maximum number of results to return
+        
+    Returns:
+        Dictionary with job listings
+    """
+    # Record search history if user_id is provided
+    if user_id:
+        add_search_history(user_id, query)
+    
+    # Get jobs from the scraper
+    jobs = job_scraper.search_jobs(query, limit)
+    
+    # If user_id is provided, check which jobs are saved
+    if user_id:
+        for job in jobs:
+            job["is_saved"] = is_job_saved(user_id, job["id"])
+    
+    return {"jobs": jobs, "query": query, "count": len(jobs)}
+
+
+def get_job_details(job_id: str, user_id: str = None) -> Dict[str, Any]:
+    """
+    Get detailed information about a specific job.
+    
+    Args:
+        job_id: The ID of the job to retrieve
+        user_id: Optional user ID to check if job is saved
+        
+    Returns:
+        Dictionary with job details
+    """
+    job = job_scraper.get_job_details(job_id)
+    
+    # Check if the job is saved if user_id is provided
+    if user_id:
+        job["is_saved"] = is_job_saved(user_id, job_id)
+    
+    return {"job": job}
+
+
+def save_job(user_id: str, job_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Save a job for a user.
+    
+    Args:
+        user_id: The ID of the user
+        job_data: The job data to save
+        
+    Returns:
+        Dictionary with result
+    """
+    saved_job = save_job_for_user(user_id, job_data)
+    return {
+        "success": True,
+        "message": "Job saved successfully",
+        "job_id": job_data.get("id")
     }
-    try {
-      const response = await fetch(`${API_BASE_URL}/agents/path_finder/suggest_roles`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: { query: text } }),
-      });
-      const data = await response.json();
-      setSuggestions(data.suggestions || []);
-    } catch {
-      setSuggestions([]);
+
+
+def unsave_job(user_id: str, job_id: str) -> Dict[str, Any]:
+    """
+    Remove a saved job for a user.
+    
+    Args:
+        user_id: The ID of the user
+        job_id: The ID of the job to remove
+        
+    Returns:
+        Dictionary with result
+    """
+    success = unsave_job_for_user(user_id, job_id)
+    return {
+        "success": success,
+        "message": "Job removed successfully" if success else "Job not found",
+        "job_id": job_id
     }
-  };
 
-  // Suche echte Jobs
-  const handleSearch = async (query?: string) => {
-    const q = query || search;
-    if (!q.trim()) return;
-    setLoading(true);
-    setError(null);
-    setResults([]);
-    setSuggestions([]);
-    Keyboard.dismiss();
-    try {
-      const response = await fetch(`${API_BASE_URL}/agents/path_finder/search_jobs_online`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: { query: q.trim() } }),
-      });
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
-      const data = await response.json();
-      setResults(data.jobs || []);
-    } catch (err: any) {
-      setError('Fehler beim Laden der Jobs. Stelle sicher, dass das Backend läuft.');
+
+def get_saved_jobs(user_id: str) -> Dict[str, Any]:
+    """
+    Get all saved jobs for a user.
+    
+    Args:
+        user_id: The ID of the user
+        
+    Returns:
+        Dictionary with saved jobs
+    """
+    saved_jobs = get_saved_jobs_for_user(user_id)
+    return {
+        "saved_jobs": saved_jobs,
+        "count": len(saved_jobs)
     }
-    setLoading(false);
-  };
 
-  // Navigiere zur Detailseite
-  const openJobDetail = (job: any) => {
-    router.push({
-      pathname: '/job-detail',
-      params: { job: JSON.stringify(job) },
-    });
-  };
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>PathFinder</Text>
-      <View style={styles.searchRow}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search for a job (e.g. Software Engineer)"
-          placeholderTextColor="#888"
-          value={search}
-          onChangeText={handleSuggest}
-          onSubmitEditing={() => handleSearch()}
-          returnKeyType="search"
-        />
-        <TouchableOpacity style={styles.searchButton} onPress={() => handleSearch()} disabled={loading}>
-          <Text style={styles.searchButtonText}>Search</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Vorschläge beim Tippen */}
-      {suggestions.length > 0 && (
-        <View style={styles.suggestionsBox}>
-          {suggestions.map((s, idx) => (
-            <TouchableOpacity key={idx} onPress={() => { setSearch(s); setSuggestions([]); handleSearch(s); }}>
-              <Text style={styles.suggestionText}>{s}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      <Text style={styles.sectionTitle}>Suggestions</Text>
-      {loading && <ActivityIndicator style={{ marginVertical: 24 }} />}
-      {error && <Text style={styles.errorText}>{error}</Text>}
-
-      {/* Ergebnisse */}
-      <ScrollView style={styles.resultsContainer} keyboardShouldPersistTaps="handled">
-        {results.map((job, idx) => (
-          <TouchableOpacity key={idx} style={styles.resultCard} onPress={() => openJobDetail(job)}>
-            <Text style={styles.resultTitle}>{job.title || 'Job Title'}</Text>
-            <Text style={styles.resultCompany}>{job.company || ''}{job.location ? ` | ${job.location}` : ''}</Text>
-            {job.skills && (
-              <Text style={styles.resultSkills}>{job.skills}</Text>
-            )}
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#faf6ff' },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 24, textAlign: 'center' },
-  searchRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  searchInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#bbb',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    backgroundColor: '#fff',
-  },
-  searchButton: {
-    marginLeft: 10,
-    backgroundColor: '#6c6690',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  searchButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  suggestionsBox: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#bbb',
-    marginBottom: 12,
-    marginTop: -8,
-    zIndex: 10,
-  },
-  suggestionText: {
-    padding: 12,
-    fontSize: 16,
-    color: '#6c6690',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 12, marginTop: 8 },
-  errorText: { color: '#ff3b30', marginVertical: 16, textAlign: 'center' },
-  resultsContainer: { flex: 1 },
-  resultCard: {
-    borderWidth: 1,
-    borderColor: '#bbb',
-    borderRadius: 14,
-    padding: 18,
-    marginBottom: 18,
-    backgroundColor: '#fff',
-  },
-  resultTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 4, color: '#222' },
-  resultCompany: { fontSize: 15, color: '#666', marginBottom: 8 },
-  resultSkills: { fontSize: 14, color: '#6c6690' },
+def get_job_recommendations(user_id: str, limit: int = 3) -> Dict[str, Any]:
+    """
+    Get job recommendations based on user's search history.
+    
+    Args:
+        user_id: The ID of the user
+        limit: Maximum number of recommendations
+        
+    Returns:
+        Dictionary with job recommendations
+    """
+    # Get user's search history
+    search_history = get_search_history_for_user(user_id)
+    
+    # If no search history is available, use some default job categories
+    if not search_history:
+        search_history = ["Software Developer", "Data Scientist", "Product Manager"]
+    
+    # Select a random term from search history for recommendations
+    import random
+    query = random.choice(search_history)
+    
+    # Get recommendations based on the selected query
+    recommendations = job_scraper.search_jobs(query, limit)
+    
+    # Check which jobs are saved
+    for job in recommendations:
+        job["is_saved"] = is_job_saved(user_id, job["id"])
+    
+    return {
+        "recommendations": recommendations,
+        "based_on": query,
+        "count": len(recommendations)
+    }
