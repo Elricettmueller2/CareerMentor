@@ -22,7 +22,7 @@ export default function PathFinderScreen() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const API_BASE_URL = 'http://192.168.178.29:8000';
+  const API_BASE_URL = 'http://localhost:8000';
   const userId = 'default_user';
 
   const fetchSavedJobs = async () => {
