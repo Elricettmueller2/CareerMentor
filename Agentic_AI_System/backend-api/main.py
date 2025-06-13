@@ -11,11 +11,10 @@ from dotenv import load_dotenv
 from crews.mock_mate.run_mock_mate_crew import run_respond_to_answer, run_start_interview, run_review_interview
 from crews.test.run_test_crew import run_test_crew
 # Import Path Finder functions
-from crews.path_finder.search_path import (
-    suggest_roles, search_jobs_online, get_job_details, 
-    get_job_recommendations, save_job, unsave_job, get_saved_jobs
-)
+# crewAI-Funktionen für die Agenten-Orchestrierung
 from crews.path_finder.run_path_finder_crew import run_search_jobs_online, run_suggest_roles
+# Direkte Hilfsfunktionen, die nicht durch crewAI ersetzt wurden
+from crews.path_finder.search_path import get_job_details, get_job_recommendations, save_job, unsave_job, get_saved_jobs
 
 # Import database initialization
 from database.init_db import init_database
@@ -127,16 +126,31 @@ async def path_finder_suggest_roles(request: AgentRequest):
 
 @app.post("/agents/path_finder/search_jobs_online", tags=["Agents", "PathFinder"])
 async def path_finder_search_jobs(request: AgentRequest):
-    """Search for jobs matching the query"""
+    """Search for jobs matching the detailed criteria"""
     try:
-        query = request.data.get("query", "")
+        # Extrahiere alle detaillierten Suchkriterien aus dem Request
+        job_title = request.data.get("job_title", "")
+        degree = request.data.get("degree", "")
+        hard_skills_rating = request.data.get("hard_skills_rating", 5)
+        soft_skills_rating = request.data.get("soft_skills_rating", 5)
+        interests = request.data.get("interests", "")
         limit = request.data.get("limit", 10)
         user_id = request.data.get("user_id", "default_user")
         
-        if not query:
-            raise HTTPException(status_code=400, detail="Query parameter is required")
+        # Stelle sicher, dass mindestens ein Suchkriterium angegeben ist
+        if not job_title and not degree and not interests:
+            raise HTTPException(status_code=400, detail="Mindestens ein Suchkriterium (Job-Titel, Abschluss oder Interessen) muss angegeben werden")
             
-        result = search_jobs_online(query, user_id, limit)
+        # Rufe die crewAI-Suchfunktion mit allen Parametern auf
+        result = run_search_jobs_online(
+            job_title=job_title,
+            degree=degree,
+            hard_skills_rating=hard_skills_rating,
+            soft_skills_rating=soft_skills_rating,
+            interests=interests,
+            user_id=user_id,
+            limit=limit
+        )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
