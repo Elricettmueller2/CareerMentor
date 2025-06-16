@@ -1,15 +1,42 @@
+analyze_layout:
+  description: >
+    Analyze the uploaded resume PDF to determine if it's a vector PDF or a scanned image,
+    and extract layout metrics such as margins, font sizes, and column structure.
+  expected_output: >
+    A JSON object with the PDF type and layout metrics:
+    {
+      "pdf_type": "vector" or "scanned",
+      "metrics": {
+        "margins": [{"left": 1.0, "right": 1.0, "top": 1.0, "bottom": 1.0}],
+        "font_sizes": [[10.0, 12.0, 14.0]],
+        "columns": [1]
+      }
+    }
+  agent: layout_agent
+
 parse_resume:
   description: >
-    Extract and normalize full text from the uploaded resume file (PDF),
-    preserving section headers and bullet structure.
+    Extract and normalize text from the uploaded resume file (PDF),
+    preserving section headers and bullet structure. Identify and separate
+    key resume sections such as profile, experience, education, and skills.
   expected_output: >
-    A single string containing the cleaned, concatenated resume text.
-  agent: resume_refiner_agent
+    A JSON object with the full text and parsed sections:
+    {
+      "full_text": "Complete resume text",
+      "sections": {
+        "profile": "Profile section text",
+        "experience": "Experience section text",
+        "education": "Education section text",
+        "skills": "Skills section text"
+      },
+      "keywords": ["keyword1", "keyword2", "keyword3"]
+    }
+  agent: parser_agent
 
-refine_resume:
+evaluate_resume:
   description: >
-    Analyze the parsed resume text and generate a comprehensive evaluation with scores and feedback.
-    Evaluate the resume across four main categories:
+    Analyze the parsed resume text and layout metrics to generate a comprehensive 
+    evaluation with scores and feedback. Evaluate the resume across four main categories:
     
     1. Format & Layout (0-100 points)
        - Übersichtlichkeit: klare Abschnitte, konsistenter Weißraum
@@ -48,14 +75,22 @@ refine_resume:
     }
     
     The response must be valid JSON with no text outside this structure.
-  agent: resume_refiner_agent
+  agent: quality_agent
 
 match_resume:
   description: >
-    Compare the resume content against a given job description, compute a match score,
-    and identify the top 5 missing or underrepresented keywords. Offer concrete wording suggestions.
+    Compare the resume content against one or more job descriptions using semantic similarity.
+    Calculate overall match scores, identify matching and missing skills, and provide
+    a summary of the best matching positions.
   expected_output: >
-    An object with:
-      - match_score: float between 0.0 and 1.0
-      - suggestions: array of up to 5 strings recommending keyword additions or rephrases
-  agent: resume_refiner_agent
+    A list of job matches with the following structure for each match:
+    {
+      "job_id": "job123",
+      "job_title": "Software Engineer",
+      "overall_score": 85,
+      "skill_match_percentage": 70,
+      "matching_skills": ["Python", "JavaScript", "React"],
+      "missing_skills": ["Docker", "Kubernetes"],
+      "job_summary": "Brief summary of the job"
+    }
+  agent: match_agent

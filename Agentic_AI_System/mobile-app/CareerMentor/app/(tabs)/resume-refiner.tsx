@@ -38,29 +38,50 @@ export default function ResumeRefinerScreen() {
         const uri = asset.uri;
         const name = asset.name;
   
-        // Fetch file data and build form
-        const fileResponse = await fetch(uri);
-        const blob = await fileResponse.blob();
-        const form = new FormData();
-        form.append('file', blob, name);
+        try {
+          console.log("📄 Using direct file URI approach for React Native");
+          
+          // Create FormData with the file directly from URI
+          // This is the recommended approach for React Native
+          const form = new FormData();
+          
+          // Use a more explicit way to append the file to FormData for React Native
+          form.append('file', {
+            uri: uri,
+            name: name,
+            type: 'application/pdf'
+          } as any);
+          
+          console.log("📄 FormData created with file:", name);
+          
+          // Upload to backend with explicit headers
+          console.log("🔗 POST →", `${API_BASE_URL}/resumes/upload`);
+          const resp = await fetch(`${API_BASE_URL}/resumes/upload`, {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              // Don't set Content-Type when using FormData with files
+            },
+            body: form,
+          });
   
-        // Upload to backend
-        console.log("🔗 POST →", `${API_BASE_URL}/resumes/upload`);
-        const resp = await fetch(`${API_BASE_URL}/resumes/upload`, {
-          method: 'POST',
-          body: form,
-        });
+          // Log response for debugging
+          console.log("⏳ Upload status:", resp.status);
+          const text = await resp.text();
+          console.log("📥 Response body:", text);
   
-        // Log response for debugging
-        console.log("⏳ Upload status:", resp.status);
-        const text = await resp.text();
-        console.log("📥 Response body:", text);
-  
-        // Parse JSON and proceed
-        const data = JSON.parse(text);
-        setUploadId(data.upload_id);
-        setUploadStarted(true);
-        analyzeResume(data.upload_id);
+          // Parse JSON and proceed
+          const data = JSON.parse(text);
+          setUploadId(data.upload_id);
+          setUploadStarted(true);
+          analyzeResume(data.upload_id);
+        } catch (e) {
+          console.error("File upload error:", e);
+          setFeedbackMessages([{ 
+            section: 'Error', 
+            text: `An error occurred during file upload: ${e.message}` 
+          }]);
+        }
       }
     } catch (e) {
       console.error("Upload error:", e);
@@ -72,318 +93,189 @@ export default function ResumeRefinerScreen() {
   const analyzeResume = async (id: string) => {
     setLoading(true);
     try {
-      // Parse
-      console.log(`🔍 Calling parse endpoint with upload_id: ${id}`);
-      const parseResp = await fetch(`${API_BASE_URL}/agents/resume_refiner/parse`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: { upload_id: id } })
-      });
+      // Step 1: Analyze layout
+      console.log(`🔍 Analyzing layout with upload_id: ${id}`);
+      const layoutResp = await fetch(`${API_BASE_URL}/resumes/${id}/layout`);
       
-      console.log(`📊 Parse response status: ${parseResp.status}`);
-      // Get the raw text first for debugging
-      const parseRawText = await parseResp.text();
-      console.log(`📥 Parse response body: ${parseRawText.substring(0, 200)}...`);
+      if (layoutResp.status !== 200) {
+        console.error(`❌ Layout analysis failed with status: ${layoutResp.status}`);
+        setFeedbackMessages([{ 
+          section: 'Error', 
+          text: `Layout analysis failed. Server returned status ${layoutResp.status}. Please try again later.` 
+        }]);
+        setLoading(false);
+        return;
+      }
       
-      // Skip the refine step for now until we fix the parse step
+      const layoutData = await layoutResp.json();
+      console.log('✅ Successfully analyzed layout:', layoutData);
+      
+      // Step 2: Parse resume
+      console.log(`🔍 Parsing resume with upload_id: ${id}`);
+      const parseResp = await fetch(`${API_BASE_URL}/resumes/${id}/parse`);
+      
       if (parseResp.status !== 200) {
         console.error(`❌ Parse request failed with status: ${parseResp.status}`);
         setFeedbackMessages([{ 
           section: 'Error', 
           text: `Resume parsing failed. Server returned status ${parseResp.status}. Please try again later.` 
         }]);
+        setLoading(false);
         return;
       }
       
-      try {
-        // Try to parse the JSON response
-        const parseData = JSON.parse(parseRawText);
-        console.log('✅ Successfully parsed JSON response');
-        
-        // Now try the refine step
-        console.log(`🔄 Calling refine endpoint with id: ${id}`);
-        const refResp = await fetch(`${API_BASE_URL}/agents/resume_refiner/refine/${id}`, {
-          method: 'POST'
-        });
-        
-        console.log(`📊 Refine response status: ${refResp.status}`);
-        const refRawText = await refResp.text();
-        console.log(`📥 Refine response body: ${refRawText.substring(0, 200)}...`);
-        
-        if (refResp.status !== 200) {
-          console.error(`❌ Refine request failed with status: ${refResp.status}`);
-          setFeedbackMessages([{ 
-            section: 'Error', 
-            text: `Resume refinement failed. Server returned status ${refResp.status}. Please try again later.` 
-          }]);
-          return;
-        }
-        
-        try {
-          // Try to parse the JSON response
-          const refData = JSON.parse(refRawText);
-          console.log('✅ Successfully parsed refine JSON response');
-          
-          // Extract response from the refine data
-          let responseData = refData.response;
-          
-          // Check if responseData is a string (which might be a JSON string)
-          if (typeof responseData === 'string') {
-            try {
-              // Try to parse it as JSON
-              responseData = JSON.parse(responseData);
-              console.log('📊 Parsed nested JSON in response');
-            } catch (nestedJsonError) {
-              console.warn('⚠️ Response is a string but not valid JSON:', nestedJsonError);
-              // Keep it as a string if it's not valid JSON
-            }
-          }
-          
-          // Process scores if they exist in the response
-          if (responseData && typeof responseData === 'object' && responseData.scores) {
-            console.log('📊 Found scores in response:', responseData.scores);
-            setCategoryScores(responseData.scores);
-          } else {
-            console.warn('⚠️ No scores found in response');
-            setCategoryScores(null);
-          }
-          
-          // Process feedback
-          let fb = responseData?.feedback || responseData;
-          if (!fb) {
-            console.warn('⚠️ No feedback found in response');
-            setFeedbackMessages([{ section: 'Info', text: 'No feedback available.' }]);
-            return;
-          }
-          
-          const msgs: Array<{ text: string, section: string }> = [];
-          
-          // Handle different possible formats of the feedback
-          if (typeof fb === 'object' && fb !== null) {
-            // Check if we're dealing with the character-by-character issue
-            // (where each key is a number and each value is a single character)
-            const keys = Object.keys(fb);
-            const isCharacterByCharacter = keys.length > 100 && 
-              keys.every(key => !isNaN(Number(key))) &&
-              keys.every(key => {
-                const val = fb[key];
-                return typeof val === 'string' && val.length <= 1;
-              });
-            
-            if (isCharacterByCharacter) {
-              // Reconstruct the original string
-              console.log('📝 Detected character-by-character response, reconstructing...');
-              const sortedKeys = keys.map(Number).sort((a, b) => a - b);
-              const reconstructedText = sortedKeys.map(key => fb[key]).join('');
-              
-              // Process the reconstructed text
-              if (reconstructedText.trim()) {
-                // Try to split by common section markers
-                const sections = reconstructedText.split(/\n\s*(?:\*|\-|\d+\.)\s+/);
-                
-                if (sections.length > 1) {
-                  // If we found sections, use them
-                  sections.forEach((section, index) => {
-                    if (section.trim()) {
-                      msgs.push({ 
-                        section: `Feedback ${index + 1}`, 
-                        text: section.trim() 
-                      });
-                    }
-                  });
-                } else {
-                  // If no clear sections, split by paragraphs
-                  const paragraphs = reconstructedText.split(/\n\s*\n/);
-                  paragraphs.forEach((para, index) => {
-                    if (para.trim()) {
-                      msgs.push({ 
-                        section: `Feedback ${index + 1}`, 
-                        text: para.trim() 
-                      });
-                    }
-                  });
-                }
-              }
-            } else {
-              // Check if the feedback is in the new category-based format
-              const categoryKeys = ['format_layout', 'inhalt_struktur', 'sprache_stil', 'ergebnis_orientierung'];
-              const isCategoryFormat = categoryKeys.some(key => key in fb);
-              
-              if (isCategoryFormat) {
-                // Process category-based feedback
-                Object.entries(fb).forEach(([category, tips]) => {
-                  // Skip the 'scores' key if it exists in the feedback object
-                  if (category === 'scores') return;
-                  
-                  // Format category name for display
-                  let displayCategory = category;
-                  if (category === 'format_layout') displayCategory = 'Format & Layout';
-                  else if (category === 'inhalt_struktur') displayCategory = 'Inhalt & Struktur';
-                  else if (category === 'sprache_stil') displayCategory = 'Sprache & Stil';
-                  else if (category === 'ergebnis_orientierung') displayCategory = 'Ergebnis-Orientierung';
-                  
-                  if (Array.isArray(tips)) {
-                    (tips as string[]).forEach(tip => {
-                      msgs.push({ section: displayCategory, text: tip });
-                    });
-                  } else if (typeof tips === 'string') {
-                    msgs.push({ section: displayCategory, text: tips });
-                  } else {
-                    console.warn(`⚠️ Tips for category ${category} has unexpected type:`, typeof tips);
-                  }
-                });
-              } else {
-                // Normal object processing (old format)
-                Object.entries(fb).forEach(([section, tips]) => {
-                  if (Array.isArray(tips)) {
-                    (tips as string[]).forEach(tip => {
-                      msgs.push({ section, text: tip });
-                    });
-                  } else if (typeof tips === 'string') {
-                    msgs.push({ section, text: tips });
-                  } else {
-                    console.warn(`⚠️ Tips for section ${section} has unexpected type:`, typeof tips);
-                  }
-                });
-              }
-            }
-          } else if (typeof fb === 'string') {
-            // If fb is just a string, treat it as a single feedback message
-            // Try to extract structured feedback if the string contains bullet points or sections
-            const feedbackText = fb.trim();
-            // Try to split by common section markers
-            const sections = feedbackText.split(/\n\s*(?:\*|\-|\d+\.)\s+/);
-            
-            if (sections.length > 1) {
-              // If we found sections, use them
-              sections.forEach((section, index) => {
-                if (section.trim()) {
-                  msgs.push({ 
-                    section: `Feedback ${index + 1}`, 
-                    text: section.trim() 
-                  });
-                }
-              });
-            } else {
-              // If no clear sections, split by paragraphs
-              const paragraphs = feedbackText.split(/\n\s*\n/);
-              paragraphs.forEach((para, index) => {
-                if (para.trim()) {
-                  msgs.push({ 
-                    section: `Feedback ${index + 1}`, 
-                    text: para.trim() 
-                  });
-                }
-              });
-            }
-          }
-          
-          setFeedbackMessages(msgs.length > 0 ? msgs : [{ 
-            section: 'Info', 
-            text: 'No specific feedback available.' 
-          }]);
-          
-        } catch (refJsonError) {
-          console.error('❌ Failed to parse refine response as JSON:', refJsonError);
-          setFeedbackMessages([{ 
-            section: 'Error', 
-            text: 'Failed to parse refinement response. Please try again later.' 
-          }]);
-        }
-      } catch (refError) {
-        console.error('❌ Error during refinement:', refError);
+      const parseData = await parseResp.json();
+      console.log('✅ Successfully parsed resume:', parseData);
+      
+      // Step 3: Evaluate resume quality
+      console.log(`🔄 Evaluating resume quality with id: ${id}`);
+      const evalResp = await fetch(`${API_BASE_URL}/resumes/${id}/evaluate`);
+      
+      if (evalResp.status !== 200) {
+        console.error(`❌ Evaluation request failed with status: ${evalResp.status}`);
         setFeedbackMessages([{ 
           section: 'Error', 
-          text: 'An error occurred during refinement. Please try again later.' 
+          text: `Resume evaluation failed. Server returned status ${evalResp.status}. Please try again later.` 
+        }]);
+        setLoading(false);
+        return;
+      }
+      
+      const evalData = await evalResp.json();
+      console.log('✅ Successfully evaluated resume:', evalData);
+      
+      // Process evaluation data
+      const responseData = evalData.response;
+      
+      // Update category scores directly from API response
+      if (responseData.scores) {
+        setCategoryScores({
+          format_layout: responseData.scores.format_layout || 0,
+          inhalt_struktur: responseData.scores.inhalt_struktur || 0,
+          sprache_stil: responseData.scores.sprache_stil || 0,
+          ergebnis_orientierung: responseData.scores.ergebnis_orientierung || 0,
+          overall: responseData.scores.overall || 0
+        });
+      } else {
+        console.warn('⚠️ No scores found in evaluation response');
+        setCategoryScores(null);
+      }
+      
+      // Update feedback messages directly from API response
+      const messages = [];
+      if (responseData.feedback) {
+        Object.entries(responseData.feedback).forEach(([category, items]) => {
+          if (Array.isArray(items)) {
+            items.forEach(item => {
+              messages.push({
+                section: formatCategoryName(category),
+                text: item
+              });
+            });
+          }
+        });
+        setFeedbackMessages(messages);
+      } else {
+        console.warn('⚠️ No feedback found in evaluation response');
+        setFeedbackMessages([{ 
+          section: 'Info', 
+          text: 'No feedback available for this resume.' 
         }]);
       }
+      
     } catch (e) {
-      console.error(e);
+      console.error("Analysis error:", e);
       setFeedbackMessages([{ 
         section: 'Error', 
-        text: 'An unexpected error occurred. Please try again later.' 
+        text: `An unexpected error occurred during resume analysis: ${e.message}` 
       }]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
-
-  const matchResume = async () => {
-    if (!uploadStarted) return;
+  
+  // Helper function to format category names for display
+  const formatCategoryName = (category) => {
+    const mapping = {
+      'format_layout': 'Format & Layout',
+      'inhalt_struktur': 'Content & Structure',
+      'sprache_stil': 'Language & Style',
+      'ergebnis_orientierung': 'Result Orientation'
+    };
+    return mapping[category] || category;
+  };
+  const matchWithJob = async () => {
+    if (!uploadId || !jobDescription.trim()) {
+      setFeedbackMessages([{ 
+        section: 'Error', 
+        text: 'Please upload a resume and enter a job description first.' 
+      }]);
+      return;
+    }
+    
     setLoading(true);
     try {
-      // Proceed with job matching if we have a job description
-      if (jobDescription) {
-        try {
-          console.log(`🔄 Calling match endpoint with id: ${uploadId}`);
-          const matchResp = await fetch(`${API_BASE_URL}/agents/resume_refiner/match/${uploadId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ data: { job_text: jobDescription } })
-          });
-          
-          console.log(`📊 Match response status: ${matchResp.status}`);
-          const matchRawText = await matchResp.text();
-          console.log(`📥 Match response body: ${matchRawText.substring(0, 200)}...`);
-          
-          if (matchResp.status === 200) {
-            try {
-              const matchData = JSON.parse(matchRawText);
-              
-              // Parse nested JSON if needed
-              let matchResult;
-              if (typeof matchData.response === 'string') {
-                try {
-                  matchResult = JSON.parse(matchData.response);
-                  console.log('✅ Successfully parsed nested JSON in match response');
-                } catch (nestedJsonError) {
-                  console.warn('⚠️ Match response field is not valid JSON, using as-is');
-                  matchResult = matchData.response;
-                }
-              } else {
-                matchResult = matchData.response;
-              }
-              console.log('📋 Match result:', matchResult);
-              
-              // Extract match score
-              let matchScore = 0;
-              let missingKeywords: string[] = [];
-              let suggestions: string[] = [];
-              
-              if (typeof matchResult === 'object' && matchResult !== null) {
-                if ('match_score' in matchResult) {
-                  matchScore = matchResult.match_score;
-                }
-                if ('missing_keywords' in matchResult && Array.isArray(matchResult.missing_keywords)) {
-                  missingKeywords = matchResult.missing_keywords;
-                }
-                if ('suggestions' in matchResult && Array.isArray(matchResult.suggestions)) {
-                  suggestions = matchResult.suggestions;
-                }
-              } else if (typeof matchResult === 'string') {
-                // Try to extract a number from the string
-                const scoreMatch = matchResult.match(/(\d+(\.\d+)?)/);
-                if (scoreMatch) {
-                  matchScore = parseFloat(scoreMatch[0]);
-                }
-              }
-              
-              setMatchResult({ 
-                match_score: matchScore, 
-                missing_keywords: missingKeywords, 
-                suggestions: suggestions 
-              });
-            } catch (jsonError) {
-              console.error('❌ Failed to parse match response as JSON:', jsonError);
-            }
+      // Prepare job data in the format expected by the API
+      const jobData = {
+        job_descriptions: [
+          {
+            job_id: 'job1',
+            job_title: 'Job Position',
+            job_summary: jobDescription
           }
-        } catch (matchError) {
-          console.error('❌ Error during job matching:', matchError);
-        }
+        ]
+      };
+      
+      console.log(`🔍 Matching resume with job description, upload_id: ${uploadId}`);
+      const matchResp = await fetch(`${API_BASE_URL}/resumes/${uploadId}/match`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(jobData)
+      });
+      
+      if (matchResp.status !== 200) {
+        console.error(`❌ Match request failed with status: ${matchResp.status}`);
+        setFeedbackMessages([{ 
+          section: 'Error', 
+          text: `Resume matching failed. Server returned status ${matchResp.status}. Please try again later.` 
+        }]);
+        setLoading(false);
+        return;
       }
+      
+      const matchData = await matchResp.json();
+      console.log('✅ Successfully matched resume with job:', matchData);
+      
+      // Process match data directly from API response
+      const responseData = matchData.response;
+      if (responseData && responseData.length > 0) {
+        const jobMatch = responseData[0];
+        
+        // Use only data directly from the API response
+        setMatchResult({
+          match_score: jobMatch.overall_score || 0,
+          missing_keywords: jobMatch.missing_skills || [],
+          suggestions: jobMatch.matching_skills || []
+        });
+      } else {
+        console.warn('⚠️ No match results found in response');
+        setFeedbackMessages(prev => [...prev, { 
+          section: 'Match Results', 
+          text: 'No match results available. The job description may be too short or not specific enough.' 
+        }]);
+        setMatchResult(null);
+      }
+      
     } catch (e) {
-      console.error(e);
+      console.error("Match error:", e);
+      setFeedbackMessages([{ 
+        section: 'Error', 
+        text: `An unexpected error occurred during job matching: ${e.message}` 
+      }]);
+      setMatchResult(null);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const getScoreColor = (score: number) => {
@@ -497,7 +389,7 @@ export default function ResumeRefinerScreen() {
             value={jobDescription}
             onChangeText={setJobDescription}
           />
-          <TouchableOpacity style={styles.button} onPress={matchResume} disabled={loading}>
+          <TouchableOpacity style={styles.button} onPress={matchWithJob} disabled={loading}>
             <Text style={styles.buttonText}>Match Resume to Job</Text>
           </TouchableOpacity>
 
