@@ -20,8 +20,59 @@ export const ApplicationService = {
   // Get all applications
   getApplications: async (): Promise<JobApplication[]> => {
     try {
+      // First try to get applications from local storage
       const jsonValue = await AsyncStorage.getItem(APPLICATIONS_STORAGE_KEY);
-      return jsonValue != null ? JSON.parse(jsonValue) : [];
+      const localApps = jsonValue != null ? JSON.parse(jsonValue) : [];
+      
+      // If we have local applications, return those
+      if (localApps.length > 0) {
+        return localApps;
+      }
+      
+      // Otherwise, return hardcoded dummy data
+      const now = new Date();
+      const dummyData: JobApplication[] = [
+        {
+          id: '1',
+          jobTitle: 'UI Designer',
+          company: 'Acme Corp',
+          location: 'San Francisco, CA',
+          applicationDeadline: null,
+          status: 'Applied',
+          followUpDate: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
+          followUpTime: '10:00',
+          notes: 'Applied through company website',
+          appliedDate: new Date(now.getTime() - 12 * 24 * 60 * 60 * 1000).toISOString() // 12 days ago
+        },
+        {
+          id: '2',
+          jobTitle: 'Frontend Developer',
+          company: 'TechStart',
+          location: 'Remote',
+          applicationDeadline: null,
+          status: 'Interview',
+          followUpDate: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day from now
+          followUpTime: '14:00',
+          notes: 'First interview scheduled',
+          appliedDate: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString() // 5 days ago
+        },
+        {
+          id: '3',
+          jobTitle: 'UX Researcher',
+          company: 'BigCorp',
+          location: 'New York, NY',
+          applicationDeadline: null,
+          status: 'Rejected',
+          followUpDate: null,
+          followUpTime: '',
+          notes: 'Rejected after initial screening',
+          appliedDate: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000).toISOString() // 20 days ago
+        }
+      ];
+      
+      // Save to local storage for future use
+      await AsyncStorage.setItem(APPLICATIONS_STORAGE_KEY, JSON.stringify(dummyData));
+      return dummyData;
     } catch (error) {
       console.error('Error getting applications:', error);
       return [];

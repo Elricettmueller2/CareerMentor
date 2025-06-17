@@ -251,6 +251,13 @@ class TrackPalCrew():
             3. For applications with follow-up dates approaching, remind the user
             4. If there are multiple rejections (3+), suggest getting resume feedback
 
+            IMPORTANT: Your response must be in the following format:
+            - Start with a brief greeting
+            - List each reminder as a bullet point
+            - End with a brief encouragement
+            - DO NOT include any "Thought:" or internal reasoning in your response
+            - DO NOT include any metadata or prefixes like "Response:" or "Answer:"
+            
             Respond in a friendly, motivational tone with a clear, concise list of actionable reminders.
             If there are no reminders needed, provide encouragement about their job search.
         """
@@ -271,17 +278,27 @@ class TrackPalCrew():
 
             {apps_text}
 
-            Your job is to analyze these applications and identify patterns:
-            1. Look at the types of roles the user is applying for
-            2. Analyze success rates for different job types
-            3. Identify any patterns in rejections or interview offers
-            4. Suggest adjustments to their application strategy
-            
-            Respond with clear insights and actionable advice to improve their job search strategy.
-            
-            IMPORTANT: Do not include any 'Thought:' prefixes in your response. Provide a direct, well-structured analysis
-            with specific patterns you've identified and concrete recommendations. Address the user directly in a
-            professional, helpful tone. Format your response with clear sections and bullet points where appropriate.
+            Your job is to analyze these applications and identify patterns to provide strategic advice.
+            Look for:
+            1. Types of positions they're applying to and any patterns
+            2. Success rate for different types of applications
+            3. Time between application stages
+            4. Any potential issues in their job search strategy
+
+            Provide insights on:
+            - Strengths in their current approach
+            - Potential weaknesses or blind spots
+            - Recommendations for improving their job search
+            - Suggestions for resume or career focus shifts if needed
+
+            IMPORTANT: Your response must be in the following format:
+            - Start with a brief introduction of your analysis
+            - Organize insights into clearly labeled sections
+            - End with 2-3 specific actionable recommendations
+            - DO NOT include any "Thought:" or internal reasoning in your response
+            - DO NOT include any metadata or prefixes like "Response:" or "Answer:"
+
+            Be honest but encouraging. Focus on actionable insights that can improve their job search outcomes.
         """
         
         return Task(
@@ -310,9 +327,19 @@ class TrackPalCrew():
 # Direct LLM function for simple API calls without using CrewAI
 def respond(message):
     """Send a direct message to the Ollama LLM and get a response"""
+    formatted_message = f"""
+    {message}
+    
+    IMPORTANT: Your response must be clear and direct.
+    - DO NOT include any "Thought:" or internal reasoning in your response
+    - DO NOT include any metadata or prefixes like "Response:" or "Answer:"
+    - Respond in a friendly, helpful tone
+    - Be concise and to the point
+    """
+    
     response = litellm.completion(
         model="ollama/llama3.2",
         api_base="http://host.docker.internal:11434",
-        messages=[{"role": "user", "content": message}]
+        messages=[{"role": "user", "content": formatted_message}]
     )
     return response.choices[0].message.content
