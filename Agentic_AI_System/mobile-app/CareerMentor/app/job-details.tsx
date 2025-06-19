@@ -13,7 +13,8 @@ export default function JobDetailsScreen() {
   const [isSaved, setIsSaved] = useState(false);
   const [savingJob, setSavingJob] = useState(false);
 
-  const API_BASE_URL = 'http://localhost:8000';
+  // Verwende die IP-Adresse statt localhost für den Zugriff von mobilen Geräten
+  const API_BASE_URL = 'http://192.168.1.218:8000';
   const userId = 'default_user'; // In a real app, this would come from authentication
 
   useEffect(() => {

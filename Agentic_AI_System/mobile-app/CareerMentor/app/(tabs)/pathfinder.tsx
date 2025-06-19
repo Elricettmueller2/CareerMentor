@@ -25,7 +25,8 @@ export default function PathFinderScreen() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const API_BASE_URL = 'http://localhost:8000';
+  // Verwende die IP-Adresse statt localhost für den Zugriff von mobilen Geräten
+  const API_BASE_URL = 'http://192.168.1.218:8000';
   const userId = 'default_user';
 
   const fetchSavedJobs = async () => {
@@ -167,12 +168,16 @@ export default function PathFinderScreen() {
     try {
       console.log('Searching for jobs with criteria:', searchCriteria);
       console.log('API endpoint:', `${API_BASE_URL}/agents/path_finder/search_jobs_online`);
+      console.log('Request body:', JSON.stringify({ data: searchCriteria }));
       
       const response = await fetch(`${API_BASE_URL}/agents/path_finder/search_jobs_online`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data: searchCriteria }), 
       });
+      
+      console.log('Response status:', response.status);
+      console.log('Response headers:', JSON.stringify(Object.fromEntries([...response.headers])));
       
       if (!response.ok) {
         console.error('Error response:', response.status, response.statusText);
@@ -181,9 +186,21 @@ export default function PathFinderScreen() {
         throw new Error(`API error: ${response.status} - ${errorText}`);
       }
       
-      const data = await response.json();
-      console.log('Search results:', data);
-      setResults(data.jobs || []);
+      const responseText = await response.text();
+      console.log('Raw response text:', responseText);
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('Parsed search results:', data);
+        console.log('Jobs array:', data.jobs);
+        console.log('Jobs array type:', Array.isArray(data.jobs) ? 'Array' : typeof data.jobs);
+        console.log('Jobs array length:', data.jobs ? data.jobs.length : 'undefined');
+        setResults(Array.isArray(data.jobs) ? data.jobs : []);
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        throw new Error(`Failed to parse response: ${responseText}`);
+      }
     } catch (err: any) {
       console.error('Search error:', err);
       setError(`Fehler beim Laden der Jobs: ${err.message}. Stellen Sie sicher, dass das Backend läuft und die API-Route die neuen Kriterien verarbeiten kann.`);
