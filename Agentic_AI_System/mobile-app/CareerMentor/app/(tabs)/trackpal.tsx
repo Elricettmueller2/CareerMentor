@@ -252,42 +252,6 @@ export default function TrackPalScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      {/* Test API Connectivity */}
-      <View style={styles.aiSection}>
-        <Text style={styles.sectionTitle}>API Connection Test</Text>
-        <View style={{flexDirection: 'row', justifyContent: 'space-around', marginVertical: 10}}>
-          <TouchableOpacity 
-            style={styles.testButton}
-            onPress={async () => {
-              try {
-                Alert.alert('Testing API', 'Sending test request to check_reminders endpoint...');
-                const result = await TrackPalService.getReminders();
-                Alert.alert('API Test Result', `Success! Response: ${result.substring(0, 100)}...`);
-              } catch (error) {
-                Alert.alert('API Test Failed', `Error: ${error}`);
-              }
-            }}
-          >
-            <Text style={styles.testButtonText}>Test Reminders API</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.testButton}
-            onPress={async () => {
-              try {
-                Alert.alert('Testing API', 'Sending test request to direct_test endpoint...');
-                const result = await TrackPalService.askQuestion('Hello, how are you?');
-                Alert.alert('API Test Result', `Success! Response: ${result.substring(0, 100)}...`);
-              } catch (error) {
-                Alert.alert('API Test Failed', `Error: ${error}`);
-              }
-            }}
-          >
-            <Text style={styles.testButtonText}>Test Direct API</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
       {/* Reminders Section */}
       <View style={styles.aiSection}>
         <View style={styles.sectionHeader}>
@@ -358,19 +322,21 @@ export default function TrackPalScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>TrackPal</Text>
-        {activeTab === 'applications' && (
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setModalVisible(true)}
-          >
-            <Ionicons name="add" size={24} color="#fff" />
-          </TouchableOpacity>
-        )}
       </View>
 
       {renderTabs()}
       
       {activeTab === 'applications' ? renderApplicationsTab() : renderAITab()}
+
+      {/* Floating Action Button */}
+      {activeTab === 'applications' && (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => setModalVisible(true)}
+        >
+          <Ionicons name="add" size={24} color="#fff" />
+        </TouchableOpacity>
+      )}
 
       <Modal
         animationType="slide"
@@ -401,18 +367,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  testButton: {
-    backgroundColor: '#4a6da7',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    marginHorizontal: 5,
-  },
-  testButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-    textAlign: 'center',
+  fab: {
+    position: 'absolute',
+    width: 56,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    right: 20,
+    bottom: 20,
+    backgroundColor: '#000',
+    borderRadius: 28,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.5,
+    zIndex: 999,
   },
   header: {
     flexDirection: 'row',
