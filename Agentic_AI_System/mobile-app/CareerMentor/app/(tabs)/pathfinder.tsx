@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, Keyboard, View, FlatList, RefreshControl } from 'react-native';
+import { StyleSheet, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, Keyboard, View, FlatList, RefreshControl, Alert, Platform } from 'react-native';
 import { Text } from '@/components/Themed';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
+import * as Location from 'expo-location';
 
 export default function PathFinderScreen() {
   const router = useRouter();
@@ -11,9 +12,11 @@ export default function PathFinderScreen() {
   
   const [jobTitle, setJobTitle] = useState('');
   const [degree, setDegree] = useState('');
-  const [hardSkills, setHardSkills] = useState(5); 
-  const [softSkills, setSoftSkills] = useState(5); 
+  const [yearsExperience, setYearsExperience] = useState(0);
+  const [locationRadius, setLocationRadius] = useState(50); // Default 50km
   const [interests, setInterests] = useState('');
+  const [userLocation, setUserLocation] = useState<{latitude: number, longitude: number} | null>(null);
+  const [locationPermission, setLocationPermission] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Array<any>>([]);
@@ -89,12 +92,58 @@ export default function PathFinderScreen() {
     if (activeTab === 'saved') {
       loadSavedJobsData();
     }
+    
+    // Request location permission when component mounts
+    requestLocationPermission();
   }, [activeTab]);
 
+  const requestLocationPermission = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        setLocationPermission(true);
+        const location = await Location.getCurrentPositionAsync({});
+        setUserLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+        return true;
+      } else {
+        Alert.alert(
+          "Standortberechtigung erforderlich",
+          "Für die Entfernungssuche wird Ihre Standortberechtigung benötigt."
+        );
+        return false;
+      }
+    } catch (err) {
+      console.error('Error requesting location permission:', err);
+      return false;
+    }
+  };
+
   const handleSearch = async () => {
-    if (!jobTitle && !degree && !interests) {
-      setError('Bitte füllen Sie mindestens eines der Textfelder für die Suche aus.');
+    if (!jobTitle) {
+      setError('Bitte geben Sie einen Job-Titel ein.');
       return;
+    }
+    
+    if (!degree) {
+      setError('Bitte geben Sie Ihren höchsten Abschluss ein.');
+      return;
+    }
+    
+    if (!interests) {
+      setError('Bitte geben Sie Interessenpunkte ein.');
+      return;
+    }
+    
+    // Request location permission if not already granted
+    if (!locationPermission) {
+      const granted = await requestLocationPermission();
+      if (!granted) {
+        setError('Standortberechtigung wird für die Entfernungssuche benötigt.');
+        return;
+      }
     }
     
     setLoading(true);
@@ -105,10 +154,14 @@ export default function PathFinderScreen() {
     const searchCriteria = {
       user_id: userId,
       job_title: jobTitle.trim(),
-      degree: degree.trim(),
-      hard_skills_rating: hardSkills,
-      soft_skills_rating: softSkills,
-      interests: interests.trim(),
+      education_level: degree.trim(),
+      years_experience: yearsExperience,
+      location_radius: locationRadius,
+      interest_points: interests.trim().split(',').map(item => item.trim()),
+      location: userLocation ? {
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude
+      } : undefined
     };
 
     try {
@@ -223,62 +276,84 @@ export default function PathFinderScreen() {
   const renderSearchContent = () => (
     <ScrollView keyboardShouldPersistTaps="handled" style={styles.searchScrollView}>
       <View style={styles.detailedSearchContainer}>
-        <Text style={styles.inputLabel}>Job Titel</Text>
+        <Text style={styles.inputLabel}>Job-Titel (Pflichtfeld)</Text>
         <TextInput
           style={styles.textInput}
-          placeholder="z.B. Softwareentwickler, Projektmanager"
+          placeholder="z.B. Software Entwickler"
           value={jobTitle}
           onChangeText={setJobTitle}
         />
 
-        <Text style={styles.inputLabel}>Höchster erreichter Abschluss</Text>
+        <Text style={styles.inputLabel}>Höchster erreichter Abschluss (Pflichtfeld)</Text>
         <TextInput
           style={styles.textInput}
-          placeholder="z.B. Bachelor, Master, Ausbildung"
+          placeholder="z.B. Bachelor"
           value={degree}
           onChangeText={setDegree}
         />
 
-        <Text style={styles.inputLabel}>Hard Skills (Einschätzung {hardSkills}/10)</Text>
-        <Slider
-          style={styles.slider}
-          minimumValue={1}
-          maximumValue={10}
-          step={1}
-          value={hardSkills}
-          onValueChange={setHardSkills}
-          minimumTrackTintColor="#2f95dc"
-          maximumTrackTintColor="#d3d3d3"
-          thumbTintColor="#2f95dc"
-        />
+        <View style={styles.sliderContainer}>
+          <Text style={styles.inputLabel}>Job Erfahrung (Jahre)</Text>
+          <View style={styles.sliderValueContainer}>
+            <Slider
+              style={styles.slider}
+              minimumValue={0}
+              maximumValue={10}
+              step={1}
+              value={yearsExperience}
+              onValueChange={setYearsExperience}
+              minimumTrackTintColor="#2f95dc"
+              maximumTrackTintColor="#d3d3d3"
+              thumbTintColor="#2f95dc"
+            />
+            <Text style={styles.sliderValue}>{yearsExperience === 10 ? "10+" : yearsExperience} Jahre</Text>
+          </View>
+        </View>
 
-        <Text style={styles.inputLabel}>Soft Skills (Einschätzung {softSkills}/10)</Text>
-        <Slider
-          style={styles.slider}
-          minimumValue={1}
-          maximumValue={10}
-          step={1}
-          value={softSkills}
-          onValueChange={setSoftSkills}
-          minimumTrackTintColor="#2f95dc"
-          maximumTrackTintColor="#d3d3d3"
-          thumbTintColor="#2f95dc"
-        />
+        <View style={styles.sliderContainer}>
+          <Text style={styles.inputLabel}>Entfernung (km)</Text>
+          <View style={styles.sliderValueContainer}>
+            <Slider
+              style={styles.slider}
+              minimumValue={10}
+              maximumValue={200}
+              step={10}
+              value={locationRadius}
+              onValueChange={setLocationRadius}
+              minimumTrackTintColor="#2f95dc"
+              maximumTrackTintColor="#d3d3d3"
+              thumbTintColor="#2f95dc"
+            />
+            <Text style={styles.sliderValue}>{locationRadius} km</Text>
+          </View>
+        </View>
+        
+        <View style={styles.locationContainer}>
+          <Text style={styles.locationStatus}>
+            {locationPermission ? "✓ Standort verfügbar" : "⚠️ Standort wird benötigt"}
+          </Text>
+          {!locationPermission && (
+            <TouchableOpacity style={styles.locationButton} onPress={requestLocationPermission}>
+              <Text style={styles.locationButtonText}>Standort freigeben</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
-        <Text style={styles.inputLabel}>Generelle Interessen</Text>
+        <Text style={styles.inputLabel}>Interessenpunkte (Pflichtfeld)</Text>
         <TextInput
           style={[styles.textInput, styles.textArea]}
-          placeholder="z.B. KI, Nachhaltigkeit, Webentwicklung"
+          placeholder="z.B. Nachhaltigkeit, KI, Remote Work"
           value={interests}
           onChangeText={setInterests}
           multiline
           numberOfLines={3}
         />
+        <Text style={styles.inputHint}>Mehrere Punkte durch Komma trennen</Text>
 
         <TouchableOpacity 
-          style={styles.searchButton}
+          style={[styles.searchButton, (!jobTitle || !degree || !interests) && styles.searchButtonDisabled]} 
           onPress={handleSearch}
-          disabled={loading}
+          disabled={!jobTitle || !degree || !interests || loading}
         >
           <Text style={styles.searchButtonText}>Suchen</Text>
         </TouchableOpacity>
@@ -295,7 +370,7 @@ export default function PathFinderScreen() {
       
       {error && <Text style={styles.errorText}>{error}</Text>}
 
-      {!loading && results.length === 0 && !error && (
+      {!loading && (!results || results.length === 0) && !error && (
         <View style={styles.emptyContainer}>
           <Ionicons name="search" size={48} color="#ccc" />
           <Text style={styles.emptyText}>
@@ -304,7 +379,7 @@ export default function PathFinderScreen() {
         </View>
       )}
 
-      {results.map((job, idx) => (
+      {Array.isArray(results) && results.map((job, idx) => (
         <View key={job.id || idx}>
           {renderJobCard(job)}
         </View>
@@ -396,8 +471,54 @@ export default function PathFinderScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#f5f5f5',
+  },
+  sliderContainer: {
+    marginBottom: 15,
+  },
+  sliderValueContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sliderValue: {
+    width: 60,
+    textAlign: 'right',
+    fontSize: 14,
+    color: '#555',
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+    padding: 10,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 5,
+  },
+  locationStatus: {
+    fontSize: 14,
+    color: '#555',
+  },
+  locationButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+  },
+  locationButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  inputHint: {
+    fontSize: 12,
+    color: '#777',
+    marginTop: 5,
+    marginBottom: 15,
+  },
+  searchButtonDisabled: {
+    backgroundColor: '#cccccc',
   },
   title: {
     fontSize: 24,

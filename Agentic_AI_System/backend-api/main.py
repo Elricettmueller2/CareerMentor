@@ -12,7 +12,7 @@ from crews.mock_mate.run_mock_mate_crew import run_respond_to_answer, run_start_
 from crews.test.run_test_crew import run_test_crew
 # Import Path Finder functions
 # crewAI-Funktionen für die Agenten-Orchestrierung
-from crews.path_finder.run_path_finder_crew import run_search_jobs_online, run_suggest_roles
+from crews.path_finder.run_path_finder_crew import run_path_finder_crew, run_path_finder_direct
 # Direkte Hilfsfunktionen, die nicht durch crewAI ersetzt wurden
 from crews.path_finder.search_path import get_job_details, get_job_recommendations, save_job, unsave_job, get_saved_jobs
 
@@ -142,7 +142,7 @@ async def path_finder_search_jobs(request: AgentRequest):
             raise HTTPException(status_code=400, detail="Mindestens ein Suchkriterium (Job-Titel, Abschluss oder Interessen) muss angegeben werden")
             
         # Rufe die crewAI-Suchfunktion mit allen Parametern auf
-        result = run_search_jobs_online(
+        result = run_path_finder_direct(
             job_title=job_title,
             degree=degree,
             hard_skills_rating=hard_skills_rating,
@@ -162,7 +162,37 @@ async def path_finder_get_job(job_id: str, user_id: str = "default_user"):
         result = get_job_details(job_id, user_id)
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving job details: {str(e)}")
+
+@app.get("/agents/path_finder/analyze-job/{job_id}", tags=["Agents", "PathFinder"])
+async def path_finder_analyze_job(job_id: str):
+    """Analyze requirements and qualifications for a specific job posting"""
+    try:
+        # Verwende die neue Path Finder Crew-Funktion
+        job_data = {"job_id": job_id}
+        result = run_path_finder_direct(job_title="Analyze Job", education_level="", years_experience=0, location_radius=0, interest_points="", job_data=job_data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error analyzing job requirements: {str(e)}")
+
+@app.post("/agents/path_finder/compare-skills", tags=["Agents", "PathFinder"])
+async def path_finder_compare_skills(request: AgentRequest):
+    """Compare user skills with job requirements and provide match analysis"""
+    try:
+        user_profile = request.data.get("user_profile", {})
+        job_ids = request.data.get("job_ids", [])
+        
+        if not user_profile:
+            raise HTTPException(status_code=400, detail="User profile is required")
+        if not job_ids:
+            raise HTTPException(status_code=400, detail="At least one job ID is required")
+            
+        # Verwende die neue Path Finder Crew-Funktion
+        job_data = {"user_profile": user_profile, "job_ids": job_ids}
+        result = run_path_finder_direct(job_title="Compare Skills", education_level="", years_experience=0, location_radius=0, interest_points="", job_data=job_data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error comparing skills to jobs: {str(e)}")
 
 @app.post("/agents/path_finder/recommend", tags=["Agents", "PathFinder"])
 async def path_finder_recommend_jobs(request: AgentRequest):

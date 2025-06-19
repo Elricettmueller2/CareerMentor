@@ -6,7 +6,6 @@ import litellm
 
 litellm._turn_on_debug()
 
-# Setup LLM connection (adjust model and base_url as needed)
 llm = LLM(
     model="ollama/llama3.2",
     base_url="http://host.docker.internal:11434",
@@ -21,36 +20,28 @@ class PathFinderCrew():
     tasks_config = "config/tasks.yaml"
 
     @agent
-    def career_strategy_agent(self) -> Agent:
+    def job_search_agent(self) -> Agent:
         return Agent(
-            config=self.agents_config['career_strategy_agent'],
+            config=self.agents_config['job_search_agent'],
+            llm=llm,
+            verbose=True
+        )
+    
+    @agent
+    def job_filter_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config['job_filter_agent'],
             llm=llm,
             verbose=True
         )
 
-    @agent
-    def job_scraper_agent(self) -> Agent:
-        return Agent(
-            config=self.agents_config['job_scraper_agent'],
-            llm=None,  # Kein LLM nötig für Scraping
-            verbose=True
-        )
-
     @task
-    def suggest_roles(self) -> Task:
-        return Task(config=self.tasks_config['suggest_roles'])
-
+    def search_jobs_task(self) -> Task:
+        return Task(config=self.tasks_config['search_jobs'])
+    
     @task
-    def match_jobs(self) -> Task:
-        return Task(config=self.tasks_config['match_jobs'])
-
-    @task
-    def set_goal_and_gap(self) -> Task:
-        return Task(config=self.tasks_config['set_goal_and_gap'])
-
-    @task
-    def search_jobs_online(self) -> Task:
-        return Task(config=self.tasks_config['search_jobs_online'])
+    def filter_jobs_task(self) -> Task:
+        return Task(config=self.tasks_config['filter_jobs'])
 
     @crew
     def crew(self) -> Crew:
