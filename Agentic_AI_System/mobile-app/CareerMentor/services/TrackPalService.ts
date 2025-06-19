@@ -52,9 +52,9 @@ export interface Reminder {
 }
 
 export interface PatternInsight {
-  title: string;
-  description: string;
-  recommendation: string;
+  id: string;
+  icon: string;
+  content: string;
 }
 
 export const TrackPalService = {
@@ -113,17 +113,217 @@ export const TrackPalService = {
     }
   },
 
-  // Get application pattern analysis
-  getPatternAnalysis: async (): Promise<string> => {
+  // Parse pattern analysis text into structured insights
+  parsePatternInsights: (analysisText: string): PatternInsight[] => {
+    if (!analysisText || analysisText.trim() === '' || 
+        analysisText.includes('No pattern analysis available') || 
+        analysisText.includes('Failed to analyze patterns')) {
+      return [];
+    }
+
     try {
-      const userId = await TrackPalService.getUserId();
-      console.log('Calling analyze_patterns with userId:', userId);
+      // Extract meaningful insights from the analysis text
+      const insights: PatternInsight[] = [];
+      
+      // Extract key insights from the text
+      // These patterns are likely to contain actionable insights
+      const insightPatterns = [
+        // Success patterns
+        { regex: /success rate for ([^.]+)/i, icon: 'stats-chart' },
+        { regex: /([^.]+) higher response rate/i, icon: 'trending-up' },
+        { regex: /([^.]+) yielded ([^.]+) interview/i, icon: 'people' },
+        
+        // Focus recommendations
+        { regex: /focus (more )?on ([^.]+)/i, icon: 'target' },
+        { regex: /specialize in ([^.]+)/i, icon: 'target' },
+        { regex: /streamline ([^.]+)/i, icon: 'funnel' },
+        
+        // Skill recommendations
+        { regex: /highlight ([^.]+) skills/i, icon: 'school' },
+        { regex: /expand ([^.]+) skills/i, icon: 'school' },
+        { regex: /improve ([^.]+)/i, icon: 'trending-up' },
+        
+        // Application strategy
+        { regex: /follow[- ]up ([^.]+)/i, icon: 'mail' },
+        { regex: /reach out ([^.]+)/i, icon: 'call' },
+        { regex: /wait ([^.]+) before/i, icon: 'time' },
+      ];
+      
+      // Process the text to find actionable insights
+      const paragraphs = analysisText.split('\n\n').filter(p => p.trim() !== '');
+      
+      // First look for bullet points which are often recommendations
+      const bulletPoints = analysisText.match(/[\*\-•]\s+([^\n]+)/g) || [];
+      const recommendations = analysisText.match(/recommend[^.:\n]+([^.]+)/gi) || [];
+      const suggestions = analysisText.match(/suggest[^.:\n]+([^.]+)/gi) || [];
+      
+      // Combine all potential insights
+      const potentialInsights = [
+        ...bulletPoints.map(bp => bp.trim()),
+        ...recommendations.map(r => r.trim()),
+        ...suggestions.map(s => s.trim())
+      ];
+      
+      // If we have bullet points or explicit recommendations, use those
+      if (potentialInsights.length > 0) {
+        // Take up to 3 most relevant insights
+        const bestInsights = potentialInsights
+          .filter(insight => 
+            insight.length > 20 && 
+            insight.length < 120 && 
+            !insight.includes('Thought:') && 
+            !insight.includes('Analysis:')
+          )
+          .slice(0, 3);
+        
+        bestInsights.forEach((insight, index) => {
+          // Clean up the insight text
+          let content = insight.replace(/^\s*[\*\-•]\s*/, '').trim();
+          
+          // Remove any leading phrases that make it less direct
+          content = content
+            .replace(/^I (would )?suggest that (you )?/i, '')
+            .replace(/^I (would )?recommend that (you )?/i, '')
+            .replace(/^You (may|should|could) /i, '')
+            .replace(/^Based on [^,]+, /i, '')
+            .trim();
+          
+          // Ensure first letter is capitalized
+          content = content.charAt(0).toUpperCase() + content.slice(1);
+          
+          // Assign an appropriate icon
+          let icon = 'analytics';
+          
+          // Choose icon based on content keywords
+          if (content.match(/focus|target|specific|area/i)) {
+            icon = 'target';
+          } else if (content.match(/skill|learn|education|knowledge/i)) {
+            icon = 'school';
+          } else if (content.match(/follow|email|contact|reach out/i)) {
+            icon = 'mail';
+          } else if (content.match(/time|wait|schedule|day|week/i)) {
+            icon = 'time';
+          } else if (content.match(/company|employer|industry|business/i)) {
+            icon = 'business';
+          } else if (content.match(/search|find|look|seek/i)) {
+            icon = 'search';
+          } else if (content.match(/interview|conversation|talk/i)) {
+            icon = 'people';
+          } else if (content.match(/resume|cv|application|document/i)) {
+            icon = 'document-text';
+          }
+          
+          insights.push({
+            id: (index + 1).toString(),
+            icon,
+            content
+          });
+        });
+      }
+      
+      // If we couldn't find good insights from bullets/recommendations,
+      // try to extract insights using our patterns
+      if (insights.length === 0) {
+        // Go through each paragraph and try to extract insights
+        for (const paragraph of paragraphs) {
+          for (const pattern of insightPatterns) {
+            const match = paragraph.match(pattern.regex);
+            if (match) {
+              // Extract the relevant part of the match
+              let content = match[0];
+              
+              // Make it more actionable if possible
+              if (content.toLowerCase().startsWith('focus')) {
+                // Already actionable
+              } else if (content.toLowerCase().includes('success rate')) {
+                content = `Focus on ${match[1]} to improve success rate`;
+              } else if (content.toLowerCase().includes('higher response')) {
+                content = `Target ${match[1]} for better responses`;
+              } else if (content.toLowerCase().includes('yielded')) {
+                content = `Continue applying for ${match[1]} positions`;
+              } else {
+                // Make other insights more actionable
+                content = content.charAt(0).toUpperCase() + content.slice(1);
+              }
+              
+              // Ensure it's not too long
+              if (content.length > 100) {
+                content = content.substring(0, 97) + '...';
+              }
+              
+              insights.push({
+                id: `insight-${insights.length + 1}`,
+                icon: pattern.icon,
+                content
+              });
+              
+              // Limit to 3 insights
+              if (insights.length >= 3) break;
+            }
+          }
+          if (insights.length >= 3) break;
+        }
+      }
+      
+      // If we still don't have insights, extract key sentences that might be valuable
+      if (insights.length === 0) {
+        const sentences = analysisText.split(/[.!?]\s+/).filter(s => 
+          s.length > 30 && 
+          s.length < 120 && 
+          (s.includes('application') || s.includes('job') || s.includes('position') || s.includes('interview')) &&
+          !s.includes('Thought:') && 
+          !s.includes('Analysis:')
+        );
+        
+        // Take up to 3 most relevant sentences
+        const bestSentences = sentences.slice(0, 3);
+        
+        bestSentences.forEach((sentence, index) => {
+          let content = sentence.trim();
+          content = content.charAt(0).toUpperCase() + content.slice(1);
+          
+          // Choose icon based on content
+          let icon = 'analytics';
+          if (content.match(/focus|target|specific|area/i)) {
+            icon = 'target';
+          } else if (content.match(/skill|learn|education|knowledge/i)) {
+            icon = 'school';
+          } else if (content.match(/follow|email|contact|reach out/i)) {
+            icon = 'mail';
+          } else if (content.match(/time|wait|schedule|day|week/i)) {
+            icon = 'time';
+          } else if (content.match(/company|employer|industry|business/i)) {
+            icon = 'business';
+          } else if (content.match(/search|find|look|seek/i)) {
+            icon = 'search';
+          }
+          
+          insights.push({
+            id: (index + 1).toString(),
+            icon,
+            content
+          });
+        });
+      }
+      
+      return insights;
+    } catch (error) {
+      console.error('Error parsing pattern insights:', error);
+      return [];
+    }
+  },
+
+  // Get application pattern analysis
+  getPatternAnalysis: async (userId?: string): Promise<string> => {
+    try {
+      const actualUserId = userId || await TrackPalService.getUserId();
+      console.log('Calling analyze_patterns with userId:', actualUserId);
       
       return await tryAPIUrls(async (baseUrl) => {
         console.log('API URL:', `${baseUrl}/analyze_patterns`);
         
         const response = await axios.post(`${baseUrl}/analyze_patterns`, {
-          data: { user_id: userId } // Wrap in data object to match AgentRequest model
+          data: { user_id: actualUserId } // Wrap in data object to match AgentRequest model
         });
         
         console.log('Pattern analysis API response:', response.data);
@@ -145,6 +345,43 @@ export const TrackPalService = {
       console.error('Error getting pattern analysis:', error);
       console.error('Error details:', error.response?.data || 'No response data');
       return `Failed to analyze patterns. Error: ${error.message}`;
+    }
+  },
+
+  // Get pattern insights from the AI agent
+  getPatternInsights: async (userId?: string): Promise<PatternInsight[]> => {
+    try {
+      // Get the raw pattern analysis text
+      const analysisText = await TrackPalService.getPatternAnalysis(userId);
+      
+      // Check if we have enough data for meaningful insights
+      if (!analysisText || 
+          analysisText.includes('No pattern analysis available') || 
+          analysisText.includes('Failed to analyze patterns') ||
+          analysisText.length < 100) {
+        return [{
+          id: 'default-1',
+          icon: 'information-circle',
+          content: 'Add more applications to get personalized insights about your job search patterns.'
+        }];
+      }
+      
+      // Parse the text into structured insights
+      const insights = TrackPalService.parsePatternInsights(analysisText);
+      
+      // If we couldn't extract good insights, create a default one asking for more data
+      if (insights.length === 0) {
+        return [{
+          id: 'default-1',
+          icon: 'information-circle',
+          content: 'Add more applications to get personalized insights about your job search patterns.'
+        }];
+      }
+      
+      return insights;
+    } catch (error) {
+      console.error('Error getting pattern insights:', error);
+      return [];
     }
   },
 

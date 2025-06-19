@@ -1,26 +1,24 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { 
   StyleSheet, 
   Text, 
   View, 
-  Button, 
-  Alert, 
-  FlatList, 
   TouchableOpacity, 
-  Modal,
-  SafeAreaView,
-  ActivityIndicator,
-  RefreshControl,
-  TextInput,
+  FlatList, 
+  ActivityIndicator, 
+  Modal, 
+  TextInput, 
+  Alert, 
+  RefreshControl, 
   ScrollView,
-  KeyboardAvoidingView,
+  SafeAreaView,
   Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import ApplicationForm from '../../components/ApplicationForm';
 import ApplicationService, { JobApplication } from '../../services/ApplicationService';
-import TrackPalService from '../../services/TrackPalService';
+import TrackPalService, { PatternInsight } from '../../services/TrackPalService';
 
 export default function TrackPalScreen() {
   const [applications, setApplications] = useState<JobApplication[]>([]);
@@ -33,6 +31,8 @@ export default function TrackPalScreen() {
   const [loadingReminders, setLoadingReminders] = useState(false);
   const [patterns, setPatterns] = useState<string>('');
   const [loadingPatterns, setLoadingPatterns] = useState(false);
+  const [patternInsights, setPatternInsights] = useState<PatternInsight[]>([]);
+  const [loadingInsights, setLoadingInsights] = useState(false);
   const [question, setQuestion] = useState<string>('');
   const [answer, setAnswer] = useState<string>('');
   const [loadingAnswer, setLoadingAnswer] = useState(false);
@@ -45,12 +45,12 @@ export default function TrackPalScreen() {
   useFocusEffect(
     useCallback(() => {
       loadApplications();
+      // Load insights for dashboard regardless of active tab
+      loadPatternInsights();
       
-      // Only load AI data on first render or when explicitly refreshed
-      if (activeTab === 'ai' && !aiDataLoaded.current) {
+      if (activeTab === 'ai') {
         loadReminders();
         loadPatternAnalysis();
-        aiDataLoaded.current = true;
       }
     }, [activeTab])
   );
@@ -69,17 +69,22 @@ export default function TrackPalScreen() {
     }
   };
 
-  const onRefresh = () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    loadApplications();
-    if (activeTab === 'ai') {
-      loadReminders();
-      loadPatternAnalysis();
-      // Reset the flag when manually refreshing
-      aiDataLoaded.current = true;
+    try {
+      await Promise.all([
+        loadApplications(),
+        activeTab === 'ai' ? loadReminders() : Promise.resolve(),
+        activeTab === 'ai' ? loadPatternAnalysis() : Promise.resolve(),
+        loadPatternInsights() // Always load insights for the dashboard
+      ]);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
     }
-  };
-  
+  }, [activeTab]);
+
   // TrackPal AI methods
   const loadReminders = async () => {
     try {
@@ -104,6 +109,19 @@ export default function TrackPalScreen() {
       Alert.alert('Error', 'Failed to load pattern analysis');
     } finally {
       setLoadingPatterns(false);
+    }
+  };
+
+  const loadPatternInsights = async () => {
+    try {
+      setLoadingInsights(true);
+      const insights = await TrackPalService.getPatternInsights();
+      setPatternInsights(insights);
+    } catch (error) {
+      console.error('Error loading pattern insights:', error);
+      // Don't show alert for this as it's not critical for UX
+    } finally {
+      setLoadingInsights(false);
     }
   };
 
@@ -217,7 +235,43 @@ export default function TrackPalScreen() {
 
   // Applications tab content
   const renderApplicationsTab = () => (
-    <>
+    <ScrollView 
+      style={styles.scrollContainer}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
+      {/* AI Insights Section */}
+      <View style={styles.aiInsightsSection}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.insightsSectionTitle}>AI Insights</Text>
+          <TouchableOpacity onPress={loadPatternInsights} disabled={loadingInsights}>
+            <Ionicons name="refresh" size={20} color="#4a6da7" />
+          </TouchableOpacity>
+        </View>
+        
+        {loadingInsights ? (
+          <ActivityIndicator size="small" color="#4a6da7" style={{marginVertical: 20}} />
+        ) : (
+          <View style={styles.insightsContainer}>
+            {patternInsights.map((insight) => (
+              <View key={insight.id} style={styles.insightCard}>
+                <View style={styles.insightIconCircle}>
+                  <Ionicons name={insight.icon as any} size={24} color="#fff" />
+                </View>
+                <Text style={styles.insightText}>{insight.content}</Text>
+              </View>
+            ))}
+            
+            {patternInsights.length === 0 && (
+              <Text style={styles.noInsightsText}>No insights available. Add more applications to get personalized insights.</Text>
+            )}
+          </View>
+        )}
+      </View>
+
+      {/* Applications Section */}
+      <Text style={styles.applicationSectionTitle}>Your Applications</Text>
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#0000ff" />
@@ -228,9 +282,8 @@ export default function TrackPalScreen() {
           renderItem={renderApplicationItem}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContainer}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
+          scrollEnabled={false}
+          nestedScrollEnabled={false}
         />
       ) : (
         <View style={styles.emptyContainer}>
@@ -241,7 +294,7 @@ export default function TrackPalScreen() {
           </Text>
         </View>
       )}
-    </>
+    </ScrollView>
   );
 
   // AI Assistant tab content
@@ -367,6 +420,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  scrollContainer: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
   fab: {
     position: 'absolute',
     width: 56,
@@ -375,15 +432,87 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     right: 20,
     bottom: 20,
-    backgroundColor: '#000',
+    backgroundColor: '#4a6da7',
     borderRadius: 28,
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.5,
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
     zIndex: 999,
   },
+  // AI Insights styles
+  aiInsightsSection: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  insightsSectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 5,
+  },
+  insightsContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+    padding: 15,
+  },
+  insightsList: {
+    paddingBottom: 8,
+  },
+  noInsightsText: {
+    textAlign: 'center',
+    color: '#666',
+    fontStyle: 'italic',
+    padding: 15,
+  },
+
+  insightCard: {
+    backgroundColor: '#5D5B8D',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  insightIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+
+  insightText: {
+    color: '#fff',
+    fontSize: 14,
+    flex: 1,
+    lineHeight: 20,
+  },
+
+  applicationSectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 12,
+    color: '#333',
+  },
+
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -393,10 +522,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
+
   title: {
     fontSize: 24,
     fontWeight: 'bold',
   },
+
   // Tab styles
   tabContainer: {
     flexDirection: 'row',
@@ -404,6 +535,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
+
   tab: {
     flex: 1,
     flexDirection: 'row',
@@ -411,40 +543,48 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
   },
+
   activeTab: {
     borderBottomWidth: 2,
     borderBottomColor: '#000',
   },
+
   tabText: {
     fontSize: 14,
     color: '#666',
     marginLeft: 6,
   },
+
   activeTabText: {
     color: '#000',
     fontWeight: '600',
   },
+
   // AI tab styles
   aiTabContainer: {
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
   },
+
   sectionSubtitle: {
     fontSize: 14,
     color: '#666',
     marginBottom: 16,
   },
+
   questionContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: 12,
   },
+
   questionInput: {
     flex: 1,
     borderWidth: 1,
@@ -455,6 +595,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     marginRight: 8,
   },
+
   askButton: {
     backgroundColor: '#4a6da7',
     paddingVertical: 12,
@@ -463,11 +604,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   askButtonText: {
     color: '#fff',
     fontWeight: '600',
     fontSize: 14,
   },
+
   answerContainer: {
     marginTop: 16,
     padding: 12,
@@ -476,11 +619,13 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: '#4a6da7',
   },
+
   answerLabel: {
     fontWeight: '600',
     marginBottom: 8,
     color: '#4a6da7',
   },
+
   // Existing styles
   addButton: {
     backgroundColor: '#000',
@@ -490,6 +635,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   addButtonWithText: {
     backgroundColor: '#000',
     height: 50,
@@ -499,20 +645,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   addButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
   },
+
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   listContainer: {
     padding: 16,
   },
+
   applicationItem: {
     backgroundColor: '#fff',
     borderRadius: 8,
@@ -524,47 +674,56 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
+
   applicationHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
   },
+
   jobTitle: {
     fontSize: 18,
     fontWeight: '600',
     flex: 1,
   },
+
   statusBadge: {
     backgroundColor: '#eee',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
   },
+
   statusText: {
     fontSize: 12,
     color: '#666',
   },
+
   companyText: {
     fontSize: 16,
     color: '#333',
     marginBottom: 4,
   },
+
   locationText: {
     fontSize: 14,
     color: '#666',
     marginBottom: 8,
   },
+
   applicationFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 8,
   },
+
   dateText: {
     fontSize: 12,
     color: '#888',
   },
+
   reminderBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -573,29 +732,34 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
   },
+
   reminderText: {
     fontSize: 12,
     color: '#fff',
     marginLeft: 4,
   },
+
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
   },
+
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
     marginTop: 16,
     color: '#333',
   },
+
   emptySubText: {
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
     marginTop: 8,
   },
+
   aiSection: {
     padding: 16,
     backgroundColor: '#fff',
@@ -607,20 +771,24 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
+
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 12,
   },
+
   aiResponse: {
     marginTop: 12,
     fontSize: 14,
     lineHeight: 20,
   },
+
   modalContainer: {
     flex: 1,
     backgroundColor: '#fff',
   },
+
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -629,20 +797,24 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
+
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
   },
+
   separator: {
     marginVertical: 20,
     height: 1,
     width: '80%',
     backgroundColor: '#ccc',
   },
+
   result: {
     marginTop: 20,
     fontSize: 16,
     paddingHorizontal: 20,
     textAlign: 'center',
   },
+
 });
