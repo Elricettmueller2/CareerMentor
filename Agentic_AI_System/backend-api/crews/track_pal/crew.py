@@ -324,6 +324,18 @@ class TrackPalCrew():
             verbose=True
         )
 
+# Helper function to clean AI responses
+def clean_ai_response(response):
+    """Remove any 'Thought:' text and other unwanted patterns from AI responses"""
+    # Remove any line starting with 'Thought:' and everything after it until a blank line
+    import re
+    cleaned = re.sub(r'\nThought:.*?(\n\n|$)', r'\n\n', response, flags=re.DOTALL)
+    # Remove standalone 'Thought:' lines
+    cleaned = re.sub(r'^Thought:.*?$', '', cleaned, flags=re.MULTILINE)
+    # Remove any other metadata prefixes
+    cleaned = re.sub(r'^(Response:|Answer:|Final Answer:)\s*', '', cleaned, flags=re.MULTILINE)
+    return cleaned.strip()
+
 # Direct LLM function for simple API calls without using CrewAI
 def respond(message):
     """Send a direct message to the Ollama LLM and get a response"""
@@ -342,4 +354,5 @@ def respond(message):
         api_base="http://host.docker.internal:11434",
         messages=[{"role": "user", "content": formatted_message}]
     )
-    return response.choices[0].message.content
+    raw_response = response.choices[0].message.content
+    return clean_ai_response(raw_response)
