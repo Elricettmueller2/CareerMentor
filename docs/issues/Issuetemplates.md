@@ -2,7 +2,7 @@
 
 <div style="border: 1px solid #e74c3c; border-radius: 5px; padding: 15px; margin-bottom: 20px; background-color: #fadbd8;">
 
-## 🐛 Bug Report
+## Bug Report
 
 ### Description
 > *Clearly describe the issue you're experiencing*
@@ -28,7 +28,7 @@
 
 <div style="border: 1px solid #3498db; border-radius: 5px; padding: 15px; margin-bottom: 20px; background-color: #ebf5fb;">
 
-## ✨ Feature Request
+## Feature
 
 ### Description
 > *What feature would you like to add? Describe it clearly.*
@@ -48,7 +48,7 @@
 
 <div style="border: 1px solid #2ecc71; border-radius: 5px; padding: 15px; margin-bottom: 20px; background-color: #eafaf1;">
 
-## 🧪 Improvement / Refactoring
+## Improvement / Refactoring
 
 ### Target Area
 > *Describe the area in code/UI/UX/etc. that needs improvement*
@@ -69,7 +69,7 @@
 
 <div style="border: 1px solid #9b59b6; border-radius: 5px; padding: 15px; margin-bottom: 20px; background-color: #f5eef8;">
 
-## 📔 Documentation
+## Documentation
 
 ### Issue
 > *What documentation is missing or unclear?*
@@ -87,7 +87,7 @@
 
 <div style="border: 1px solid #f39c12; border-radius: 5px; padding: 15px; margin-bottom: 20px; background-color: #fef5e7;">
 
-## 🧰 Tasks / ToDos
+## Tasks / ToDos
 
 ### Description
 > *What needs to be done?*

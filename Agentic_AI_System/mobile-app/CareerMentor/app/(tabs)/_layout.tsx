@@ -27,24 +27,12 @@ export default function TabLayout() {
         headerShown: useClientOnlyValue(false, true),
       }}>
       <Tabs.Screen
-        name="index"
+        name="trackpal"
         options={{
-          title: 'Tab One',
+          title: 'TrackPal',
           tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="info-circle"
-                    size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
-          ),
+          // Removed headerRight to hide the info icon
+          headerShown: false, // Hide the entire header for TrackPal
         }}
       />
       <Tabs.Screen

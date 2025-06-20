@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Request, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 
 # Import crew functions
 from crews.mock_mate.run_mock_mate_crew import run_respond_to_answer, run_start_interview, run_review_interview
+from crews.track_pal.run_track_pal_crew import run_check_reminders, run_analyze_patterns, get_applications, save_application, update_application
+from crews.track_pal.crew import respond
 from crews.test.run_test_crew import run_test_crew
 from services.session_manager import add_message_to_history
 
@@ -54,6 +56,48 @@ def run_command(request: CommandRequest):
         return {"message": "Starting the application."}
     else:
         return {"message": f"Unknown command: {command}!"}
+
+@app.post("/agents/track_pal/{action}", tags=["Agents", "TrackPal"])
+async def track_pal_endpoint(action: str, request: AgentRequest):
+    """Route requests to the TrackPal agent based on the action"""
+    data = request.data
+    try:
+        if action == "check_reminders":
+            result = run_check_reminders(user_id=data.get("user_id"))
+            return {"response": result}
+        elif action == "analyze_patterns":
+            result = run_analyze_patterns(user_id=data.get("user_id"))
+            return {"response": result}
+        elif action == "get_applications":
+            applications = get_applications(user_id=data.get("user_id"))
+            return {"applications": applications}
+        elif action == "save_application":
+            application = save_application(
+                user_id=data.get("user_id"),
+                application=data.get("application", {})
+            )
+            return {"application": application}
+        elif action == "update_application":
+            updated = update_application(
+                user_id=data.get("user_id"),
+                app_id=data.get("app_id"),
+                updates=data.get("updates", {})
+            )
+            if updated:
+                return {"application": updated}
+            else:
+                raise HTTPException(status_code=404, detail=f"Application not found: {data.get('app_id')}")
+        elif action == "direct_test":
+            message = data.get("message", "Hello, how are you?")
+            response = respond(message)
+            return {"response": response}
+        else:
+            raise HTTPException(status_code=400, detail=f"Unknown action: {action}")
+    except Exception as e:
+        import traceback
+        error_msg = f"Error in mock_mate_endpoint: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
 
 # Agent endpoints
 @app.post("/agents/mock_mate/{action}", tags=["Agents", "MockMate"])
@@ -119,16 +163,29 @@ async def mock_mate_endpoint(action: str, request: AgentRequest):
         print(error_msg)
         raise HTTPException(status_code=500, detail=error_msg)
 
+
 @app.post("/agents/test", tags=["Agents", "Test"])
-async def test_endpoint(request: AgentRequest):
-    """Route requests to the Test agent"""
-    # Extract request data
-    data = request.data
-    
+async def test_agent(request: AgentRequest):
+    """Test endpoint for the agent"""
     try:
+        # Extract request data
+        data = request.data
+        
         result = run_test_crew(
             text=data.get("text")
         )
         return {"response": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+
+@app.post("/agents/track_pal/direct_test", tags=["Agents", "TrackPal"])
+async def test_ollama_direct(request: AgentRequest):
+    """Test endpoint for direct communication with Ollama"""
+    try:
+        # Extract request data
+        data = request.data
+        message = data.get("message", "Hello, how are you?")
+        response = respond(message)
+        return {"response": response}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
