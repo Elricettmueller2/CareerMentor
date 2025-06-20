@@ -55,6 +55,9 @@ export default function TabLayout() {
         options={{
           title: 'Interview',
           tabBarIcon: ({ color }) => <IonIcon name="chatbubbles" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="resume-refiner"
         options={{
           title: 'ResumeRefiner',

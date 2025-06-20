@@ -199,6 +199,9 @@ async def test_ollama_direct(request: AgentRequest):
         message = data.get("message", "Hello, how are you?")
         response = respond(message)
         return {"response": response}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+
 # Path Finder endpoints
 @app.post("/agents/path_finder/suggest_roles", tags=["Agents", "PathFinder"])
 async def path_finder_suggest_roles(request: AgentRequest):
