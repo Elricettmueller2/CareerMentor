@@ -147,7 +147,7 @@ async def path_finder_search_jobs(request: AgentRequest):
             degree=degree,
             hard_skills_rating=hard_skills_rating,
             soft_skills_rating=soft_skills_rating,
-            interests=interests,
+            interest_points=interests,
             user_id=user_id,
             limit=limit
         )

@@ -193,10 +193,10 @@ export default function PathFinderScreen() {
       try {
         data = JSON.parse(responseText);
         console.log('Parsed search results:', data);
-        console.log('Jobs array:', data.jobs);
-        console.log('Jobs array type:', Array.isArray(data.jobs) ? 'Array' : typeof data.jobs);
-        console.log('Jobs array length:', data.jobs ? data.jobs.length : 'undefined');
-        setResults(Array.isArray(data.jobs) ? data.jobs : []);
+        console.log('Jobs array:', data.top_jobs);
+        console.log('Jobs array type:', Array.isArray(data.top_jobs) ? 'Array' : typeof data.top_jobs);
+        console.log('Jobs array length:', data.top_jobs ? data.top_jobs.length : 'undefined');
+        setResults(Array.isArray(data.top_jobs) ? data.top_jobs : []);
       } catch (parseError) {
         console.error('JSON parse error:', parseError);
         throw new Error(`Failed to parse response: ${responseText}`);
