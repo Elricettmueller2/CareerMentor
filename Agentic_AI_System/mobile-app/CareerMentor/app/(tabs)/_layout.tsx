@@ -13,7 +13,7 @@ function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
   color: string;
 }) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
+  return <FontAwesome size={props.size || 28} style={{ marginBottom: -3 }} {...props} />;
 }
 
 function IonIcon(props: {
@@ -55,6 +55,10 @@ export default function TabLayout() {
         options={{
           title: 'Interview',
           tabBarIcon: ({ color }) => <IonIcon name="chatbubbles" color={color} />,
+        name="resume-refiner"
+        options={{
+          title: 'ResumeRefiner',
+          tabBarIcon: ({ color }) => <TabBarIcon name="file-text" color={color} size={20} />,
         }}
       />
     </Tabs>
