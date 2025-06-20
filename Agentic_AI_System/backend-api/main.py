@@ -51,6 +51,9 @@ app.add_middleware(
 class AgentRequest(BaseModel):
     data: Dict[str, Any]
 
+class CommandRequest(BaseModel):
+    command: str
+
 class JobMatchRequest(BaseModel):
     job_descriptions: List[Dict[str, Any]]
 
