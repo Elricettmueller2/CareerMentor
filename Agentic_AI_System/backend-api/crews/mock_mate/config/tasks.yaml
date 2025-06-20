@@ -6,15 +6,24 @@ start_interview:
     A professional introduction and first interview question
   agent: interview_agent
 
-
 respond_to_answer:
-  description: Respond
+  description: >
+    Review the entire interview history provided and respond to the candidate's most recent answer.
+    Maintain continuity with previous questions and answers.
+    Follow up with a question that builds on the conversation so far and further explores the topic and the candidate's skills.
+    Remember you are conducting a mock interview for the specific job role mentioned in the history.
   expected_output: >
-    A relevant follow-up question or response
+    A contextually relevant follow-up question or response that shows awareness of the entire conversation history
   agent: interview_agent
 
 review_interview:
   description: Review the interview
   expected_output: >
     A detailed review of the interview with feedback
+  agent: interview_agent
+
+refine_answer:
+  description: Refine the text to only include speaking text and remove all other content
+  expected_output: >
+    A refined answer in at most 3 sentences
   agent: interview_agent

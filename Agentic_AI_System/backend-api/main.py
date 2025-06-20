@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 # Import crew functions
 from crews.mock_mate.run_mock_mate_crew import run_respond_to_answer, run_start_interview, run_review_interview
 from crews.test.run_test_crew import run_test_crew
+from services.session_manager import add_message_to_history
 
 # Load environment variables
 load_dotenv()
@@ -64,26 +65,59 @@ async def mock_mate_endpoint(action: str, request: AgentRequest):
     # Route to the appropriate method based on action
     try:
         if action == "respond":
+            session_id = data.get("session_id")
+            user_response = data.get("user_response")
+            print(f"DEBUG: Running respond_to_answer with user_response={user_response}, session_id={session_id}")
+            
+            # Add user message to history
+            if session_id:
+                add_message_to_history(session_id, "user", user_response)
+            
             result = run_respond_to_answer(
-                user_response=data.get("user_response")
+                user_respond=user_response,
+                session_id=session_id
             )
+            
+            # Add agent response to history
+            if session_id:
+                add_message_to_history(session_id, "assistant", result)
+                
             return {"response": result}
         elif action == "start_interview":
+            job_role = data.get("job_role")
+            experience_level = data.get("experience_level")
+            session_id = data.get("session_id")
+            print(f"DEBUG: Running start_interview with job_role={job_role}, experience_level={experience_level}, session_id={session_id}")
+            
+            # Initialize session if provided
+            if session_id:
+                # Add system message to conversation history
+                add_message_to_history(session_id, "system", 
+                    f"This is a mock interview for a {job_role} position at {experience_level} experience level.")
+            
             result = run_start_interview(
-                job_role=data.get("job_role"),
-                experience_level=data.get("experience_level")
+                job_role=job_role,
+                experience_level=experience_level
             )
+            
+            # Add agent response to history
+            if session_id:
+                add_message_to_history(session_id, "assistant", result)
+                
             return {"response": result}
         elif action == "review":
+            print(f"DEBUG: Running review_interview with interview_history={data.get('interview_history')[:100]}...")
             result = run_review_interview(
                 interview_history=data.get("interview_history")
             )
             return {"response": result}
         else:
             raise HTTPException(status_code=400, detail=f"Unknown action: {action}")
-            
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+        import traceback
+        error_msg = f"Error in mock_mate_endpoint: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
 
 @app.post("/agents/test", tags=["Agents", "Test"])
 async def test_endpoint(request: AgentRequest):
