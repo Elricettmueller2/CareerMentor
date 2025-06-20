@@ -13,9 +13,17 @@ from crews.track_pal.run_track_pal_crew import run_check_reminders, run_analyze_
 from crews.track_pal.crew import respond
 from crews.test.run_test_crew import run_test_crew
 from services.session_manager import add_message_to_history
+from crews.path_finder.run_path_finder_crew import run_path_finder_crew, run_path_finder_direct
+from crews.path_finder.search_path import get_job_details, get_job_recommendations, save_job, unsave_job, get_saved_jobs
+
+# Import database initialization
+from database.init_db import init_database
 
 # Load environment variables
 load_dotenv()
+
+# Initialize the database
+init_database()
 
 app = FastAPI(
     title="CareerMentor API",
@@ -187,5 +195,140 @@ async def test_ollama_direct(request: AgentRequest):
         message = data.get("message", "Hello, how are you?")
         response = respond(message)
         return {"response": response}
+# Path Finder endpoints
+@app.post("/agents/path_finder/suggest_roles", tags=["Agents", "PathFinder"])
+async def path_finder_suggest_roles(request: AgentRequest):
+    """Get job search term suggestions based on partial input"""
+    try:
+        query = request.data.get("query", "")
+        if len(query) < 2:
+            return {"suggestions": []}
+            
+        result = suggest_roles(query)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+
+@app.post("/agents/path_finder/search_jobs_online", tags=["Agents", "PathFinder"])
+async def path_finder_search_jobs(request: AgentRequest):
+    """Search for jobs matching the detailed criteria"""
+    try:
+        # Extrahiere alle detaillierten Suchkriterien aus dem Request
+        job_title = request.data.get("job_title", "")
+        degree = request.data.get("degree", "")
+        hard_skills_rating = request.data.get("hard_skills_rating", 5)
+        soft_skills_rating = request.data.get("soft_skills_rating", 5)
+        interests = request.data.get("interests", "")
+        limit = request.data.get("limit", 10)
+        user_id = request.data.get("user_id", "default_user")
+        
+        # Stelle sicher, dass mindestens ein Suchkriterium angegeben ist
+        if not job_title and not degree and not interests:
+            raise HTTPException(status_code=400, detail="Mindestens ein Suchkriterium (Job-Titel, Abschluss oder Interessen) muss angegeben werden")
+            
+        # Rufe die crewAI-Suchfunktion mit allen Parametern auf
+        result = run_path_finder_direct(
+            job_title=job_title,
+            degree=degree,
+            hard_skills_rating=hard_skills_rating,
+            soft_skills_rating=soft_skills_rating,
+            interest_points=interests,
+            user_id=user_id,
+            limit=limit
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+
+@app.get("/agents/path_finder/job/{job_id}", tags=["Agents", "PathFinder"])
+async def path_finder_get_job(job_id: str, user_id: str = "default_user"):
+    """Get details of a specific job"""
+    try:
+        result = get_job_details(job_id, user_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving job details: {str(e)}")
+
+@app.get("/agents/path_finder/analyze-job/{job_id}", tags=["Agents", "PathFinder"])
+async def path_finder_analyze_job(job_id: str):
+    """Analyze requirements and qualifications for a specific job posting"""
+    try:
+        # Verwende die neue Path Finder Crew-Funktion
+        job_data = {"job_id": job_id}
+        result = run_path_finder_direct(job_title="Analyze Job", education_level="", years_experience=0, location_radius=0, interest_points="", job_data=job_data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error analyzing job requirements: {str(e)}")
+
+@app.post("/agents/path_finder/compare-skills", tags=["Agents", "PathFinder"])
+async def path_finder_compare_skills(request: AgentRequest):
+    """Compare user skills with job requirements and provide match analysis"""
+    try:
+        user_profile = request.data.get("user_profile", {})
+        job_ids = request.data.get("job_ids", [])
+        
+        if not user_profile:
+            raise HTTPException(status_code=400, detail="User profile is required")
+        if not job_ids:
+            raise HTTPException(status_code=400, detail="At least one job ID is required")
+            
+        # Verwende die neue Path Finder Crew-Funktion
+        job_data = {"user_profile": user_profile, "job_ids": job_ids}
+        result = run_path_finder_direct(job_title="Compare Skills", education_level="", years_experience=0, location_radius=0, interest_points="", job_data=job_data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error comparing skills to jobs: {str(e)}")
+
+@app.post("/agents/path_finder/recommend", tags=["Agents", "PathFinder"])
+async def path_finder_recommend_jobs(request: AgentRequest):
+    """Get job recommendations based on user's search history"""
+    try:
+        user_id = request.data.get("user_id", "default_user")
+        limit = request.data.get("limit", 3)
+        
+        result = get_job_recommendations(user_id, limit)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+
+# Add endpoint for saving jobs
+@app.post("/agents/path_finder/save_job", tags=["Agents", "PathFinder"])
+async def path_finder_save_job(request: AgentRequest):
+    """Save a job for a user"""
+    try:
+        user_id = request.data.get("user_id", "default_user")
+        job_data = request.data.get("job_data")
+        
+        if not job_data:
+            raise HTTPException(status_code=400, detail="Job data is required")
+            
+        result = save_job(user_id, job_data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+
+# Add endpoint for unsaving jobs
+@app.post("/agents/path_finder/unsave_job", tags=["Agents", "PathFinder"])
+async def path_finder_unsave_job(request: AgentRequest):
+    """Remove a saved job for a user"""
+    try:
+        user_id = request.data.get("user_id", "default_user")
+        job_id = request.data.get("job_id")
+        
+        if not job_id:
+            raise HTTPException(status_code=400, detail="Job ID is required")
+            
+        result = unsave_job(user_id, job_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+
+# Add endpoint for retrieving saved jobs
+@app.get("/agents/path_finder/saved_jobs/{user_id}", tags=["Agents", "PathFinder"])
+async def path_finder_get_saved_jobs(user_id: str = "default_user"):
+    """Get saved jobs for a user"""
+    try:
+        result = get_saved_jobs(user_id)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
