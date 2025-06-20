@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -26,6 +26,14 @@ export default function TrackPalScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   
+  // Application stats
+  const [stats, setStats] = useState({
+    totalApplications: 0,
+    replyRate: 0,
+    interviewRate: 0,
+    followUpOpportunities: 0
+  });
+  
   // TrackPal AI states
   const [reminders, setReminders] = useState<string>('');
   const [loadingReminders, setLoadingReminders] = useState(false);
@@ -36,7 +44,12 @@ export default function TrackPalScreen() {
   const [question, setQuestion] = useState<string>('');
   const [answer, setAnswer] = useState<string>('');
   const [loadingAnswer, setLoadingAnswer] = useState(false);
-  const [activeTab, setActiveTab] = useState<'applications' | 'ai'>('applications');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'ai'>('dashboard');
+
+  // Load insights once when the component mounts
+  useEffect(() => {
+    loadPatternInsights();
+  }, []);
 
   // Load applications when screen comes into focus
   // We'll use a ref to track if we've already loaded the AI data
@@ -45,8 +58,6 @@ export default function TrackPalScreen() {
   useFocusEffect(
     useCallback(() => {
       loadApplications();
-      // Load insights for dashboard regardless of active tab
-      loadPatternInsights();
       
       if (activeTab === 'ai') {
         loadReminders();
@@ -55,11 +66,56 @@ export default function TrackPalScreen() {
     }, [activeTab])
   );
 
+  // Calculate application statistics
+  const calculateStats = (apps: JobApplication[]) => {
+    if (!apps || apps.length === 0) {
+      setStats({
+        totalApplications: 0,
+        replyRate: 0,
+        interviewRate: 0,
+        followUpOpportunities: 0
+      });
+      return;
+    }
+    
+    const total = apps.length;
+    
+    // Count applications with responses
+    const withResponse = apps.filter(app => 
+      app.status === 'interview' || 
+      app.status === 'offer' || 
+      app.status === 'rejected' ||
+      app.status === 'responded'
+    ).length;
+    
+    // Count applications with interviews
+    const withInterview = apps.filter(app => 
+      app.status === 'interview' || 
+      app.status === 'offer'
+    ).length;
+    
+    // Count applications that need follow-up
+    const needFollowUp = apps.filter(app => 
+      (app.status === 'applied' && 
+       new Date().getTime() - new Date(app.appliedDate).getTime() > 7 * 24 * 60 * 60 * 1000) || // 7 days since application
+      (app.status === 'interview' && 
+       new Date().getTime() - new Date(app.followUpDate || app.appliedDate).getTime() > 3 * 24 * 60 * 60 * 1000) // 3 days since interview
+    ).length;
+    
+    setStats({
+      totalApplications: total,
+      replyRate: total > 0 ? Math.round((withResponse / total) * 100) : 0,
+      interviewRate: total > 0 ? Math.round((withInterview / total) * 100) : 0,
+      followUpOpportunities: needFollowUp
+    });
+  };
+  
   const loadApplications = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const apps = await ApplicationService.getApplications();
-      setApplications(apps);
+      const data = await ApplicationService.getApplications();
+      setApplications(data);
+      calculateStats(data);
     } catch (error) {
       console.error('Error loading applications:', error);
       Alert.alert('Error', 'Failed to load applications');
@@ -75,8 +131,8 @@ export default function TrackPalScreen() {
       await Promise.all([
         loadApplications(),
         activeTab === 'ai' ? loadReminders() : Promise.resolve(),
-        activeTab === 'ai' ? loadPatternAnalysis() : Promise.resolve(),
-        loadPatternInsights() // Always load insights for the dashboard
+        activeTab === 'ai' ? loadPatternAnalysis() : Promise.resolve()
+        // Don't automatically refresh insights on pull-to-refresh
       ]);
     } catch (error) {
       console.error('Error refreshing data:', error);
@@ -199,15 +255,15 @@ export default function TrackPalScreen() {
   const renderTabs = () => (
     <View style={styles.tabContainer}>
       <TouchableOpacity 
-        style={[styles.tab, activeTab === 'applications' && styles.activeTab]}
-        onPress={() => setActiveTab('applications')}
+        style={[styles.tab, activeTab === 'dashboard' && styles.activeTab]}
+        onPress={() => setActiveTab('dashboard')}
       >
         <Ionicons 
           name="list-outline" 
           size={20} 
-          color={activeTab === 'applications' ? '#000' : '#666'} 
+          color={activeTab === 'dashboard' ? '#000' : '#666'} 
         />
-        <Text style={[styles.tabText, activeTab === 'applications' && styles.activeTabText]}>Applications</Text>
+        <Text style={[styles.tabText, activeTab === 'dashboard' && styles.activeTabText]}>Dashboard</Text>
       </TouchableOpacity>
       
       <TouchableOpacity 
@@ -233,14 +289,44 @@ export default function TrackPalScreen() {
     </View>
   );
 
-  // Applications tab content
-  const renderApplicationsTab = () => (
+  // Dashboard tab content
+  const renderDashboardTab = () => (
     <ScrollView 
       style={styles.scrollContainer}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
+      {/* Stats Section */}
+      <View style={styles.statsSection}>
+        <Text style={styles.statsTitle}>Insights</Text>
+        <View style={styles.statsGrid}>
+          {/* Total Applications */}
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Total Applications</Text>
+            <Text style={styles.statValue}>{stats.totalApplications}</Text>
+          </View>
+          
+          {/* Reply Rate */}
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Reply Rate</Text>
+            <Text style={styles.statValue}>{stats.replyRate}%</Text>
+          </View>
+          
+          {/* Interview Rate */}
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Interview Rate</Text>
+            <Text style={styles.statValue}>{stats.interviewRate}%</Text>
+          </View>
+          
+          {/* Follow-Up Opportunities */}
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Follow-Up Opportunities</Text>
+            <Text style={styles.statValue}>{stats.followUpOpportunities}</Text>
+          </View>
+        </View>
+      </View>
+      
       {/* AI Insights Section */}
       <View style={styles.aiInsightsSection}>
         <View style={styles.sectionHeader}>
@@ -379,10 +465,10 @@ export default function TrackPalScreen() {
 
       {renderTabs()}
       
-      {activeTab === 'applications' ? renderApplicationsTab() : renderAITab()}
+      {activeTab === 'dashboard' ? renderDashboardTab() : renderAITab()}
 
       {/* Floating Action Button */}
-      {activeTab === 'applications' && (
+      {activeTab === 'dashboard' && (
         <TouchableOpacity
           style={styles.fab}
           onPress={() => setModalVisible(true)}
@@ -420,6 +506,46 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  // Stats section styles
+  statsSection: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  statsTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  statCard: {
+    backgroundColor: '#5D5B8D',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    width: '48%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#fff',
+    opacity: 0.8,
+    marginBottom: 8,
+  },
+  statValue: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
   scrollContainer: {
     flex: 1,
     backgroundColor: '#f5f5f5',
@@ -446,6 +572,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 8,
+    backgroundColor: 'transparent',
   },
   insightsSectionTitle: {
     fontSize: 18,
@@ -454,14 +581,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   insightsContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-    padding: 15,
+    marginBottom: 16,
   },
   insightsList: {
     paddingBottom: 8,
@@ -474,17 +594,17 @@ const styles = StyleSheet.create({
   },
 
   insightCard: {
-    backgroundColor: '#5D5B8D',
-    borderRadius: 12,
+    borderRadius: 10,
     padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
+    marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    backgroundColor: '#5D5B8D',
   },
 
   insightIconCircle: {
@@ -498,10 +618,10 @@ const styles = StyleSheet.create({
   },
 
   insightText: {
-    color: '#fff',
-    fontSize: 14,
     flex: 1,
-    lineHeight: 20,
+    marginLeft: 12,
+    fontSize: 14,
+    color: '#fff',
   },
 
   applicationSectionTitle: {
