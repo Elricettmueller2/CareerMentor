@@ -26,7 +26,9 @@ class MockInterviewCrew():
     def interview_agent(self) -> Agent:
         return Agent(
             config=self.agents_config['interview_agent'],
+            tasks=[],
             llm=llm,
+            memory=True,
             verbose=True
         )
 

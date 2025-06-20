@@ -9,6 +9,8 @@ start_interview:
 respond_to_answer:
   description: >
     Review the entire interview history provided and respond to the candidate's most recent answer.
+    {{interview_history}}
+    The most recent response was {{user_response}}
     Maintain continuity with previous questions and answers.
     Follow up with a question that builds on the conversation so far and further explores the topic and the candidate's skills.
     Remember you are conducting a mock interview for the specific job role mentioned in the history.

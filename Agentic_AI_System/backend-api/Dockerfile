@@ -13,10 +13,10 @@ RUN pip install --no-cache-dir poetry \
 
 # Copy specific directories
 COPY crews/ ./crews/
+COPY services/ ./services/
 
 # Create directories if they don't exist in the project yet
 RUN mkdir -p static
-RUN mkdir -p services
 RUN mkdir -p tools
 
 EXPOSE 8000

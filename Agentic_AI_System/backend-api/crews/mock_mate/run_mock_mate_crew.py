@@ -16,10 +16,12 @@ def run_respond_to_answer(user_respond, session_id):
     mock_crew = MockInterviewCrew()
     crew = mock_crew.crew()
     crew.tasks = [mock_crew.respond_to_answer_task()]
+    conversation = get_conversation_history(session_id)
     result = crew.kickoff(inputs={
-        "interview_history": get_conversation_history(session_id),
+        "interview_history": conversation,
         "user_response": user_respond
     })
+
     return result.raw
 
 def run_refine_answer(answer):
