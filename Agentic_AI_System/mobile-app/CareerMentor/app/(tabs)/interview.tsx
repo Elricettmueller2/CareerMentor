@@ -13,7 +13,7 @@ export default function InterviewScreen() {
 
   // API base URL - use Docker container hostname when running in Docker
   // Verwende die IP-Adresse statt localhost für den Zugriff von mobilen Geräten
-  const API_BASE_URL = 'http://192.168.1.218:8000';
+  const API_BASE_URL = 'http://localhost:8000';
 
   const startInterview = async () => {
     setLoading(true);
