@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { StyleSheet, TextInput, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Text, View } from '@/components/Themed';
+import { useRouter } from 'expo-router';
 
 export default function InterviewScreen() {
+  const router = useRouter();
   const [jobRole, setJobRole] = useState('Software Engineer');
   const [experienceLevel, setExperienceLevel] = useState('Mid-level');
   const [interviewStarted, setInterviewStarted] = useState(false);
@@ -89,11 +91,8 @@ export default function InterviewScreen() {
     }
   };
 
-  const resetInterview = () => {
-    setInterviewStarted(false);
-    setMessages([]);
-    // Generate a new session ID for the next interview
-    setSessionId(`session_${Date.now()}`);
+  const handleEndInterview = () => {
+    router.push({ pathname: '/interview-review', params: { sessionId } });
   };
 
   return (
@@ -170,7 +169,7 @@ export default function InterviewScreen() {
           
           <TouchableOpacity 
             style={styles.resetButton}
-            onPress={resetInterview}
+            onPress={handleEndInterview}
           >
             <Text style={styles.resetButtonText}>End Interview</Text>
           </TouchableOpacity>
