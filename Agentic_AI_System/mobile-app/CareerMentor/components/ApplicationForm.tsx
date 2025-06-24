@@ -158,7 +158,12 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSubmit, onCancel })
         placeholder="Enter job location"
       />
 
-      <Text style={styles.label}>Application Deadline</Text>
+      <Text style={styles.label}>
+        {status === 'saved' ? 'Application Deadline' : 
+         status === 'applied' ? 'Date Applied' : 
+         status === 'interview' ? 'Interview Date' : 
+         'Important Date'}
+      </Text>
       <TouchableOpacity 
         style={styles.dateInput} 
         onPress={() => setShowDeadlinePicker(true)}

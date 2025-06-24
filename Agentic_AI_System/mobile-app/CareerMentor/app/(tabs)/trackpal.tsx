@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { useRouter } from 'expo-router';
 import { 
   StyleSheet, 
   Text, 
@@ -22,6 +23,7 @@ import ApplicationService, { JobApplication } from '../../services/ApplicationSe
 import TrackPalService, { PatternInsight } from '../../services/TrackPalService';
 
 export default function TrackPalScreen() {
+  const router = useRouter();
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -233,7 +235,10 @@ export default function TrackPalScreen() {
 
   const renderApplicationItem = ({ item }: { item: JobApplication }) => {
     return (
-      <TouchableOpacity style={styles.applicationItem}>
+      <TouchableOpacity 
+        style={styles.applicationItem}
+        onPress={() => router.push(`/job-application-details?id=${item.id}`)}
+      >
         <View style={styles.applicationHeader}>
           <Text style={styles.jobTitle}>{item.jobTitle}</Text>
           <View style={styles.statusBadge}>
