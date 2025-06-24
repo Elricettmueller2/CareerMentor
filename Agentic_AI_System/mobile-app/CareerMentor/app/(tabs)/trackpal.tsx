@@ -14,6 +14,7 @@ import {
   SafeAreaView,
   Platform
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import ApplicationForm from '../../components/ApplicationForm';
@@ -473,7 +474,15 @@ export default function TrackPalScreen() {
           style={styles.fab}
           onPress={() => setModalVisible(true)}
         >
-          <Ionicons name="add" size={24} color="#fff" />
+          <LinearGradient
+            colors={['#C29BB8', '#8089B4']}
+            style={styles.fabGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Text style={styles.fabText}>Add Application</Text>
+            <Ionicons name="add" size={30} color="#fff" />
+          </LinearGradient>
         </TouchableOpacity>
       )}
 
@@ -552,20 +561,31 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    width: 56,
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
     right: 20,
     bottom: 20,
-    backgroundColor: '#4a6da7',
-    borderRadius: 28,
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    borderRadius: 50,
     zIndex: 999,
+  },
+  
+  fabGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 25,
+    borderRadius: 50,
+  },
+  
+  fabText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+    marginRight: 10,
   },
   // AI Insights styles
   aiInsightsSection: {
@@ -784,15 +804,15 @@ const styles = StyleSheet.create({
   },
 
   applicationItem: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
+    backgroundColor: '#5D5B8D',
+    borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
   },
 
   applicationHeader: {
@@ -806,10 +826,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     flex: 1,
+    color: '#fff',
   },
 
   statusBadge: {
-    backgroundColor: '#eee',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -817,18 +838,18 @@ const styles = StyleSheet.create({
 
   statusText: {
     fontSize: 12,
-    color: '#666',
+    color: '#fff',
   },
 
   companyText: {
     fontSize: 16,
-    color: '#333',
+    color: '#fff',
     marginBottom: 4,
   },
 
   locationText: {
     fontSize: 14,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.8)',
     marginBottom: 8,
   },
 
@@ -841,13 +862,13 @@ const styles = StyleSheet.create({
 
   dateText: {
     fontSize: 12,
-    color: '#888',
+    color: 'rgba(255, 255, 255, 0.7)',
   },
 
   reminderBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#4a6da7',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,

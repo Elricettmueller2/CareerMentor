@@ -1,6 +1,7 @@
 import React from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Link, Tabs } from 'expo-router';
 import { Pressable } from 'react-native';
 
@@ -38,9 +39,8 @@ export default function TabLayout() {
         name="trackpal"
         options={{
           title: 'TrackPal',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          // Removed headerRight to hide the info icon
-          headerShown: false, // Hide the entire header for TrackPal
+          tabBarIcon: ({ color }) => <MaterialIcons name="insights" color={color} size={28}/>,
+          headerShown: false,
         }}
       />
       <Tabs.Screen
@@ -48,6 +48,7 @@ export default function TabLayout() {
         options={{
           title: 'Path Finder',
           tabBarIcon: ({ color }) => <IonIcon name="compass" color={color} />,
+          headerShown: false,
         }}
       />
       <Tabs.Screen
@@ -55,6 +56,7 @@ export default function TabLayout() {
         options={{
           title: 'Interview',
           tabBarIcon: ({ color }) => <IonIcon name="chatbubbles" color={color} />,
+          headerShown: false,
         }}
       />
       <Tabs.Screen
@@ -62,6 +64,7 @@ export default function TabLayout() {
         options={{
           title: 'ResumeRefiner',
           tabBarIcon: ({ color }) => <TabBarIcon name="file-text" color={color} size={20} />,
+          headerShown: false,
         }}
       />
     </Tabs>
