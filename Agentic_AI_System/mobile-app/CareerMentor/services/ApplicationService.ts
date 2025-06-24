@@ -38,7 +38,7 @@ export const ApplicationService = {
           company: 'Acme Corp',
           location: 'San Francisco, CA',
           applicationDeadline: null,
-          status: 'Applied',
+          status: 'applied',
           followUpDate: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
           followUpTime: '10:00',
           notes: 'Applied through company website',
@@ -50,7 +50,7 @@ export const ApplicationService = {
           company: 'TechStart',
           location: 'Remote',
           applicationDeadline: null,
-          status: 'Interview',
+          status: 'interview',
           followUpDate: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day from now
           followUpTime: '14:00',
           notes: 'First interview scheduled',
@@ -62,7 +62,7 @@ export const ApplicationService = {
           company: 'BigCorp',
           location: 'New York, NY',
           applicationDeadline: null,
-          status: 'Rejected',
+          status: 'rejected',
           followUpDate: null,
           followUpTime: '',
           notes: 'Rejected after initial screening',
@@ -158,7 +158,7 @@ export const ApplicationService = {
         if (!app.followUpDate) return false;
         
         const followUpDate = new Date(app.followUpDate);
-        return followUpDate <= today && app.status !== 'Rejected';
+        return followUpDate <= today && app.status !== 'rejected';
       });
     } catch (error) {
       console.error('Error getting follow-up applications:', error);

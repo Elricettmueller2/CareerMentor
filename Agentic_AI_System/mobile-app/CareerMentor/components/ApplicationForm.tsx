@@ -34,7 +34,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSubmit, onCancel })
   const [company, setCompany] = useState('');
   const [location, setLocation] = useState('');
   const [applicationDeadline, setApplicationDeadline] = useState<Date | null>(null);
-  const [status, setStatus] = useState('applied');
+  const [status, setStatus] = useState('saved');
   const [followUpDate, setFollowUpDate] = useState<Date | null>(null);
   const [followUpTime, setFollowUpTime] = useState('12:00');
   const [notes, setNotes] = useState('');
@@ -79,12 +79,12 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSubmit, onCancel })
   
   const getStatusLabel = (value: string) => {
     switch(value) {
+      case 'saved': return 'Saved';
       case 'applied': return 'Applied';
-      case 'responded': return 'Responded';
       case 'interview': return 'Interview';
-      case 'offer': return 'Offer';
       case 'rejected': return 'Rejected';
-      default: return 'Applied';
+      case 'accepted': return 'Accepted';
+      default: return 'Saved';
     }
   };
   
@@ -92,7 +92,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSubmit, onCancel })
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'Applied', 'Responded', 'Interview', 'Offer', 'Rejected'],
+          options: ['Cancel', 'Saved', 'Applied', 'Interview', 'Rejected', 'Accepted'],
           cancelButtonIndex: 0,
           title: 'Select Status'
         },
@@ -102,7 +102,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSubmit, onCancel })
             return;
           }
           
-          const statusValues = ['applied', 'responded', 'interview', 'offer', 'rejected'];
+          const statusValues = ['saved', 'applied', 'interview', 'rejected', 'accepted'];
           setStatus(statusValues[buttonIndex - 1]);
         }
       );
@@ -197,11 +197,11 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSubmit, onCancel })
             style={styles.picker}
             onValueChange={(itemValue: string) => setStatus(itemValue)}
           >
+            <Picker.Item label="Saved" value="saved" />
             <Picker.Item label="Applied" value="applied" />
-            <Picker.Item label="Responded" value="responded" />
             <Picker.Item label="Interview" value="interview" />
-            <Picker.Item label="Offer" value="offer" />
             <Picker.Item label="Rejected" value="rejected" />
+            <Picker.Item label="Accepted" value="accepted" />
           </Picker>
         </View>
       )}

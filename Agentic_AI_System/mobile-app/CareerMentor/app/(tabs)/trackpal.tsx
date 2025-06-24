@@ -81,20 +81,19 @@ export default function TrackPalScreen() {
     
     const total = apps.length;
     
-    // Count applications with responses
+    // Count applications with responses (interview, accepted, or rejected)
     const withResponse = apps.filter(app => 
       app.status === 'interview' || 
-      app.status === 'offer' || 
-      app.status === 'rejected' ||
-      app.status === 'responded'
+      app.status === 'accepted' || 
+      app.status === 'rejected'
     ).length;
-    
-    // Count applications with interviews
+  
+    // Count applications with interviews or accepted
     const withInterview = apps.filter(app => 
       app.status === 'interview' || 
-      app.status === 'offer'
+      app.status === 'accepted'
     ).length;
-    
+  
     // Count applications that need follow-up
     const needFollowUp = apps.filter(app => 
       (app.status === 'applied' && 
@@ -220,13 +219,25 @@ export default function TrackPalScreen() {
 
   // checkReminders function removed as it's no longer needed
 
+  // Format status text for display
+  const formatStatusText = (status: string): string => {
+    switch(status.toLowerCase()) {
+      case 'saved': return 'Saved';
+      case 'applied': return 'Applied';
+      case 'interview': return 'Interview';
+      case 'rejected': return 'Rejected';
+      case 'accepted': return 'Accepted';
+      default: return 'Saved';
+    }
+  };
+
   const renderApplicationItem = ({ item }: { item: JobApplication }) => {
     return (
       <TouchableOpacity style={styles.applicationItem}>
         <View style={styles.applicationHeader}>
           <Text style={styles.jobTitle}>{item.jobTitle}</Text>
           <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>{item.status}</Text>
+            <Text style={styles.statusText}>{formatStatusText(item.status)}</Text>
           </View>
         </View>
         <Text style={styles.companyText}>{item.company}</Text>
