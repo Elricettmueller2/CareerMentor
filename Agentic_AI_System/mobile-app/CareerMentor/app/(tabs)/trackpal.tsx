@@ -495,9 +495,9 @@ export default function TrackPalScreen() {
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <Ionicons name="arrow-back" size={24} color="black" />
+              <Ionicons name="arrow-back" size={24} color="white" />
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Add New Application to Track</Text>
+            <Text style={styles.modalTitle}>Add New Application</Text>
             <View style={{ width: 24 }} />
           </View>
           <ApplicationForm 
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   statsTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 12,
@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   insightsSectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 5,
@@ -645,7 +645,7 @@ const styles = StyleSheet.create({
   },
 
   applicationSectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     marginHorizontal: 16,
     marginTop: 8,
@@ -927,7 +927,7 @@ const styles = StyleSheet.create({
 
   modalContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f9f9f9',
   },
 
   modalHeader: {
@@ -935,13 +935,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    backgroundColor: '#5D5B8D',
+    borderBottomWidth: 0,
   },
 
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
+    color: 'white',
   },
 
   separator: {

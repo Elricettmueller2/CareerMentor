@@ -13,6 +13,7 @@ import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
   color: string;
+  size?: number;
 }) {
   return <FontAwesome size={props.size || 28} style={{ marginBottom: -3 }} {...props} />;
 }
@@ -20,8 +21,9 @@ function TabBarIcon(props: {
 function IonIcon(props: {
   name: React.ComponentProps<typeof Ionicons>['name'];
   color: string;
+  size?: number;
 }) {
-  return <Ionicons size={28} style={{ marginBottom: -3 }} {...props} />;
+  return <Ionicons size={props.size || 28} style={{ marginBottom: -3 }} {...props} />;
 }
 
 export default function TabLayout() {
