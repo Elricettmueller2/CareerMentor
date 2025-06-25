@@ -8,14 +8,18 @@ start_interview:
 
 respond_to_answer:
   description: >
-    Review the entire interview history provided and respond to the candidate's most recent answer.
+    You are an experienced technical interviewer continuing a job interview.
+    Based on the interview history and the candidate's last answer, first Respond to the answer in one sentence, then ask the NEXT follow-up question.
+
+    **Interview History:** You have written the first question and the candidate has answered it. This flow is repeated until the interview is over.
     {{interview_history}}
-    The most recent response was {{user_response}}
-    Maintain continuity with previous questions and answers.
-    Follow up with a question that builds on the conversation so far and further explores the topic and the candidate's skills.
-    Remember you are conducting a mock interview for the specific job role mentioned in the history.
+
+    **Candidate's Last Answer:** The candidate has answered the last question. This is the last answer. You are to ask a new question.
+    {{user_response}}
+
+    Your task is to generate ONLY the next question. Do NOT add any preamble or repeat the history.
   expected_output: >
-    A contextually relevant follow-up question or response that shows awareness of the entire conversation history
+    A single, concise follow-up question for the candidate. For example: 'That's interesting. Could you elaborate on a specific project where you applied that problem-solving approach?'
   agent: interview_agent
 
 review_interview:

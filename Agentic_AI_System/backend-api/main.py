@@ -12,7 +12,7 @@ from crews.mock_mate.run_mock_mate_crew import run_respond_to_answer, run_start_
 from crews.track_pal.run_track_pal_crew import run_check_reminders, run_analyze_patterns, get_applications, save_application, update_application
 from crews.track_pal.crew import respond
 from crews.test.run_test_crew import run_test_crew
-from services.session_manager import add_message_to_history
+from services.session_manager import add_message_to_history, get_conversation_history
 from crews.path_finder.run_path_finder_crew import run_path_finder_crew, run_path_finder_direct
 from crews.path_finder.search_path import get_job_details, get_job_recommendations, save_job, unsave_job, get_saved_jobs
 from crews.resume_refiner.run_resume_refiner_crew import (
@@ -165,9 +165,16 @@ async def mock_mate_endpoint(action: str, request: AgentRequest):
                 
             return {"response": result}
         elif action == "review":
-            print(f"DEBUG: Running review_interview with interview_history={data.get('interview_history')[:100]}...")
+            session_id = data.get("session_id")
+            if not session_id:
+                raise HTTPException(status_code=400, detail="'session_id' is required.")
+
+            # Get conversation history from session
+            interview_history = get_conversation_history(session_id)
+            print(f"DEBUG: Running review_interview for session_id={session_id}")
+
             result = run_review_interview(
-                interview_history=data.get("interview_history")
+                interview_history=interview_history
             )
             return {"response": result}
         else:
