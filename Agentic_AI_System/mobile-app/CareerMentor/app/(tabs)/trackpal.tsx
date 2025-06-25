@@ -13,6 +13,7 @@ import {
   RefreshControl, 
   ScrollView,
   SafeAreaView,
+  Keyboard,
   Platform
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,6 +29,7 @@ export default function TrackPalScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [chatModalVisible, setChatModalVisible] = useState(false);
   
   // Application stats
   const [stats, setStats] = useState({
@@ -306,6 +308,11 @@ export default function TrackPalScreen() {
     </View>
   );
 
+  // Toggle chat modal
+  const toggleChatModal = () => {
+    setChatModalVisible(!chatModalVisible);
+  };
+
   // Dashboard tab content
   const renderDashboardTab = () => (
     <ScrollView 
@@ -316,7 +323,7 @@ export default function TrackPalScreen() {
     >
       {/* Stats Section */}
       <View style={styles.statsSection}>
-        <Text style={styles.statsTitle}>Insights</Text>
+        <Text style={styles.statsTitle}>Stats</Text>
         <View style={styles.statsGrid}>
           {/* Total Applications */}
           <View style={styles.statCard}>
@@ -397,6 +404,8 @@ export default function TrackPalScreen() {
           </Text>
         </View>
       )}
+      
+      {/* Ask TrackPal Section removed - now available via floating chat button */}
     </ScrollView>
   );
 
@@ -440,37 +449,7 @@ export default function TrackPalScreen() {
         )}
       </View>
 
-      {/* Direct Questions Section */}
-      <View style={styles.aiSection}>
-        <Text style={styles.sectionTitle}>Ask TrackPal</Text>
-        <Text style={styles.sectionSubtitle}>Ask any question about your job applications</Text>
-        
-        <View style={styles.questionContainer}>
-          <TextInput
-            style={styles.questionInput}
-            placeholder="E.g., Which companies should I follow up with?"
-            value={question}
-            onChangeText={setQuestion}
-            multiline
-          />
-          <TouchableOpacity 
-            style={styles.askButton} 
-            onPress={askQuestion}
-            disabled={loadingAnswer || !question.trim()}
-          >
-            <Text style={styles.askButtonText}>Ask</Text>
-          </TouchableOpacity>
-        </View>
-        
-        {loadingAnswer ? (
-          <ActivityIndicator size="small" color="#4a6da7" style={{marginVertical: 20}} />
-        ) : answer ? (
-          <View style={styles.answerContainer}>
-            <Text style={styles.answerLabel}>TrackPal's Answer:</Text>
-            <Text style={styles.aiResponse}>{answer}</Text>
-          </View>
-        ) : null}
-      </View>
+      {/* End of dashboard content */}
     </ScrollView>
   );
 
@@ -484,24 +463,43 @@ export default function TrackPalScreen() {
       
       {activeTab === 'dashboard' ? renderDashboardTab() : renderAITab()}
 
-      {/* Floating Action Button */}
+      {/* Floating Action Buttons */}
       {activeTab === 'dashboard' && (
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={() => setModalVisible(true)}
-        >
-          <LinearGradient
-            colors={['#C29BB8', '#8089B4']}
-            style={styles.fabGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
+        <>
+          {/* Chat Button */}
+          <TouchableOpacity
+            style={styles.chatFab}
+            onPress={toggleChatModal}
           >
-            <Text style={styles.fabText}>Add Application</Text>
-            <Ionicons name="add" size={30} color="#fff" />
-          </LinearGradient>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={['#5D5B8D', '#4a6da7']}
+              style={styles.chatFabGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Ionicons name="chatbubbles" size={24} color="#fff" />
+            </LinearGradient>
+          </TouchableOpacity>
+          
+          {/* Add Application Button */}
+          <TouchableOpacity
+            style={styles.fab}
+            onPress={() => setModalVisible(true)}
+          >
+            <LinearGradient
+              colors={['#C29BB8', '#8089B4']}
+              style={styles.fabGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Text style={styles.fabText}>Add Application</Text>
+              <Ionicons name="add" size={30} color="#fff" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </>
       )}
 
+      {/* Add Application Modal */}
       <Modal
         animationType="slide"
         transparent={false}
@@ -522,11 +520,220 @@ export default function TrackPalScreen() {
           />
         </SafeAreaView>
       </Modal>
+      
+      {/* Ask TrackPal Chat Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={chatModalVisible}
+        onRequestClose={toggleChatModal}
+      >
+        <View style={styles.chatModalContainer}>
+          <View style={styles.chatModalContent}>
+            <View style={styles.chatModalHeader}>
+              <Text style={styles.chatModalTitle}>Ask TrackPal</Text>
+              <TouchableOpacity onPress={toggleChatModal}>
+                <Ionicons name="close" size={24} color="#5D5B8D" />
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={styles.chatModalSubtitle}>Ask any question about your job applications</Text>
+            
+            <ScrollView style={styles.chatBody} contentContainerStyle={{paddingBottom: 10}}>
+              {loadingAnswer ? (
+                <View style={styles.chatLoadingContainer}>
+                  <ActivityIndicator size="large" color="#5D5B8D" style={{marginVertical: 20}} />
+                  <Text style={styles.loadingText}>Generating answer...</Text>
+                </View>
+              ) : answer ? (
+                <View style={styles.chatAnswerContainer}>
+                  <Text style={styles.chatAnswerLabel}>TrackPal's Answer:</Text>
+                  <Text style={styles.chatAnswerText} selectable={true}>{answer}</Text>
+                </View>
+              ) : (
+                <View style={styles.emptyAnswerContainer}>
+                  <Ionicons name="chatbubbles-outline" size={40} color="#ccc" />
+                  <Text style={styles.emptyAnswerText}>Your answer will appear here</Text>
+                </View>
+              )}
+            </ScrollView>
+            
+            <View style={styles.chatInputContainer}>
+              <TextInput
+                style={styles.chatInput}
+                placeholder="E.g., Which companies should I follow up with?"
+                value={question}
+                onChangeText={setQuestion}
+                multiline
+              />
+              <TouchableOpacity 
+                style={[styles.chatSendButton, !question.trim() && styles.chatSendButtonDisabled]} 
+                onPress={() => {
+                  // Clear any previous answer before asking a new question
+                  setAnswer('');
+                  // Ask the question
+                  askQuestion();
+                  // Dismiss keyboard
+                  Keyboard.dismiss();
+                }}
+                disabled={loadingAnswer || !question.trim()}
+              >
+                {loadingAnswer ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="send" size={20} color="#fff" />
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  // Chat floating button styles
+  chatFab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 85, // Position above the add button
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    borderRadius: 30,
+    zIndex: 999,
+  },
+  
+  chatFabGradient: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+
+  // Chat modal styles
+  chatModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  
+  chatModalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '80%',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+  },
+  
+  chatModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  
+  chatModalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#5D5B8D',
+  },
+  
+  chatModalSubtitle: {
+    fontSize: 16,
+    color: '#6c757d',
+    marginBottom: 20,
+  },
+  
+  chatBody: {
+    flex: 1,
+    maxHeight: 300,
+  },
+  
+  chatLoadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  
+  loadingText: {
+    color: '#666',
+    marginTop: 10,
+    fontSize: 16,
+  },
+  
+  emptyAnswerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 30,
+  },
+  
+  emptyAnswerText: {
+    color: '#999',
+    marginTop: 10,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  
+  chatAnswerContainer: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: '#5D5B8D',
+  },
+  
+  chatAnswerLabel: {
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#5D5B8D',
+  },
+  
+  chatAnswerText: {
+    fontSize: 16,
+    lineHeight: 22,
+    color: '#333',
+  },
+  
+  chatInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f1f3f5',
+    borderRadius: 25,
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+  },
+  
+  chatInput: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: '#333',
+  },
+  
+  chatSendButton: {
+    backgroundColor: '#5D5B8D',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
+  },
+  
+  chatSendButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
@@ -663,6 +870,14 @@ const styles = StyleSheet.create({
   applicationSectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 12,
+    color: '#333',
+  },
+
+  applicationSectionSubtitle: {
+    fontSize: 16,
     marginHorizontal: 16,
     marginTop: 8,
     marginBottom: 12,
@@ -909,6 +1124,13 @@ const styles = StyleSheet.create({
     marginTop: 16,
     color: '#333',
   },
+  
+  // Fix for duplicate property
+  // This is a placeholder to avoid duplicate property error
+  placeholderFix: {
+    width: 0,
+    height: 0,
+  },
 
   emptySubText: {
     fontSize: 14,
@@ -974,5 +1196,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     textAlign: 'center',
   },
+  
+  askTrackPalSection: {
+    backgroundColor: '#5D5B8D',
+    margin: 16,
+    marginTop: 24,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  
+  askTrackPalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  
+  askTrackPalSubtitle: {
+    fontSize: 14,
+    color: '#6c757d',
+    marginBottom: 16,
+  },
+  
 
 });

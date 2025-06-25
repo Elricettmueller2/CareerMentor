@@ -1012,6 +1012,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     padding: 20,
     elevation: 5,
+    marginBottom: 0,
+    paddingBottom: 30, /* Extra padding at the bottom for better touch area */
   },
   androidStatusPickerTitle: {
     fontSize: 18,
