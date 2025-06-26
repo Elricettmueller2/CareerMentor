@@ -1,16 +1,72 @@
-import React, { useState } from 'react';
-import { StyleSheet, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, View } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, View, Dimensions, SafeAreaView } from 'react-native';
 import { Text } from '@/components/Themed';
 import * as DocumentPicker from 'expo-document-picker';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ResumeRefinerScreen() {
   console.log("🏁 ResumeRefinerScreen rendered");
   const [uploadStarted, setUploadStarted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingStage, setLoadingStage] = useState<'parsing' | 'analysing' | ''>('parsing');
+  const [loadingDots, setLoadingDots] = useState('');
   const [feedbackMessages, setFeedbackMessages] = useState<Array<{text: string, section: string}>>([]);
   const [jobDescription, setJobDescription] = useState('');
   const [matchResult, setMatchResult] = useState<{match_score: number, missing_keywords: string[], suggestions: string[]} | null>(null);
   const [uploadId, setUploadId] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'analyse' | 'match'>('analyse');
+  
+  // Simulate loading progress
+  useEffect(() => {
+    let progressInterval: ReturnType<typeof setInterval>;
+    
+    if (loading) {
+      setLoadingProgress(0);
+      progressInterval = setInterval(() => {
+        setLoadingProgress(prev => {
+          // Ensure progress increases steadily
+          const increment = prev < 30 ? 1 : prev < 60 ? 0.7 : prev < 90 ? 0.5 : 0.2;
+          const newValue = prev + increment;
+          
+          if (newValue >= 100) {
+            return 99; // Keep at 99% until actually complete
+          }
+          return newValue;
+        });
+      }, 200);
+    } else {
+      setLoadingProgress(0);
+      setLoadingStage('');
+    }
+    
+    return () => {
+      if (progressInterval) clearInterval(progressInterval);
+    };
+  }, [loading]);
+  
+  // Animate loading dots
+  useEffect(() => {
+    let dotsInterval: ReturnType<typeof setInterval>;
+    
+    if (loading) {
+      dotsInterval = setInterval(() => {
+        setLoadingDots(prev => {
+          if (prev === '') return '.';
+          if (prev === '.') return '..';
+          if (prev === '..') return '...';
+          return '';
+        });
+      }, 500);
+    } else {
+      setLoadingDots('');
+    }
+    
+    return () => {
+      if (dotsInterval) clearInterval(dotsInterval);
+    };
+  }, [loading]);
   
   // New state for category scores
   const [categoryScores, setCategoryScores] = useState<{
@@ -25,15 +81,18 @@ export default function ResumeRefinerScreen() {
 
   const pickAndUpload = async () => {
     console.log("🖱️ Upload button pressed");
-    setLoading(true);
-  
+    
     try {
-      // Launch document picker
+      // Launch document picker without setting loading state yet
       const res = await DocumentPicker.getDocumentAsync({ type: 'application/pdf' });
       console.log("📄 Picker result:", res);
   
       // Handle new Expo DocumentPicker API
       if (!res.canceled && res.assets && res.assets.length > 0) {
+        // Only start loading after user has selected a file
+        setLoading(true);
+        setLoadingStage('parsing');
+        
         const asset = res.assets[0];
         const uri = asset.uri;
         const name = asset.name;
@@ -75,23 +134,26 @@ export default function ResumeRefinerScreen() {
           setUploadId(data.upload_id);
           setUploadStarted(true);
           analyzeResume(data.upload_id);
-        } catch (e) {
+        } catch (e: any) {
           console.error("File upload error:", e);
           setFeedbackMessages([{ 
             section: 'Error', 
-            text: `An error occurred during file upload: ${e.message}` 
+            text: `An error occurred during file upload: ${e?.message || 'Unknown error'}` 
           }]);
         }
+      } else {
+        // User cancelled the picker, don't show loading
+        console.log("📄 User cancelled file picking");
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("Upload error:", e);
-    } finally {
       setLoading(false);
     }
   };
 
   const analyzeResume = async (id: string) => {
     setLoading(true);
+    setLoadingStage('parsing');
     try {
       // Step 1: Analyze layout
       console.log(`🔍 Analyzing layout with upload_id: ${id}`);
@@ -112,6 +174,7 @@ export default function ResumeRefinerScreen() {
       
       // Step 2: Parse resume
       console.log(`🔍 Parsing resume with upload_id: ${id}`);
+      setLoadingStage('parsing');
       const parseResp = await fetch(`${API_BASE_URL}/resumes/${id}/parse`);
       
       if (parseResp.status !== 200) {
@@ -129,6 +192,7 @@ export default function ResumeRefinerScreen() {
       
       // Step 3: Evaluate resume quality
       console.log(`🔄 Evaluating resume quality with id: ${id}`);
+      setLoadingStage('analysing');
       const evalResp = await fetch(`${API_BASE_URL}/resumes/${id}/evaluate`);
       
       if (evalResp.status !== 200) {
@@ -176,18 +240,18 @@ export default function ResumeRefinerScreen() {
         });
         setFeedbackMessages(messages);
       } else {
-        console.warn('⚠️ No feedback found in evaluation response');
+        console.log('No feedback found in evaluation response');
         setFeedbackMessages([{ 
           section: 'Info', 
           text: 'No feedback available for this resume.' 
         }]);
       }
       
-    } catch (e) {
+    } catch (e: any) {
       console.error("Analysis error:", e);
       setFeedbackMessages([{ 
         section: 'Error', 
-        text: `An unexpected error occurred during resume analysis: ${e.message}` 
+        text: `An unexpected error occurred during resume analysis: ${e?.message || 'Unknown error'}` 
       }]);
     } finally {
       setLoading(false);
@@ -266,11 +330,11 @@ export default function ResumeRefinerScreen() {
         setMatchResult(null);
       }
       
-    } catch (e) {
+    } catch (e: any) {
       console.error("Match error:", e);
       setFeedbackMessages([{ 
         section: 'Error', 
-        text: `An unexpected error occurred during job matching: ${e.message}` 
+        text: `An unexpected error occurred during job matching: ${e?.message || 'Unknown error'}` 
       }]);
       setMatchResult(null);
     } finally {
@@ -285,21 +349,71 @@ export default function ResumeRefinerScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Resume Refiner</Text>
-
-      {!uploadStarted ? (
-        <View style={styles.setupContainer}>
-          <TouchableOpacity style={styles.button} onPress={pickAndUpload} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Upload PDF Resume</Text>}
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <Text style={styles.title}>Resume Refiner</Text>
+      
+        {uploadStarted && !loading && feedbackMessages.length > 0 && (
+        <View style={styles.tabContainer}>
+          <TouchableOpacity 
+            style={[styles.tabButton, activeTab === 'analyse' && styles.activeTabButton]}
+            onPress={() => setActiveTab('analyse')}
+          >
+            <Text style={[styles.tabButtonText, activeTab === 'analyse' && styles.activeTabText]}>Analyse</Text>
+            {activeTab === 'analyse' && <LinearGradient 
+              colors={['#6a11cb', '#2575fc']} 
+              style={styles.activeTabIndicator} 
+            />}
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tabButton, activeTab === 'match' && styles.activeTabButton]}
+            onPress={() => setActiveTab('match')}
+          >
+            <Text style={[styles.tabButtonText, activeTab === 'match' && styles.activeTabText]}>Match</Text>
+            {activeTab === 'match' && <LinearGradient 
+              colors={['#6a11cb', '#2575fc']} 
+              style={styles.activeTabIndicator} 
+            />}
           </TouchableOpacity>
         </View>
-      ) : (
+      )}
+
+      {!uploadStarted && !loading ? (
+        <View style={styles.setupContainer}>
+          <Text style={styles.uploadMessage}>Please upload your CV to personalize your experience and improve your CV</Text>
+          <TouchableOpacity style={styles.uploadButtonContainer} onPress={pickAndUpload} disabled={loading}>
+            <LinearGradient
+              colors={['#C29BB8', '#8089B4']}
+              style={styles.uploadButton}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Text style={styles.buttonText}>Upload CV</Text>
+                  <Ionicons name="cloud-upload-outline" size={24} color="#fff" />
+                </>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      ) : loading ? (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>
+            {loadingStage === 'parsing' ? `Parsing CV${loadingDots}` : `Analysing CV${loadingDots}`}
+          </Text>
+          <View style={styles.progressBarContainer}>
+            <View style={[styles.progressBar, { width: `${loadingProgress}%` }]} />
+          </View>
+        </View>
+      ) : feedbackMessages.length > 0 ? (
         <ScrollView style={styles.chatContainer}>
-          {loading && <ActivityIndicator size="large" />}
+          {/* Loading indicator moved to its own conditional rendering block */}
           
           {/* Display category scores if available */}
-          {categoryScores && (
+          {activeTab === 'analyse' && categoryScores && (
             <View style={styles.scoreContainer}>
               <Text style={styles.sectionHeader}>Resume Score</Text>
               <View style={styles.overallScoreContainer}>
@@ -374,26 +488,34 @@ export default function ResumeRefinerScreen() {
           )}
           
           {/* Display feedback messages */}
-          <Text style={styles.sectionHeader}>Detailed Feedback</Text>
-          {feedbackMessages.map((msg, index) => (
-            <View key={index} style={styles.messageBubble}>
-              <Text style={styles.messageText}>[{msg.section}] {msg.text}</Text>
-            </View>
-          ))}
+          {activeTab === 'analyse' && (
+            <>
+              <Text style={styles.sectionHeader}>Detailed Feedback</Text>
+              {feedbackMessages.map((msg, index) => (
+                <View key={index} style={styles.messageBubble}>
+                  <Text style={styles.messageText}>[{msg.section}] {msg.text}</Text>
+                </View>
+              ))}
+            </>
+          )}
 
-          <Text style={styles.sectionHeader}>Job Match</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Paste job description..."
-            multiline
-            value={jobDescription}
-            onChangeText={setJobDescription}
-          />
-          <TouchableOpacity style={styles.button} onPress={matchWithJob} disabled={loading}>
-            <Text style={styles.buttonText}>Match Resume to Job</Text>
-          </TouchableOpacity>
+          {activeTab === 'match' && (
+            <>
+              <Text style={styles.sectionHeader}>Job Match</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Paste job description..."
+                multiline
+                value={jobDescription}
+                onChangeText={setJobDescription}
+              />
+              <TouchableOpacity style={styles.button} onPress={matchWithJob} disabled={loading}>
+                <Text style={styles.buttonText}>Match Resume to Job</Text>
+              </TouchableOpacity>
+            </>
+          )}
 
-          {matchResult && (
+          {activeTab === 'match' && matchResult && (
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Match Score: {(matchResult.match_score * 100).toFixed(1)}%</Text>
               <Text style={styles.cardSubtitle}>Missing Keywords:</Text>
@@ -407,23 +529,92 @@ export default function ResumeRefinerScreen() {
             </View>
           )}
         </ScrollView>
+      ) : uploadStarted ? (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Waiting for results{loadingDots}</Text>
+        </View>
+      ) : (
+        <View style={styles.setupContainer}>
+          <Text style={styles.uploadMessage}>Please select a file to upload</Text>
+        </View>
       )}
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
+  safeArea: { flex: 1, backgroundColor: '#f8f0fc' },
+  container: { flex: 1, paddingVertical: 20, paddingHorizontal: 20, backgroundColor: '#f8f0fc' },
+  title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginTop: 10, marginBottom: 20, color: '#6a5acd' },
+  tabContainer: {
+    flexDirection: 'row',
+    marginBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#d8bfd8',
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  activeTabButton: {
+    backgroundColor: 'transparent',
+  },
+  tabButtonText: {
+    fontSize: 16,
+    color: '#9370db',
+  },
+  activeTabText: {
+    color: '#6a5acd',
+    fontWeight: 'bold',
+  },
+  activeTabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    borderRadius: 1.5,
+  },
   setupContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 5, padding: 10, marginVertical: 10 },
-  button: { backgroundColor: '#2f95dc', padding: 15, borderRadius: 5, alignItems: 'center', marginVertical: 10 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  uploadMessage: { fontSize: 18, textAlign: 'center', marginBottom: 40, color: '#6a5acd', maxWidth: '80%', lineHeight: 24 },
+  input: { borderWidth: 1, borderColor: '#d8bfd8', borderRadius: 5, padding: 10, marginVertical: 10 },
+  button: { backgroundColor: '#9370db', padding: 15, borderRadius: 5, alignItems: 'center', marginVertical: 10 },
+  uploadButtonContainer: {
+    marginTop: 20,
+    borderRadius: 25,
+    overflow: 'hidden',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginRight: 10,
+  },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', height: Dimensions.get('window').height * 0.7 },
+  loadingText: { fontSize: 22, marginBottom: 20, color: '#6a5acd', fontWeight: '500' },
+  progressBarContainer: { width: '80%', height: 10, backgroundColor: '#e6e6fa', borderRadius: 5 },
+  progressBar: { height: 10, backgroundColor: '#9370db', borderRadius: 5 },
   chatContainer: { flex: 1 },
-  messageBubble: { backgroundColor: '#e5e5ea', padding: 10, borderRadius: 5, marginVertical: 5 },
-  messageText: { fontSize: 16 },
-  sectionHeader: { fontSize: 20, fontWeight: '600', marginTop: 20, marginBottom: 10 },
-  card: { backgroundColor: '#f9f9f9', padding: 12, borderRadius: 5, marginVertical: 10 },
+  messageBubble: { backgroundColor: '#e6e6fa', padding: 10, borderRadius: 5, marginVertical: 5 },
+  messageText: { fontSize: 16, color: '#4b0082' },
+  sectionHeader: { fontSize: 20, fontWeight: '600', marginTop: 20, marginBottom: 10, color: '#6a5acd' },
+  card: { backgroundColor: '#e6e6fa', padding: 12, borderRadius: 5, marginVertical: 10 },
   cardTitle: { fontSize: 18, fontWeight: '500' },
   cardSubtitle: { fontSize: 16, fontWeight: '500', marginTop: 10 },
   cardText: { fontSize: 14, marginVertical: 2 },
