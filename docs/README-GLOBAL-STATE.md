@@ -23,12 +23,17 @@ The global state system consists of the following components:
 
 ### Backend (Python + FastAPI)
 
-1. **global_state_service.py**
+1. **MongoDB Implementation**
+   - **services/mongodb/client.py**: MongoDB client singleton for database connections
+   - **services/mongodb/global_state_service.py**: MongoDB-backed global state service
+   - **services/mongodb/sync_service.py**: Sync service for MongoDB implementation
+
+2. **global_state_service.py** (Legacy SQLite Implementation)
    - Singleton service for managing global state
    - Persists state in SQLite database
    - Provides methods to get/set state components
 
-2. **sync_service.py**
+3. **sync_service.py** (Legacy SQLite Implementation)
    - Handles conversion between frontend and backend formats
    - Provides methods to sync state from frontend and update knowledge
 
@@ -164,13 +169,12 @@ const syncData = async () => {
 
 ### Backend
 
-#### Accessing Global State in Agents
+#### Accessing Global State in Agents (MongoDB Implementation)
 
 ```python
-from services.global_state_service import GlobalStateService
+from services.mongodb.global_state_service import global_state
 
-# Get the global state service instance
-global_state = GlobalStateService()
+# The global state service is already instantiated as a singleton
 
 # Get user profile
 user_id = "user123"
@@ -184,13 +188,12 @@ global_state.update_interview_session(user_id, session_id, {
 })
 ```
 
-#### Handling Sync Requests
+#### Handling Sync Requests (MongoDB Implementation)
 
 ```python
-from services.sync_service import SyncService
+from services.mongodb.sync_service import sync_service
 
-# Get the sync service instance
-sync_service = SyncService()
+# The sync service is already instantiated as a singleton
 
 # Sync from frontend
 frontend_state = {...}  # State from frontend

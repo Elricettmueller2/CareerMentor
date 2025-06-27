@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, SafeAreaView, Platform } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFonts, Manrope_400Regular, Manrope_600SemiBold, Manrope_700Bold, Manrope_800ExtraBold } from '@expo-google-fonts/manrope';
+import { useAgentKnowledge } from '@/hooks/useGlobalState';
+import GlobalState from '@/services/GlobalStateService';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = GlobalState.getState().system.apiEndpoints.base;
 
 export default function InterviewScreen() {
   const router = useRouter();
@@ -13,9 +15,31 @@ export default function InterviewScreen() {
   const [experienceLevel, setExperienceLevel] = useState('Mid-level');
   const [interviewStarted, setInterviewStarted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState<Array<{text: string, sender: 'user' | 'agent'}>>([]);
   const [userInput, setUserInput] = useState('');
-  const [sessionId, setSessionId] = useState(`session_${Date.now()}`);
+  
+  // Use the global state for interview data
+  const [interview, setInterview] = useAgentKnowledge('interview');
+  const sessionId = interview.currentSessionId || `session_${Date.now()}`;
+  const currentSession = interview.history[sessionId] || { messages: [] };
+  const messages = currentSession.messages || [];
+  
+  // Initialize the session if it doesn't exist
+  useEffect(() => {
+    if (!interview.currentSessionId) {
+      setInterview({
+        ...interview,
+        currentSessionId: sessionId,
+        history: {
+          ...interview.history,
+          [sessionId]: {
+            jobRole,
+            experienceLevel,
+            messages: []
+          }
+        }
+      });
+    }
+  }, []);
 
   let [fontsLoaded] = useFonts({
     Manrope_400Regular,
@@ -28,22 +52,139 @@ export default function InterviewScreen() {
     setLoading(true);
     try {
       const newSessionId = `session_${Date.now()}`;
-      setSessionId(newSessionId);
       
-      const response = await fetch(`${API_BASE_URL}/agents/mock_mate/start_interview`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: { job_role: jobRole, experience_level: experienceLevel, session_id: newSessionId } }),
+      // Update the global state with the new session
+      setInterview({
+        ...interview,
+        currentSessionId: newSessionId,
+        history: {
+          ...interview.history,
+          [newSessionId]: {
+            jobRole,
+            experienceLevel,
+            messages: []
+          }
+        }
       });
+      
+      console.log(`Attempting to connect to API at: ${API_BASE_URL}/agents/mock_mate/start_interview`);
+      console.log(`Request payload: ${JSON.stringify({ data: { job_role: jobRole, experience_level: experienceLevel, session_id: newSessionId } })}`);
+      
+      // Try multiple API URLs if the default one fails
+      let apiUrl = API_BASE_URL;
+      let response;
+      
+      try {
+        response = await fetch(`${apiUrl}/agents/mock_mate/start_interview`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: { job_role: jobRole, experience_level: experienceLevel, session_id: newSessionId } }),
+        });
+      } catch (error: any) {
+        console.error(`Failed to connect to ${apiUrl}: ${error.message}`);
+        
+        // Try alternative URLs
+        const apiUrls = [
+          'http://localhost:8000',
+          'http://10.0.2.2:8000',
+          'http://192.168.178.28:8000',
+          'http://host.docker.internal:8000'
+        ];
+        
+        for (const url of apiUrls) {
+          if (url === apiUrl) continue;
+          
+          try {
+            console.log(`Trying alternative URL: ${url}`);
+            response = await fetch(`${url}/agents/mock_mate/start_interview`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ data: { job_role: jobRole, experience_level: experienceLevel, session_id: newSessionId } }),
+            });
+            
+            if (response.ok) {
+              console.log(`Success with URL ${url}`);
+              apiUrl = url;
+              break;
+            }
+          } catch (error: any) {
+            console.error(`Failed with URL ${url}: ${error.message}`);
+          }
+        }
+        
+        if (!response) {
+          throw new Error('Failed to connect to any API endpoint');
+        }
+      }
       
       if (!response.ok) throw new Error(`API error: ${response.status}`);
       
       const data = await response.json();
-      setMessages([{ text: data.response, sender: 'agent' }]);
+      
+      // Debug the response structure
+      console.log('Response data:', JSON.stringify(data));
+      
+      // Handle double-encoded JSON if needed
+      let responseText = data.response;
+      if (typeof responseText === 'string' && responseText.startsWith('{') && responseText.endsWith('}')) {
+        try {
+          // Try to parse it as JSON
+          const parsedResponse = JSON.parse(responseText);
+          if (parsedResponse.response) {
+            responseText = parsedResponse.response;
+          }
+        } catch (e) {
+          // If parsing fails, use the original response
+          console.log('Failed to parse double-encoded JSON:', e);
+        }
+      }
+      
+      // Filter out system instructions
+      console.log('Before filtering:', responseText);
+      
+      // Extract only the actual interview content
+      if (responseText.includes('Begin!')) {
+        const parts = responseText.split('Begin!');
+        if (parts.length > 1) {
+          responseText = parts[parts.length - 1].trim();
+          console.log('Filtered response:', responseText);
+        }
+      }
+      
+      // Update the global state with the agent's response
+      const newMessage = { text: responseText, sender: 'agent' as const };
+      setInterview({
+        ...interview,
+        history: {
+          ...interview.history,
+          [newSessionId]: {
+            ...interview.history[newSessionId],
+            messages: [newMessage]
+          }
+        }
+      });
+      
+      // Set interview started to true to show the chat interface
       setInterviewStarted(true);
     } catch (error: any) {
       console.error('Error starting interview:', error);
-      setMessages([{ text: `Error connecting to interview service: ${error.message}. Make sure the backend is running.`, sender: 'agent' }]);
+      
+      // Update the global state with the error message
+      const errorMessage = { 
+        text: `Error connecting to interview service: ${error.message}. Make sure the backend is running.`, 
+        sender: 'agent' as const 
+      };
+      
+      setInterview({
+        ...interview,
+        history: {
+          ...interview.history,
+          [sessionId]: {
+            ...interview.history[sessionId],
+            messages: [errorMessage]
+          }
+        }
+      });
     } finally {
       setLoading(false);
     }
@@ -53,30 +194,157 @@ export default function InterviewScreen() {
     if (!userInput.trim()) return;
     
     const userMessage = userInput.trim();
-    setMessages([...messages, { text: userMessage, sender: 'user' }]);
+    const currentMessages = interview.history[sessionId]?.messages || [];
+    
+    // Update the global state with the user's message
+    const updatedMessages = [...currentMessages, { text: userMessage, sender: 'user' as const }];
+    setInterview({
+      ...interview,
+      history: {
+        ...interview.history,
+        [sessionId]: {
+          ...interview.history[sessionId],
+          messages: updatedMessages
+        }
+      }
+    });
+    
     setUserInput('');
     setLoading(true);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/agents/mock_mate/respond`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: { user_response: userMessage, session_id: sessionId } }),
-      });
+      console.log(`Attempting to connect to API at: ${API_BASE_URL}/agents/mock_mate/respond`);
+      console.log(`Request payload: ${JSON.stringify({ data: { user_response: userMessage, session_id: sessionId } })}`);
+      
+      // Try multiple API URLs if the default one fails
+      let apiUrl = API_BASE_URL;
+      let response;
+      
+      try {
+        response = await fetch(`${apiUrl}/agents/mock_mate/respond`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: { user_response: userMessage, session_id: sessionId } }),
+        });
+      } catch (error: any) {
+        console.error(`Failed to connect to ${apiUrl}: ${error.message}`);
+        
+        // Try alternative URLs
+        const apiUrls = [
+          'http://localhost:8000',
+          'http://10.0.2.2:8000',
+          'http://192.168.178.28:8000',
+          'http://host.docker.internal:8000'
+        ];
+        
+        for (const url of apiUrls) {
+          if (url === apiUrl) continue;
+          
+          try {
+            console.log(`Trying alternative URL: ${url}`);
+            response = await fetch(`${url}/agents/mock_mate/respond`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ data: { user_response: userMessage, session_id: sessionId } }),
+            });
+            
+            if (response.ok) {
+              console.log(`Success with URL ${url}`);
+              apiUrl = url;
+              break;
+            }
+          } catch (error: any) {
+            console.error(`Failed with URL ${url}: ${error.message}`);
+          }
+        }
+        
+        if (!response) {
+          throw new Error('Failed to connect to any API endpoint');
+        }
+      }
       
       if (!response.ok) throw new Error(`API error: ${response.status}`);
       
       const data = await response.json();
-      setMessages(prev => [...prev, { text: data.response, sender: 'agent' }]);
+      
+      // Debug the response structure
+      console.log('Response data from sendResponse:', JSON.stringify(data));
+      
+      // Handle double-encoded JSON if needed
+      let responseText = data.response;
+      if (typeof responseText === 'string' && responseText.startsWith('{') && responseText.endsWith('}')) {
+        try {
+          // Try to parse it as JSON
+          const parsedResponse = JSON.parse(responseText);
+          if (parsedResponse.response) {
+            responseText = parsedResponse.response;
+          }
+        } catch (e) {
+          // If parsing fails, use the original response
+          console.log('Failed to parse double-encoded JSON:', e);
+        }
+      }
+      
+      // Filter out system instructions
+      console.log('Before filtering:', responseText);
+      
+      // Extract only the actual interview content
+      if (responseText.includes('Begin!')) {
+        const parts = responseText.split('Begin!');
+        if (parts.length > 1) {
+          responseText = parts[parts.length - 1].trim();
+          console.log('Filtered response:', responseText);
+        }
+      }
+      
+      // Update the global state with the agent's response
+      const agentMessage = { text: responseText, sender: 'agent' as const };
+      setInterview({
+        ...interview,
+        history: {
+          ...interview.history,
+          [sessionId]: {
+            ...interview.history[sessionId],
+            messages: [...updatedMessages, agentMessage]
+          }
+        }
+      });
     } catch (error: any) { 
       console.error('Error sending response:', error);
-      setMessages(prev => [...prev, { text: `Error connecting to interview service: ${error.message}`, sender: 'agent' }]);
+      
+      // Update the global state with the error message
+      const errorMessage = { text: `Error connecting to interview service: ${error.message}`, sender: 'agent' as const };
+      setInterview({
+        ...interview,
+        history: {
+          ...interview.history,
+          [sessionId]: {
+            ...interview.history[sessionId],
+            messages: [...updatedMessages, errorMessage]
+          }
+        }
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const handleEndInterview = () => {
+    // Store any final state updates before navigating
+    const currentSession = interview.history[sessionId];
+    if (currentSession) {
+      setInterview({
+        ...interview,
+        history: {
+          ...interview.history,
+          [sessionId]: {
+            ...currentSession,
+            endedAt: new Date().toISOString()
+          }
+        }
+      });
+    }
+    
     router.push({ pathname: '/interview-review', params: { sessionId } });
   };
 

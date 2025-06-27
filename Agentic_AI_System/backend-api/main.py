@@ -471,3 +471,42 @@ async def legacy_match_resume(upload_id: str, request: dict):
         return {"response": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+
+# Global State endpoints
+@app.get("/global-state", tags=["GlobalState"])
+async def get_global_state():
+    """Get the global state"""
+    from services.mongodb.sync_service import sync_service
+    result = sync_service.get_backend_state()
+    if result["success"]:
+        return result
+    else:
+        raise HTTPException(status_code=500, detail=result["message"])
+
+# Pydantic models for global state requests
+class GlobalStateRequest(BaseModel):
+    state: Dict[str, Any]
+
+class KnowledgeUpdateRequest(BaseModel):
+    key: str
+    value: Any
+
+@app.post("/global-state/sync", tags=["GlobalState"])
+async def sync_global_state(request: GlobalStateRequest):
+    """Sync the global state between frontend and backend"""
+    from services.mongodb.sync_service import sync_service
+    result = sync_service.sync_from_frontend(request.state)
+    if result["success"]:
+        return result
+    else:
+        raise HTTPException(status_code=500, detail=result["message"])
+
+@app.post("/global-state/knowledge", tags=["GlobalState"])
+async def update_knowledge(request: KnowledgeUpdateRequest):
+    """Update a specific knowledge item in the global state"""
+    from services.mongodb.sync_service import sync_service
+    result = sync_service.update_knowledge(request.key, request.value)
+    if result["success"]:
+        return result
+    else:
+        raise HTTPException(status_code=500, detail=result["message"])
