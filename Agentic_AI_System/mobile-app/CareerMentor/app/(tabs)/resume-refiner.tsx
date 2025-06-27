@@ -230,7 +230,7 @@ export default function ResumeRefinerScreen() {
     overall: number;
   } | null>(null);
 
-  const API_BASE_URL = 'http://192.168.178.24:8000';
+  const API_BASE_URL = 'http://localhost:8080';
 
   const pickAndUpload = async () => {
     console.log("🖱️ Upload button pressed");
