@@ -1,9 +1,161 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, View, Dimensions, SafeAreaView } from 'react-native';
+import { StyleSheet, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, View, Dimensions, SafeAreaView, Animated } from 'react-native';
 import { Text } from '@/components/Themed';
 import * as DocumentPicker from 'expo-document-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Circle, Text as SvgText } from 'react-native-svg';
+
+// Style Guide Farben
+const COLORS = {
+  salt: '#EDE6EE',
+  lightRose: '#CBB8CB',
+  rose: '#C29BB8',
+  sky: '#8089B4',
+  nightSky: '#5A5D80',
+  midnight: '#272727',
+  white: '#FFFFFF',
+};
+
+// Circular Progress Component
+const CircularProgress = ({ percentage }: { percentage: number }) => {
+  const radius = 70;
+  const strokeWidth = 15;
+  const circumference = 2 * Math.PI * radius;
+  const progress = (100 - percentage) / 100 * circumference;
+  
+  return (
+    <View style={styles.circularProgressContainer}>
+      <Svg height="180" width="180" viewBox="0 0 180 180">
+        {/* Background Circle */}
+        <Circle
+          cx="90"
+          cy="90"
+          r={radius}
+          stroke={COLORS.salt} // Salt
+          strokeWidth={strokeWidth}
+          fill="transparent"
+        />
+        {/* Progress Circle */}
+        <Circle
+          cx="90"
+          cy="90"
+          r={radius}
+          stroke={COLORS.nightSky} // Night Sky
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={progress}
+          strokeLinecap="round"
+          fill="transparent"
+          transform="rotate(-90, 90, 90)"
+        />
+        {/* Percentage Text */}
+        <SvgText
+          x="90"
+          y="90"
+          fontSize="28"
+          fontWeight="bold"
+          fill={COLORS.nightSky} // Night Sky
+          textAnchor="middle"
+          alignmentBaseline="middle"
+        >
+          {percentage.toFixed(1)}
+        </SvgText>
+        <SvgText
+          x="90"
+          y="115"
+          fontSize="14"
+          fill="#9370db"
+          textAnchor="middle"
+          alignmentBaseline="middle"
+        >
+          /100
+        </SvgText>
+      </Svg>
+    </View>
+  );
+};
+
+// Category Item Component with Collapsible Feedback
+const CategoryItem = ({ 
+  title, 
+  score, 
+  feedback,
+  maxScore = 100
+}: { 
+  title: string, 
+  score: number, 
+  feedback: Array<{text: string, section: string}>,
+  maxScore?: number
+}) => {
+  const [expanded, setExpanded] = useState(false);
+  const scorePercentage = (score / maxScore) * 100;
+  
+  const getScoreColor = () => {
+    if (scorePercentage < 33) return COLORS.rose; // Rose für niedrige Werte
+    if (scorePercentage < 66) return COLORS.sky; // Sky für mittlere Werte
+    return COLORS.nightSky; // Night Sky für hohe Werte
+  };
+  
+  // Verbesserte Filterung für Feedback-Nachrichten
+  const relevantFeedback = feedback.filter(item => {
+    // Für Results Orientation
+    if (title === "Results Orientation" && 
+        (item.section.toLowerCase().includes("ergebnis") || 
+         item.section.toLowerCase().includes("result"))) {
+      return true;
+    }
+    // Für Content & Structure (inhalt_struktur)
+    if (title === "Content & Structure" &&
+        item.section.toLowerCase().includes("content")) {
+      return true;
+    }
+    // Für Language & Style (sprache_stil)
+    if (title === "Language & Style" &&
+        item.section.toLowerCase().includes("language")) {
+      return true;
+    }
+    // Für andere Kategorien
+    return item.section.toLowerCase().includes(title.toLowerCase());
+  });
+  
+  return (
+    <View style={styles.categoryItemContainer}>
+      <TouchableOpacity 
+        style={styles.categoryHeaderItem} 
+        onPress={() => setExpanded(!expanded)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.categoryTitleContainer}>
+          <Text style={styles.categoryTitle}>{title}</Text>
+          <Text style={[styles.categoryScore, {color: getScoreColor()}]}>{score.toFixed(0)}</Text>
+        </View>
+        <View style={styles.scoreBarOuterContainer}>
+          <View style={styles.scoreBarContainerNew}>
+            <View 
+              style={[styles.scoreBar, {width: `${scorePercentage}%`, backgroundColor: getScoreColor()}]} 
+            />
+          </View>
+          <Ionicons 
+            name={expanded ? 'chevron-up' : 'chevron-down'} 
+            size={20} 
+            color="#6a5acd" 
+          />
+        </View>
+      </TouchableOpacity>
+      
+      {expanded && relevantFeedback.length > 0 && (
+        <View style={styles.feedbackContainer}>
+          {relevantFeedback.map((item, index) => (
+            <View key={index} style={styles.feedbackItem}>
+              <Text style={styles.feedbackText}>{item.text}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+};
 
 export default function ResumeRefinerScreen() {
   console.log("🏁 ResumeRefinerScreen rendered");
@@ -12,6 +164,7 @@ export default function ResumeRefinerScreen() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingStage, setLoadingStage] = useState<'parsing' | 'analysing' | ''>('parsing');
   const [loadingDots, setLoadingDots] = useState('');
+  const [currentFileName, setCurrentFileName] = useState<string>('');
   const [feedbackMessages, setFeedbackMessages] = useState<Array<{text: string, section: string}>>([]);
   const [jobDescription, setJobDescription] = useState('');
   const [matchResult, setMatchResult] = useState<{match_score: number, missing_keywords: string[], suggestions: string[]} | null>(null);
@@ -96,6 +249,9 @@ export default function ResumeRefinerScreen() {
         const asset = res.assets[0];
         const uri = asset.uri;
         const name = asset.name;
+        
+        // Speichere den Dateinamen für die Anzeige
+        setCurrentFileName(name);
   
         try {
           console.log("📄 Using direct file URI approach for React Native");
@@ -264,7 +420,7 @@ export default function ResumeRefinerScreen() {
       'format_layout': 'Format & Layout',
       'inhalt_struktur': 'Content & Structure',
       'sprache_stil': 'Language & Style',
-      'ergebnis_orientierung': 'Result Orientation'
+      'ergebnis_orientierung': 'Results Orientation'
     };
     return mapping[category] || category;
   };
@@ -343,9 +499,9 @@ export default function ResumeRefinerScreen() {
   };
 
   const getScoreColor = (score: number) => {
-    if (score < 33) return styles.scoreBarLow;
-    else if (score < 66) return styles.scoreBarMedium;
-    else return styles.scoreBarHigh;
+    if (score < 33) return COLORS.rose; // Rose
+    else if (score < 66) return COLORS.sky; // Sky
+    else return COLORS.nightSky; // Night Sky
   };
 
   return (
@@ -361,7 +517,7 @@ export default function ResumeRefinerScreen() {
           >
             <Text style={[styles.tabButtonText, activeTab === 'analyse' && styles.activeTabText]}>Analyse</Text>
             {activeTab === 'analyse' && <LinearGradient 
-              colors={['#6a11cb', '#2575fc']} 
+              colors={[COLORS.rose, COLORS.sky]} 
               style={styles.activeTabIndicator} 
             />}
           </TouchableOpacity>
@@ -371,7 +527,7 @@ export default function ResumeRefinerScreen() {
           >
             <Text style={[styles.tabButtonText, activeTab === 'match' && styles.activeTabText]}>Match</Text>
             {activeTab === 'match' && <LinearGradient 
-              colors={['#6a11cb', '#2575fc']} 
+              colors={[COLORS.rose, COLORS.sky]} 
               style={styles.activeTabIndicator} 
             />}
           </TouchableOpacity>
@@ -383,7 +539,7 @@ export default function ResumeRefinerScreen() {
           <Text style={styles.uploadMessage}>Please upload your CV to personalize your experience and improve your CV</Text>
           <TouchableOpacity style={styles.uploadButtonContainer} onPress={pickAndUpload} disabled={loading}>
             <LinearGradient
-              colors={['#C29BB8', '#8089B4']}
+              colors={[COLORS.rose, COLORS.sky]}
               style={styles.uploadButton}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
@@ -414,90 +570,56 @@ export default function ResumeRefinerScreen() {
           
           {/* Display category scores if available */}
           {activeTab === 'analyse' && categoryScores && (
-            <View style={styles.scoreContainer}>
+            <View>
+              {currentFileName && (
+                <TouchableOpacity 
+                  style={styles.fileNameContainer}
+                  onPress={pickAndUpload}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="document-text-outline" size={16} color={COLORS.nightSky} />
+                  <Text style={styles.fileName}>{currentFileName}</Text>
+                  <View style={styles.uploadIconContainer}>
+                    <Ionicons name="refresh-outline" size={14} color={COLORS.nightSky} />
+                  </View>
+                </TouchableOpacity>
+              )}
               <Text style={styles.sectionHeader}>Resume Score</Text>
-              <View style={styles.overallScoreContainer}>
-                <Text style={styles.overallScoreText}>
-                  {categoryScores.overall.toFixed(1)}
-                </Text>
-                <Text style={styles.overallScoreLabel}>/100</Text>
-              </View>
+              {/* Circular Progress Chart */}
+              <CircularProgress percentage={categoryScores.overall} />
+              <Text style={styles.categorySectionHeader}>Category Scores</Text>
               
-              <Text style={styles.categoryHeader}>Category Scores</Text>
+              {/* Format & Layout Score - Collapsible */}
+              <CategoryItem 
+                title="Format & Layout" 
+                score={categoryScores.format_layout} 
+                feedback={feedbackMessages} 
+              />
               
-              {/* Format & Layout Score */}
-              <View style={styles.categoryRow}>
-                <Text style={styles.categoryLabel}>Format & Layout</Text>
-                <View style={styles.scoreBarContainer}>
-                  <View 
-                    style={[
-                      styles.scoreBar, 
-                      { width: `${categoryScores.format_layout}%` },
-                      getScoreColor(categoryScores.format_layout)
-                    ]} 
-                  />
-                </View>
-                <Text style={styles.scoreValue}>{categoryScores.format_layout}</Text>
-              </View>
+              {/* Content & Structure Score - Collapsible */}
+              <CategoryItem 
+                title="Content & Structure" 
+                score={categoryScores.inhalt_struktur} 
+                feedback={feedbackMessages} 
+              />
               
-              {/* Inhalt & Struktur Score */}
-              <View style={styles.categoryRow}>
-                <Text style={styles.categoryLabel}>Inhalt & Struktur</Text>
-                <View style={styles.scoreBarContainer}>
-                  <View 
-                    style={[
-                      styles.scoreBar, 
-                      { width: `${categoryScores.inhalt_struktur}%` },
-                      getScoreColor(categoryScores.inhalt_struktur)
-                    ]} 
-                  />
-                </View>
-                <Text style={styles.scoreValue}>{categoryScores.inhalt_struktur}</Text>
-              </View>
+              {/* Language & Style Score - Collapsible */}
+              <CategoryItem 
+                title="Language & Style" 
+                score={categoryScores.sprache_stil} 
+                feedback={feedbackMessages} 
+              />
               
-              {/* Sprache & Stil Score */}
-              <View style={styles.categoryRow}>
-                <Text style={styles.categoryLabel}>Sprache & Stil</Text>
-                <View style={styles.scoreBarContainer}>
-                  <View 
-                    style={[
-                      styles.scoreBar, 
-                      { width: `${categoryScores.sprache_stil}%` },
-                      getScoreColor(categoryScores.sprache_stil)
-                    ]} 
-                  />
-                </View>
-                <Text style={styles.scoreValue}>{categoryScores.sprache_stil}</Text>
-              </View>
-              
-              {/* Ergebnis-Orientierung Score */}
-              <View style={styles.categoryRow}>
-                <Text style={styles.categoryLabel}>Ergebnis-Orientierung</Text>
-                <View style={styles.scoreBarContainer}>
-                  <View 
-                    style={[
-                      styles.scoreBar, 
-                      { width: `${categoryScores.ergebnis_orientierung}%` },
-                      getScoreColor(categoryScores.ergebnis_orientierung)
-                    ]} 
-                  />
-                </View>
-                <Text style={styles.scoreValue}>{categoryScores.ergebnis_orientierung}</Text>
-              </View>
+              {/* Results Orientation Score - Collapsible */}
+              <CategoryItem 
+                title="Results Orientation" 
+                score={categoryScores.ergebnis_orientierung} 
+                feedback={feedbackMessages} 
+              />
             </View>
           )}
           
-          {/* Display feedback messages */}
-          {activeTab === 'analyse' && (
-            <>
-              <Text style={styles.sectionHeader}>Detailed Feedback</Text>
-              {feedbackMessages.map((msg, index) => (
-                <View key={index} style={styles.messageBubble}>
-                  <Text style={styles.messageText}>[{msg.section}] {msg.text}</Text>
-                </View>
-              ))}
-            </>
-          )}
+          {/* Detailed Feedback wurde entfernt, da es bereits in den Kategorie-Karten enthalten ist */}
 
           {activeTab === 'match' && (
             <>
@@ -544,14 +666,84 @@ export default function ResumeRefinerScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f8f0fc' },
-  container: { flex: 1, paddingVertical: 20, paddingHorizontal: 20, backgroundColor: '#f8f0fc' },
-  title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginTop: 10, marginBottom: 20, color: '#6a5acd' },
+  safeArea: { flex: 1, backgroundColor: COLORS.salt }, // Salt
+  container: { flex: 1, paddingVertical: 5, paddingHorizontal: 20, backgroundColor: COLORS.salt }, // Salt
+  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginTop: 0, marginBottom: 5, color: COLORS.nightSky }, // Sky
+  
+  // Circular progress styles
+  circularProgressContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 10,
+  },
+  
+  // Category item styles
+  categoryItemContainer: {
+    marginVertical: 6,
+    backgroundColor: COLORS.lightRose, // Light Rose für Category Cards
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: COLORS.midnight, // Midnight
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 2.5,
+    borderWidth: 1,
+    borderColor: COLORS.rose,
+  },
+  categoryHeaderItem: {
+    padding: 15,
+  },
+  categoryTitleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  categoryTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.nightSky, // Night Sky auf weißem Hintergrund
+  },
+  categoryScore: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.nightSky, // Night Sky auf weißem Hintergrund
+  },
+  scoreBarOuterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  scoreBarContainerNew: {
+    flex: 1,
+    height: 12, // Etwas höher für bessere Sichtbarkeit
+    backgroundColor: COLORS.salt, // Salt für besseren Kontrast zum Füllbalken
+    borderRadius: 6,
+    marginRight: 10,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.lightRose,
+  },
+  feedbackContainer: {
+    padding: 15,
+    backgroundColor: COLORS.salt, // Salt
+    borderTopWidth: 1,
+    borderTopColor: COLORS.lightRose, // Light Rose
+  },
+  feedbackItem: {
+    marginVertical: 5,
+  },
+  feedbackText: {
+    fontSize: 14,
+    color: COLORS.midnight, // Midnight
+    lineHeight: 20,
+    fontWeight: '500', // Etwas fetter für bessere Lesbarkeit
+  },
   tabContainer: {
     flexDirection: 'row',
     marginBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#d8bfd8',
+    borderBottomColor: COLORS.lightRose, // Light Rose
   },
   tabButton: {
     flex: 1,
@@ -564,10 +756,10 @@ const styles = StyleSheet.create({
   },
   tabButtonText: {
     fontSize: 16,
-    color: '#9370db',
+    color: COLORS.sky, // Sky
   },
   activeTabText: {
-    color: '#6a5acd',
+    color: COLORS.nightSky, // Night Sky
     fontWeight: 'bold',
   },
   activeTabIndicator: {
@@ -579,9 +771,9 @@ const styles = StyleSheet.create({
     borderRadius: 1.5,
   },
   setupContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  uploadMessage: { fontSize: 18, textAlign: 'center', marginBottom: 40, color: '#6a5acd', maxWidth: '80%', lineHeight: 24 },
-  input: { borderWidth: 1, borderColor: '#d8bfd8', borderRadius: 5, padding: 10, marginVertical: 10 },
-  button: { backgroundColor: '#9370db', padding: 15, borderRadius: 5, alignItems: 'center', marginVertical: 10 },
+  uploadMessage: { fontSize: 18, textAlign: 'center', marginBottom: 40, color: COLORS.nightSky, maxWidth: '80%', lineHeight: 24 }, // Night Sky
+  input: { borderWidth: 1, borderColor: COLORS.lightRose, borderRadius: 5, padding: 10, marginVertical: 10 }, // Light Rose
+  button: { backgroundColor: COLORS.sky, padding: 15, borderRadius: 5, alignItems: 'center', marginVertical: 10 }, // Sky
   uploadButtonContainer: {
     marginTop: 20,
     borderRadius: 25,
@@ -601,34 +793,42 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   buttonText: {
-    color: '#fff',
+    color: COLORS.salt, // Salt
     fontSize: 16,
     fontWeight: 'bold',
     marginRight: 10,
   },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', height: Dimensions.get('window').height * 0.7 },
-  loadingText: { fontSize: 22, marginBottom: 20, color: '#6a5acd', fontWeight: '500' },
-  progressBarContainer: { width: '80%', height: 10, backgroundColor: '#e6e6fa', borderRadius: 5 },
-  progressBar: { height: 10, backgroundColor: '#9370db', borderRadius: 5 },
+  loadingText: { fontSize: 22, marginBottom: 20, color: COLORS.nightSky, fontWeight: '500' }, // Night Sky
+  progressBarContainer: { width: '80%', height: 10, backgroundColor: COLORS.lightRose, borderRadius: 5 }, // Light Rose
+  progressBar: { height: 10, backgroundColor: COLORS.nightSky, borderRadius: 5 }, // Night Sky für Ladebalken
+  scoreBarFill: {
+    height: '100%',
+    backgroundColor: COLORS.nightSky, // Night Sky für besseren Kontrast
+    borderRadius: 5,
+  }, // Night Sky
   chatContainer: { flex: 1 },
-  messageBubble: { backgroundColor: '#e6e6fa', padding: 10, borderRadius: 5, marginVertical: 5 },
-  messageText: { fontSize: 16, color: '#4b0082' },
-  sectionHeader: { fontSize: 20, fontWeight: '600', marginTop: 20, marginBottom: 10, color: '#6a5acd' },
-  card: { backgroundColor: '#e6e6fa', padding: 12, borderRadius: 5, marginVertical: 10 },
+  messageBubble: { backgroundColor: COLORS.salt, padding: 10, borderRadius: 5, marginVertical: 5 }, // Salt
+  messageText: { fontSize: 16, color: COLORS.midnight }, // Midnight
+  sectionHeader: { fontSize: 20, fontWeight: '700', marginTop: 10, marginBottom: 5, color: COLORS.nightSky }, // Night Sky, kompaktere Margins
+  card: { backgroundColor: COLORS.lightRose, padding: 12, borderRadius: 10, marginVertical: 8, elevation: 2, shadowColor: COLORS.midnight, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 1.5 }, // Light Rose für Karten
   cardTitle: { fontSize: 18, fontWeight: '500' },
   cardSubtitle: { fontSize: 16, fontWeight: '500', marginTop: 10 },
   cardText: { fontSize: 14, marginVertical: 2 },
-  scoreContainer: { padding: 20, backgroundColor: '#f9f9f9', borderRadius: 5, marginVertical: 10 },
+  // scoreContainer entfernt - Inhalt direkt auf dem Hintergrund
   overallScoreContainer: { flexDirection: 'row', alignItems: 'center' },
   overallScoreText: { fontSize: 24, fontWeight: 'bold' },
   overallScoreLabel: { fontSize: 16, marginLeft: 5 },
-  categoryHeader: { fontSize: 18, fontWeight: '500', marginTop: 10 },
+  categorySectionHeader: { fontSize: 18, fontWeight: '600', marginTop: 8, marginBottom: 5, color: COLORS.nightSky },
   categoryRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 5 },
   categoryLabel: { fontSize: 16, flex: 1 },
-  scoreBarContainer: { height: 10, width: '60%', backgroundColor: '#ddd', borderRadius: 5, marginRight: 10 },
+  scoreBarItemContainer: { height: 10, width: '60%', backgroundColor: '#ddd', borderRadius: 5, marginRight: 10 },
   scoreBar: { height: 10, borderRadius: 5 },
-  scoreBarLow: { backgroundColor: '#ff0000' },
-  scoreBarMedium: { backgroundColor: '#ffff00' },
-  scoreBarHigh: { backgroundColor: '#00ff00' },
+  scoreBarLow: { backgroundColor: COLORS.rose },
+  scoreBarMedium: { backgroundColor: COLORS.sky },
+  scoreBarHigh: { backgroundColor: COLORS.nightSky },
   scoreValue: { fontSize: 16 },
+  fileNameContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 5, backgroundColor: COLORS.salt, padding: 8, borderRadius: 8, borderWidth: 1, borderColor: COLORS.lightRose, justifyContent: 'space-between' },
+  fileName: { fontSize: 14, fontWeight: '500', color: COLORS.nightSky, marginLeft: 5, flex: 1 },
+  uploadIconContainer: { backgroundColor: COLORS.lightRose, width: 24, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
 });
