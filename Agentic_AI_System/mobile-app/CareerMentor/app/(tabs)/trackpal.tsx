@@ -637,7 +637,6 @@ export default function TrackPalScreen() {
 }
 
 const styles = StyleSheet.create({
-  // Response container for AI content
   responseContainer: {
     backgroundColor: '#f9f9ff',
     padding: 12,
@@ -648,7 +647,7 @@ const styles = StyleSheet.create({
   chatFab: {
     position: 'absolute',
     right: 20,
-    bottom: 85, // Position above the add button
+    bottom: 85,
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
