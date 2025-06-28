@@ -22,6 +22,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import ApplicationForm from '../../components/ApplicationForm';
 import ApplicationService, { JobApplication } from '../../services/ApplicationService';
 import TrackPalService, { PatternInsight } from '../../services/TrackPalService';
+import NotificationService from '../../services/NotificationService';
+import NotificationTest from '../../components/NotificationTest';
 
 export default function TrackPalScreen() {
   const router = useRouter();
@@ -205,13 +207,38 @@ export default function TrackPalScreen() {
 
   const handleAddApplication = async (applicationData: any) => {
     try {
-      await ApplicationService.addApplication({
+      // Add the application to storage
+      const newApplication = await ApplicationService.addApplication({
         ...applicationData,
         applicationDeadline: applicationData.applicationDeadline ? 
           applicationData.applicationDeadline.toISOString() : null,
         followUpDate: applicationData.followUpDate ? 
           applicationData.followUpDate.toISOString() : null,
       });
+      
+      // Schedule notification for follow-up reminder if a follow-up date is set
+      if (applicationData.followUpDate) {
+        try {
+          // Request notification permissions if not already granted
+          await NotificationService.requestPermissions();
+          
+          // Schedule the notification for the follow-up date
+          const notificationId = await NotificationService.scheduleFollowUpReminder(
+            newApplication.id,
+            applicationData.company,
+            applicationData.jobTitle,
+            applicationData.followUpDate
+          );
+          
+          if (notificationId) {
+            console.log(`Scheduled follow-up reminder notification: ${notificationId}`);
+          }
+        } catch (notificationError) {
+          console.error('Error scheduling notification:', notificationError);
+          // Don't alert the user about notification errors, just log them
+        }
+      }
+      
       setModalVisible(false);
       loadApplications();
       Alert.alert('Success', 'Application added successfully');
@@ -410,46 +437,74 @@ export default function TrackPalScreen() {
   );
 
   // AI Assistant tab content
-  const renderAITab = () => (
+  const renderAIAssistantTab = () => (
     <ScrollView 
-      style={styles.aiTabContainer}
+      style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={['#8089B4']}
+          tintColor="#8089B4"
+        />
       }
     >
+      {/* Notification Test Section */}
+      <NotificationTest />
+      
       {/* Reminders Section */}
       <View style={styles.aiSection}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Reminders & Follow-ups</Text>
-          <TouchableOpacity onPress={loadReminders} disabled={loadingReminders}>
-            <Ionicons name="refresh" size={20} color="#4a6da7" />
+          <Text style={styles.sectionTitle}>Reminders</Text>
+          <TouchableOpacity onPress={loadReminders} style={{padding: 5}}>
+            {loadingReminders ? (
+              <ActivityIndicator size="small" color="#8089B4" />
+            ) : (
+              <Ionicons name="refresh" size={20} color="#8089B4" />
+            )}
           </TouchableOpacity>
         </View>
         
         {loadingReminders ? (
-          <ActivityIndicator size="small" color="#4a6da7" style={{marginVertical: 20}} />
+          <ActivityIndicator size="large" color="#8089B4" style={{marginVertical: 20}} />
+        ) : reminders ? (
+          <View style={styles.responseContainer}>
+            <Text style={styles.aiResponse}>{reminders}</Text>
+          </View>
         ) : (
-          <Text style={styles.aiResponse}>{reminders || 'No reminders available.'}</Text>
+          <View style={styles.emptyContainer}>
+            <Ionicons name="notifications-off-outline" size={40} color="#ccc" />
+            <Text style={styles.emptyText}>No reminders at this time</Text>
+          </View>
         )}
       </View>
-
+      
       {/* Pattern Analysis Section */}
       <View style={styles.aiSection}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Application Insights</Text>
-          <TouchableOpacity onPress={loadPatternAnalysis} disabled={loadingPatterns}>
-            <Ionicons name="refresh" size={20} color="#4a6da7" />
+          <Text style={styles.sectionTitle}>Pattern Analysis</Text>
+          <TouchableOpacity onPress={loadPatternAnalysis} style={{padding: 5}}>
+            {loadingPatterns ? (
+              <ActivityIndicator size="small" color="#8089B4" />
+            ) : (
+              <Ionicons name="refresh" size={20} color="#8089B4" />
+            )}
           </TouchableOpacity>
         </View>
         
         {loadingPatterns ? (
-          <ActivityIndicator size="small" color="#4a6da7" style={{marginVertical: 20}} />
+          <ActivityIndicator size="large" color="#8089B4" style={{marginVertical: 20}} />
+        ) : patterns ? (
+          <View style={styles.responseContainer}>
+            <Text style={styles.aiResponse}>{patterns}</Text>
+          </View>
         ) : (
-          <Text style={styles.aiResponse}>{patterns || 'No pattern analysis available.'}</Text>
+          <View style={styles.emptyContainer}>
+            <Ionicons name="analytics-outline" size={40} color="#ccc" />
+            <Text style={styles.emptyText}>No pattern analysis available</Text>
+          </View>
         )}
       </View>
-
-      {/* End of dashboard content */}
     </ScrollView>
   );
 
@@ -461,7 +516,7 @@ export default function TrackPalScreen() {
 
       {renderTabs()}
       
-      {activeTab === 'dashboard' ? renderDashboardTab() : renderAITab()}
+      {activeTab === 'dashboard' ? renderDashboardTab() : renderAIAssistantTab()}
 
       {/* Floating Action Buttons */}
       {activeTab === 'dashboard' && (
@@ -593,6 +648,13 @@ export default function TrackPalScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Response container for AI content
+  responseContainer: {
+    backgroundColor: '#f9f9ff',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 10,
+  },
   // Chat floating button styles
   chatFab: {
     position: 'absolute',
