@@ -53,10 +53,10 @@ export default function TrackPalScreen() {
   const [loadingAnswer, setLoadingAnswer] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'ai'>('dashboard');
 
-  // Load insights once when the component mounts
-  useEffect(() => {
-    loadPatternInsights();
-  }, []);
+  // No auto-loading of insights when the component mounts
+  // useEffect(() => {
+  //   loadPatternInsights();
+  // }, []);
 
   // Load applications when screen comes into focus
   // We'll use a ref to track if we've already loaded the AI data
@@ -66,10 +66,7 @@ export default function TrackPalScreen() {
     useCallback(() => {
       loadApplications();
       
-      if (activeTab === 'ai') {
-        loadReminders();
-        loadPatternAnalysis();
-      }
+      // No auto-loading of AI data when the tab is focused
     }, [activeTab])
   );
 
@@ -316,13 +313,7 @@ export default function TrackPalScreen() {
         style={[styles.tab, activeTab === 'ai' && styles.activeTab]}
         onPress={() => {
           setActiveTab('ai');
-          // Don't automatically load AI data when switching tabs
-          // Only load if we haven't loaded it before
-          if (!aiDataLoaded.current) {
-            loadReminders();
-            loadPatternAnalysis();
-            aiDataLoaded.current = true;
-          }
+          // No auto-loading of AI data when switching tabs
         }}
       >
         <Ionicons 
@@ -330,7 +321,7 @@ export default function TrackPalScreen() {
           size={20} 
           color={activeTab === 'ai' ? '#000' : '#666'} 
         />
-        <Text style={[styles.tabText, activeTab === 'ai' && styles.activeTabText]}>AI Assistant</Text>
+        <Text style={[styles.tabText, activeTab === 'ai' && styles.activeTabText]}>Testing</Text>
       </TouchableOpacity>
     </View>
   );
@@ -436,7 +427,7 @@ export default function TrackPalScreen() {
     </ScrollView>
   );
 
-  // AI Assistant tab content
+  // Testing tab content
   const renderAIAssistantTab = () => (
     <ScrollView 
       style={styles.container}
