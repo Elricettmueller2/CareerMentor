@@ -123,23 +123,50 @@ export default function JobApplicationDetailsScreen() {
     setShowAndroidStatusPicker(false);
   };
 
-  const handleDelete = () => {
+  const saveChanges = () => {
+    if (!editedApplication) return;
+    
+    // Validate required fields
+    if (!editedApplication.jobTitle.trim() || !editedApplication.company.trim()) {
+      Alert.alert('Error', 'Job title and company are required');
+      return;
+    }
+    
+    setUpdating(true);
+    ApplicationService.updateApplication(editedApplication.id, editedApplication)
+      .then(updatedApp => {
+        if (updatedApp) {
+          setApplication(updatedApp);
+          setShowEditModal(false);
+          // Alert.alert('Success', 'Job application updated successfully');
+        } else {
+          Alert.alert('Error', 'Failed to update job application');
+        }
+      })
+      .catch(error => {
+        console.error('Error updating application:', error);
+        Alert.alert('Error', 'An error occurred while updating the job application');
+      })
+      .finally(() => {
+        setUpdating(false);
+      });
+  };
+
+  const handleDeletePress = () => {
     Alert.alert(
       'Delete Application',
-      'Are you sure you want to delete this job application? This action cannot be undone.',
+      'Are you sure you want to delete this job application?',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Delete', 
           style: 'destructive',
           onPress: async () => {
-            if (!application) return;
-            
-            setDeleting(true);
             try {
-              const success = await ApplicationService.deleteApplication(application.id);
+              setDeleting(true);
+              const success = await ApplicationService.deleteApplication(id as string);
+              
               if (success) {
-                Alert.alert('Success', 'Job application deleted successfully');
                 router.replace('/(tabs)/trackpal');
               } else {
                 Alert.alert('Error', 'Failed to delete job application');
@@ -342,11 +369,16 @@ export default function JobApplicationDetailsScreen() {
     <View style={styles.container}>
       <Stack.Screen 
         options={{
-          title: application.jobTitle,
+          title: "",  // Empty title to remove the job name from header
           headerTintColor: '#5D5B8D',
           headerTitleStyle: {
             color: '#5D5B8D',
           },
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 10 }}>
+              <Ionicons name="arrow-back" size={24} color="#5D5B8D" />
+            </TouchableOpacity>
+          ),
           headerRight: () => (
             <TouchableOpacity onPress={() => setShowEditModal(true)} style={{ marginRight: 16 }}>
               <Ionicons name="pencil-outline" size={24} color="#5D5B8D" />
@@ -408,7 +440,7 @@ export default function JobApplicationDetailsScreen() {
                   {!isLastItem && (
                     <View style={[
                       styles.timelineConnector,
-                      index < currentIndex ? { backgroundColor: getStatusColor(application.status) } : {}
+                      index < currentIndex ? { backgroundColor: '#5D5B8D' } : {}
                     ]} />
                   )}
                 </View>
@@ -484,7 +516,7 @@ export default function JobApplicationDetailsScreen() {
         <View style={styles.deleteButtonContainer}>
           <TouchableOpacity 
             style={styles.deleteButton}
-            onPress={handleDelete}
+            onPress={handleDeletePress}
             disabled={deleting}
           >
             <Ionicons name="trash-outline" size={20} color="white" />
@@ -506,8 +538,18 @@ export default function JobApplicationDetailsScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Edit Job Application</Text>
-              <TouchableOpacity onPress={() => setShowEditModal(false)}>
-                <Ionicons name="close" size={24} color="#5D5B8D" />
+              <TouchableOpacity 
+                style={styles.doneButton}
+                onPress={saveChanges}
+              >
+                <LinearGradient
+                  colors={['#C29BB8', '#8089B4']}
+                  style={styles.doneButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Text style={styles.doneButtonText}>Done</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
 
@@ -607,47 +649,7 @@ export default function JobApplicationDetailsScreen() {
                     multiline
                   />
 
-                  <TouchableOpacity 
-                    style={styles.saveButton} 
-                    onPress={() => {
-                      if (!editedApplication) return;
-                      
-                      // Validate required fields
-                      if (!editedApplication.jobTitle.trim() || !editedApplication.company.trim()) {
-                        Alert.alert('Error', 'Job title and company are required');
-                        return;
-                      }
-                      
-                      setUpdating(true);
-                      ApplicationService.updateApplication(editedApplication.id, editedApplication)
-                        .then(updatedApp => {
-                          if (updatedApp) {
-                            setApplication(updatedApp);
-                            setShowEditModal(false);
-                            Alert.alert('Success', 'Job application updated successfully');
-                          } else {
-                            Alert.alert('Error', 'Failed to update job application');
-                          }
-                        })
-                        .catch(error => {
-                          console.error('Error updating application:', error);
-                          Alert.alert('Error', 'An error occurred while updating the job application');
-                        })
-                        .finally(() => {
-                          setUpdating(false);
-                        });
-                    }}
-                    disabled={updating}
-                  >
-                    <LinearGradient
-                      colors={['#C29BB8', '#8089B4']}
-                      style={styles.saveButtonGradient}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                    >
-                      <Text style={styles.saveButtonText}>{updating ? 'Updating...' : 'Save Changes'}</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
+                  {/* Save button removed - using Done button in header instead */}
                 </>
               )}
             </ScrollView>
@@ -906,6 +908,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+  },
+  doneButton: {
+    overflow: 'hidden',
+    borderRadius: 20,
+    width: 75,
+    height: 36,
+  },
+  doneButtonGradient: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doneButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
   modalTitle: {
     fontSize: 20,

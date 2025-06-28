@@ -422,8 +422,6 @@ export default function TrackPalScreen() {
           </Text>
         </View>
       )}
-      
-      {/* Ask TrackPal Section removed - now available via floating chat button */}
     </ScrollView>
   );
 
@@ -502,7 +500,7 @@ export default function TrackPalScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>TrackPal</Text>
+        <Text style={styles.title}>CareerMentor</Text>
       </View>
 
       {renderTabs()}
