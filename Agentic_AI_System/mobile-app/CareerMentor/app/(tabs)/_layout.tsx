@@ -1,5 +1,7 @@
 import React from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Link, Tabs } from 'expo-router';
 import { Pressable } from 'react-native';
 
@@ -11,8 +13,17 @@ import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
   color: string;
+  size?: number;
 }) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
+  return <FontAwesome size={props.size || 28} style={{ marginBottom: -3 }} {...props} />;
+}
+
+function IonIcon(props: {
+  name: React.ComponentProps<typeof Ionicons>['name'];
+  color: string;
+  size?: number;
+}) {
+  return <Ionicons size={props.size || 28} style={{ marginBottom: -3 }} {...props} />;
 }
 
 export default function TabLayout() {
@@ -27,31 +38,35 @@ export default function TabLayout() {
         headerShown: useClientOnlyValue(false, true),
       }}>
       <Tabs.Screen
-        name="index"
+        name="trackpal"
         options={{
-          title: 'Tab One',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="info-circle"
-                    size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
-          ),
+          title: 'TrackPal',
+          tabBarIcon: ({ color }) => <MaterialIcons name="insights" color={color} size={28}/>,
+          headerShown: false,
         }}
       />
       <Tabs.Screen
-        name="two"
+        name="pathfinder"
         options={{
-          title: 'Tab Two',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+          title: 'Path Finder',
+          tabBarIcon: ({ color }) => <IonIcon name="compass" color={color} />,
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
+        name="interview"
+        options={{
+          title: 'Interview',
+          tabBarIcon: ({ color }) => <IonIcon name="chatbubbles" color={color} />,
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
+        name="resume-refiner"
+        options={{
+          title: 'ResumeRefiner',
+          tabBarIcon: ({ color }) => <TabBarIcon name="file-text" color={color} size={20} />,
+          headerShown: false,
         }}
       />
     </Tabs>

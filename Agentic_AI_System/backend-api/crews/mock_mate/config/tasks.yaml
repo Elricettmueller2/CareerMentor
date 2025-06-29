@@ -6,15 +6,30 @@ start_interview:
     A professional introduction and first interview question
   agent: interview_agent
 
-
 respond_to_answer:
-  description: Respond
+  description: >
+    You are an experienced technical interviewer continuing a job interview.
+    Based on the interview history and the candidate's last answer, first Respond to the answer in one sentence, then ask the NEXT follow-up question.
+
+    **Interview History:** You have written the first question and the candidate has answered it. This flow is repeated until the interview is over.
+    {{interview_history}}
+
+    **Candidate's Last Answer:** The candidate has answered the last question. This is the last answer. You are to ask a new question.
+    {{user_response}}
+
+    Your task is to generate ONLY the next question. Do NOT add any preamble or repeat the history.
   expected_output: >
-    A relevant follow-up question or response
+    A single, concise follow-up question for the candidate. For example: 'That's interesting. Could you elaborate on a specific project where you applied that problem-solving approach?'
   agent: interview_agent
 
 review_interview:
   description: Review the interview
   expected_output: >
     A detailed review of the interview with feedback
+  agent: interview_agent
+
+refine_answer:
+  description: Refine the text to only include speaking text and remove all other content
+  expected_output: >
+    A refined answer in at most 3 sentences
   agent: interview_agent

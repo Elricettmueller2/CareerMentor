@@ -1,6 +1,7 @@
-from crewai import Agent, Task, Crew, LLM
+from crewai import Agent, Task, Crew
 from crewai.project import CrewBase, agent, task, crew
 from crewai.agents.agent_builder.base_agent import BaseAgent
+from crewai.llm import LLM
 from typing import List
 import litellm
 
@@ -25,13 +26,27 @@ class MockInterviewCrew():
     def interview_agent(self) -> Agent:
         return Agent(
             config=self.agents_config['interview_agent'],
+            tasks=[],
             llm=llm,
+            memory=True,
             verbose=True
         )
 
     @task
     def start_interview_task(self) -> Task:
         return Task(config=self.tasks_config['start_interview'])
+    
+    @task
+    def refine_answer_task(self) -> Task:
+        return Task(config=self.tasks_config['refine_answer'])
+
+    @task
+    def respond_to_answer_task(self) -> Task:
+        return Task(config=self.tasks_config['respond_to_answer'])
+
+    @task
+    def review_interview_task(self) -> Task:
+        return Task(config=self.tasks_config['review_interview'])
 
     @crew
     def crew(self) -> Crew:
@@ -40,14 +55,3 @@ class MockInterviewCrew():
             tasks=self.tasks,
             verbose=True
         )
-
-
-
-
-def respond(message):
-    response = litellm.completion(
-        model="ollama/llama3.2",
-        api_base="http://host.docker.internal:11434",
-        messages=[{"role": "user", "content": message}]
-    )
-    return response.choices[0].message.content

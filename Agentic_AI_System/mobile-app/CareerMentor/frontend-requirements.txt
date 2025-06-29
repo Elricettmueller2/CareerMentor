@@ -1,0 +1,56 @@
+# CareerMentor Frontend Requirements
+
+## Required Packages
+- expo ~53.0.9
+- react 19.0.0
+- react-native 0.79.2
+- typescript ~5.8.3
+- @expo/vector-icons ^14.1.0
+- expo-router ~5.0.6
+- expo-status-bar ~2.2.3
+- expo-splash-screen ~0.30.8
+- expo-linking ~7.1.5
+- expo-font ~13.3.1
+- expo-system-ui ~5.0.7
+- expo-web-browser ~14.1.6
+- react-native-reanimated ~3.17.4
+- react-native-safe-area-context 5.4.0
+- react-native-screens ~4.10.0
+- @react-native-async-storage/async-storage latest
+- axios ^1.10.0
+- @react-native-community/datetimepicker latest
+- @react-native-picker/picker latest
+- @react-native-community/slider ^4.5.7
+- expo-document-picker ~13.1.5
+- expo-location ^18.1.5
+
+## Installation
+To install all required dependencies, run the installation script:
+```
+chmod +x install-dependencies.sh
+./install-dependencies.sh
+```
+
+## Starting the Application
+After installing dependencies:
+```
+npm start
+```
+
+## Project Structure
+- /app/(tabs)/ - Main application tabs and screens
+- /components/ - Reusable UI components
+- /constants/ - Application constants and theme
+- /services/ - API and data services
+
+## Backend Connection
+The mobile app connects to the backend API running at:
+- Local development: http://localhost:8000
+- Device testing: http://192.168.x.x:8000 (replace with your computer's IP)
+
+## Troubleshooting
+If you encounter dependency issues, try:
+1. Delete node_modules folder and package-lock.json
+2. Run `npm install`
+3. Run the installation script again
+4. Restart the development server

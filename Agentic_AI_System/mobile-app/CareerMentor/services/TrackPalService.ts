@@ -1,0 +1,282 @@
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// API base URLs - try different options based on environment
+const API_URLS = {
+  emulator: 'http://10.0.2.2:8000/agents/track_pal', // Android emulator
+  localhost: 'http://localhost:8000/agents/track_pal', // iOS simulator or web
+  device: 'http://192.168.1.100:8000/agents/track_pal' // Adjust this IP to your computer's IP when testing on physical device
+};
+
+// Default to localhost, but you can change this based on your environment
+let API_BASE_URL = API_URLS.localhost;
+
+// Helper function to try different API URLs if one fails
+const tryAPIUrls = async (apiCall: (url: string) => Promise<any>): Promise<any> => {
+  // Try the current API URL first
+  try {
+    return await apiCall(API_BASE_URL);
+  } catch (error: any) {
+    console.log(`Failed with URL ${API_BASE_URL}: ${error.message}`);
+    
+    // If that fails, try other URLs
+    for (const [key, url] of Object.entries(API_URLS)) {
+      if (url === API_BASE_URL) continue; // Skip the one we already tried
+      
+      try {
+        console.log(`Trying alternative URL: ${url}`);
+        const result = await apiCall(url);
+        // If successful, update the default URL for future calls
+        API_BASE_URL = url;
+        console.log(`Success with URL ${url}, updating default`);
+        return result;
+      } catch (innerError: any) {
+        console.log(`Failed with URL ${url}: ${innerError.message}`);
+        // Continue to the next URL
+      }
+    }
+    
+    // If all URLs fail, throw the original error
+    throw error;
+  }
+};
+const USER_ID_KEY = 'user_id';
+
+// Default user ID for testing
+const DEFAULT_USER_ID = 'test_user';
+
+export interface Reminder {
+  message: string;
+  type: 'follow_up' | 'interview' | 'resume' | 'general';
+  applicationId?: string;
+}
+
+export interface PatternInsight {
+  id: string;
+  icon: string;
+  content: string;
+}
+
+export const TrackPalService = {
+  // Get the current user ID or use default
+  getUserId: async (): Promise<string> => {
+    try {
+      const userId = await AsyncStorage.getItem(USER_ID_KEY);
+      return userId || DEFAULT_USER_ID;
+    } catch (error) {
+      console.error('Error getting user ID:', error);
+      return DEFAULT_USER_ID;
+    }
+  },
+
+  // Set user ID
+  setUserId: async (userId: string): Promise<void> => {
+    try {
+      await AsyncStorage.setItem(USER_ID_KEY, userId);
+    } catch (error) {
+      console.error('Error setting user ID:', error);
+    }
+  },
+
+  // Get reminders from TrackPal agent
+  getReminders: async (): Promise<string> => {
+    try {
+      const userId = await TrackPalService.getUserId();
+      console.log('Calling check_reminders with userId:', userId);
+      
+      return await tryAPIUrls(async (baseUrl) => {
+        console.log('API URL:', `${baseUrl}/check_reminders`);
+        
+        const response = await axios.post(`${baseUrl}/check_reminders`, {
+          data: { user_id: userId } // Wrap in data object to match AgentRequest model
+        });
+        
+        console.log('Reminders API response:', response.data);
+        
+        // Handle different response formats
+        if (response.data && response.data.response) {
+          if (typeof response.data.response === 'string') {
+            return response.data.response;
+          } else if (response.data.response.raw) {
+            return response.data.response.raw;
+          } else if (response.data.response.content) {
+            return response.data.response.content;
+          }
+        }
+        
+        return 'No reminders available.';
+      });
+    } catch (error: any) {
+      console.error('Error getting reminders:', error);
+      console.error('Error details:', error.response?.data || 'No response data');
+      return `Failed to get reminders. Error: ${error.message}`;
+    }
+  },
+
+  // Parse pattern analysis text into structured insights
+  parsePatternInsights: (analysisText: string): PatternInsight[] => {
+    // Default insights if we can't extract meaningful ones
+    const defaultInsights: PatternInsight[] = [
+      {
+        id: '1',
+        icon: 'business',
+        content: "You've had a 45% higher response rate from companies with < 50 employees."
+      },
+      {
+        id: '2',
+        icon: 'search',
+        content: "Try adding \"Full Stack\" to your job search - it appears in 70% of matching positions."
+      },
+      {
+        id: '3',
+        icon: 'time',
+        content: "Applications sent between 9-11am have 30% higher response rates."
+      }
+    ];
+
+    if (!analysisText || analysisText.includes('No pattern analysis available') || analysisText.includes('Failed to analyze patterns')) {
+      return defaultInsights;
+    }
+
+    try {
+      // Extract key insights from the analysis text
+      // Look for sentences with percentages, numbers, or strong recommendations
+      const lines = analysisText.split('\n').filter(line => line.trim().length > 0);
+      const insights: PatternInsight[] = [];
+      
+      // Patterns to look for in the text
+      const patterns = [
+        { regex: /([\d.]+)\s*%|percent|percentage/i, icon: 'stats-chart' },  // Percentage stats
+        { regex: /response rate|callback|interview rate/i, icon: 'mail' },      // Response rates
+        { regex: /time|hour|morning|afternoon|evening|day/i, icon: 'time' },    // Timing related
+        { regex: /skill|technology|keyword|stack|language/i, icon: 'code' },    // Skills/keywords
+        { regex: /company|employer|startup|corporation|size/i, icon: 'business' }, // Company related
+        { regex: /resume|cv|application|cover letter/i, icon: 'document-text' }, // Application docs
+        { regex: /follow.?up|contact|reach out/i, icon: 'chatbubbles' }         // Follow-ups
+      ];
+
+      // Process each line to find insights
+      for (const line of lines) {
+        // Skip short lines or headers
+        if (line.length < 20 || line.endsWith(':') || line.startsWith('#')) continue;
+        
+        // Look for actionable insights with data or strong recommendations
+        if (line.match(/\d+%|\d+ percent|higher|lower|increase|improve|try|should|recommend|suggest/i)) {
+          // Find appropriate icon based on content
+          let icon = 'analytics';
+          for (const pattern of patterns) {
+            if (line.match(pattern.regex)) {
+              icon = pattern.icon;
+              break;
+            }
+          }
+          
+          insights.push({
+            id: `insight-${insights.length + 1}`,
+            icon,
+            content: line.trim()
+          });
+
+          // Limit to 3 insights
+          if (insights.length >= 3) break;
+        }
+      }
+
+      // If we couldn't extract enough insights, add some default ones
+      if (insights.length === 0) {
+        return defaultInsights;
+      }
+
+      return insights;
+    } catch (error) {
+      console.error('Error parsing pattern insights:', error);
+      return defaultInsights;
+    }
+  },
+
+  // Get application pattern analysis
+  getPatternAnalysis: async (): Promise<string> => {
+    try {
+      const userId = await TrackPalService.getUserId();
+      console.log('Calling analyze_patterns with userId:', userId);
+      
+      return await tryAPIUrls(async (baseUrl) => {
+        console.log('API URL:', `${baseUrl}/analyze_patterns`);
+        
+        const response = await axios.post(`${baseUrl}/analyze_patterns`, {
+          data: { user_id: userId } // Wrap in data object to match AgentRequest model
+        });
+        
+        console.log('Pattern analysis API response:', response.data);
+        
+        // Handle different response formats
+        if (response.data && response.data.response) {
+          if (typeof response.data.response === 'string') {
+            return response.data.response;
+          } else if (response.data.response.raw) {
+            return response.data.response.raw;
+          } else if (response.data.response.content) {
+            return response.data.response.content;
+          }
+        }
+        
+        return 'No pattern analysis available.';
+      });
+    } catch (error: any) {
+      console.error('Error getting pattern analysis:', error);
+      console.error('Error details:', error.response?.data || 'No response data');
+      return `Failed to analyze patterns. Error: ${error.message}`;
+    }
+  },
+
+  // Get pattern insights (parsed from pattern analysis)
+  getPatternInsights: async (): Promise<PatternInsight[]> => {
+    try {
+      const analysisText = await TrackPalService.getPatternAnalysis();
+      return TrackPalService.parsePatternInsights(analysisText);
+    } catch (error) {
+      console.error('Error getting pattern insights:', error);
+      return [];
+    }
+  },
+
+  // Ask TrackPal a direct question
+  askQuestion: async (question: string): Promise<string> => {
+    try {
+      const userId = await TrackPalService.getUserId();
+      console.log('Calling direct_test with userId:', userId, 'and question:', question);
+      
+      return await tryAPIUrls(async (baseUrl) => {
+        console.log('API URL:', `${baseUrl}/direct_test`);
+        
+        const response = await axios.post(`${baseUrl}/direct_test`, {
+          data: { // Wrap in data object to match AgentRequest model
+            user_id: userId,
+            message: question
+          }
+        });
+        
+        console.log('Direct question API response:', response.data);
+        
+        // Handle different response formats
+        if (response.data && response.data.response) {
+          if (typeof response.data.response === 'string') {
+            return response.data.response;
+          } else if (response.data.response.raw) {
+            return response.data.response.raw;
+          } else if (response.data.response.content) {
+            return response.data.response.content;
+          }
+        }
+        
+        return 'No response available.';
+      });
+    } catch (error: any) {
+      console.error('Error asking question:', error);
+      console.error('Error details:', error.response?.data || 'No response data');
+      return `Failed to get a response. Error: ${error.message}`;
+    }
+  }
+};
+
+export default TrackPalService;

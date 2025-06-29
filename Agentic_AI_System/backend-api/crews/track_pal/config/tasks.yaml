@@ -1,0 +1,13 @@
+check_reminders_task:
+  description: >
+    Analyze job applications and provide personalized reminders based on application status and timeline.
+  expected_output: >
+    List of personalized reminders and suggestions for job applications.
+  agent: trackpal_agent
+
+analyze_patterns_task:
+  description: >
+    Identify patterns in the user's job applications and provide insights and recommendations.
+  expected_output: >
+    Analysis of application patterns and strategic advice.
+  agent: trackpal_agent
