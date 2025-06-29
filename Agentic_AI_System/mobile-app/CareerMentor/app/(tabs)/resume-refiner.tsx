@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, View, Dimensions, SafeAreaView, Animated } from 'react-native';
+import { StyleSheet, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, View, Dimensions, SafeAreaView, Animated, Image } from 'react-native';
 import { Text } from '@/components/Themed';
 import * as DocumentPicker from 'expo-document-picker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,6 +16,73 @@ const COLORS = {
   midnight: '#272727',
   white: '#FFFFFF',
 };
+
+// Dummy Jobs für die Match-Seite
+const DUMMY_JOBS = [
+  {
+    id: 'job1',
+    title: 'Frontend Developer',
+    company: 'TechVision GmbH',
+    location: 'München',
+    description: `We are looking for a Frontend Developer to join our team in Munich. The ideal candidate should have experience with React, TypeScript, and modern web development practices.
+
+Responsibilities:
+- Develop user interfaces using React and TypeScript
+- Collaborate with designers to implement UI/UX designs
+- Write clean, maintainable, and efficient code
+- Optimize applications for maximum speed and scalability
+
+Requirements:
+- 2+ years of experience with React
+- Strong knowledge of JavaScript/TypeScript
+- Experience with responsive design
+- Familiarity with RESTful APIs
+- Bachelor's degree in Computer Science or related field`,
+    logo: 'https://via.placeholder.com/50',
+  },
+  {
+    id: 'job2',
+    title: 'Backend Engineer',
+    company: 'DataSphere AG',
+    location: 'Berlin',
+    description: `DataSphere is seeking a talented Backend Engineer to develop robust server-side applications. You'll work with our team to build scalable and maintainable APIs and services.
+
+Responsibilities:
+- Design and implement backend services using Node.js and Python
+- Create and maintain database schemas and queries
+- Develop RESTful APIs for frontend consumption
+- Implement security and data protection measures
+
+Requirements:
+- 3+ years of experience in backend development
+- Proficiency in Node.js, Express, and Python
+- Experience with SQL and NoSQL databases
+- Knowledge of cloud services (AWS, Azure, or GCP)
+- Strong problem-solving skills`,
+    logo: 'https://via.placeholder.com/50',
+  },
+  {
+    id: 'job3',
+    title: 'Full Stack Developer',
+    company: 'InnoSoft Solutions',
+    location: 'Hamburg',
+    description: `InnoSoft is looking for a Full Stack Developer to join our growing team. You will be responsible for developing and maintaining both frontend and backend components of our web applications.
+
+Responsibilities:
+- Develop frontend components using React and Angular
+- Build backend services with Node.js and Java
+- Design and implement database schemas
+- Ensure the technical feasibility of UI/UX designs
+
+Requirements:
+- 4+ years of experience in full stack development
+- Strong knowledge of JavaScript, HTML, CSS
+- Experience with React, Angular, or Vue.js
+- Proficiency in Node.js, Express, and Java
+- Familiarity with cloud services and DevOps practices`,
+    logo: 'https://via.placeholder.com/50',
+  },
+];
 
 // Circular Progress Component
 const CircularProgress = ({ percentage }: { percentage: number }) => {
@@ -73,6 +140,44 @@ const CircularProgress = ({ percentage }: { percentage: number }) => {
         </SvgText>
       </Svg>
     </View>
+  );
+};
+
+// Job Card Component
+const JobCard = ({
+  job,
+  onSelect,
+  isSelected
+}: {
+  job: typeof DUMMY_JOBS[0],
+  onSelect: () => void,
+  isSelected: boolean
+}) => {
+  return (
+    <TouchableOpacity 
+      style={[styles.jobCard, isSelected && styles.selectedJobCard]} 
+      onPress={onSelect}
+      activeOpacity={0.7}
+    >
+      <View style={styles.jobCardHeader}>
+        <View style={styles.jobLogoContainer}>
+          <Image source={{ uri: job.logo }} style={styles.jobLogo} />
+        </View>
+        <View style={styles.jobInfoContainer}>
+          <Text style={styles.jobTitle}>{job.title}</Text>
+          <Text style={styles.jobCompany}>{job.company}</Text>
+          <View style={styles.jobLocationContainer}>
+            <Ionicons name="location-outline" size={14} color={COLORS.nightSky} />
+            <Text style={styles.jobLocation}>{job.location}</Text>
+          </View>
+        </View>
+        {isSelected && (
+          <View style={styles.selectedIndicator}>
+            <Ionicons name="checkmark-circle" size={24} color={COLORS.nightSky} />
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
   );
 };
 
@@ -167,9 +272,10 @@ export default function ResumeRefinerScreen() {
   const [currentFileName, setCurrentFileName] = useState<string>('');
   const [feedbackMessages, setFeedbackMessages] = useState<Array<{text: string, section: string}>>([]);
   const [jobDescription, setJobDescription] = useState('');
-  const [matchResult, setMatchResult] = useState<{match_score: number, missing_keywords: string[], suggestions: string[]} | null>(null);
+  const [matchResult, setMatchResult] = useState<{match_score: number, missing_keywords: string[], suggestions: string[], improvement_suggestions: string[]} | null>(null);
   const [uploadId, setUploadId] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'analyse' | 'match'>('analyse');
+  const [selectedJob, setSelectedJob] = useState<typeof DUMMY_JOBS[0] | null>(null);
   
   // Simulate loading progress
   useEffect(() => {
@@ -424,6 +530,11 @@ export default function ResumeRefinerScreen() {
     };
     return mapping[category] || category;
   };
+  const selectJob = (job: typeof DUMMY_JOBS[0]) => {
+    setSelectedJob(job);
+    setJobDescription(job.description);
+  };
+
   const matchWithJob = async () => {
     if (!uploadId || !jobDescription.trim()) {
       setFeedbackMessages([{ 
@@ -439,9 +550,9 @@ export default function ResumeRefinerScreen() {
       const jobData = {
         job_descriptions: [
           {
-            job_id: 'job1',
-            job_title: 'Job Position',
-            job_summary: jobDescription
+            job_id: selectedJob?.id || 'job1',
+            job_title: selectedJob?.title || 'Job Position',
+            description: jobDescription
           }
         ]
       };
@@ -475,7 +586,8 @@ export default function ResumeRefinerScreen() {
         setMatchResult({
           match_score: jobMatch.overall_score || 0,
           missing_keywords: jobMatch.missing_skills || [],
-          suggestions: jobMatch.matching_skills || []
+          suggestions: jobMatch.matching_skills || [],
+          improvement_suggestions: jobMatch.improvement_suggestions || []
         });
       } else {
         console.warn('⚠️ No match results found in response');
@@ -507,7 +619,7 @@ export default function ResumeRefinerScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Text style={styles.title}>Resume Refiner</Text>
+
       
         {uploadStarted && !loading && feedbackMessages.length > 0 && (
         <View style={styles.tabContainer}>
@@ -623,10 +735,22 @@ export default function ResumeRefinerScreen() {
 
           {activeTab === 'match' && (
             <>
+              <Text style={styles.sectionHeader}>Suggested Jobs</Text>
+              <View style={styles.jobsContainer}>
+                {DUMMY_JOBS.map((job) => (
+                  <JobCard 
+                    key={job.id} 
+                    job={job} 
+                    onSelect={() => selectJob(job)}
+                    isSelected={selectedJob?.id === job.id}
+                  />
+                ))}
+              </View>
+              
               <Text style={styles.sectionHeader}>Job Match</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Paste job description..."
+                placeholder="Paste job description or select a job above..."
                 multiline
                 value={jobDescription}
                 onChangeText={setJobDescription}
@@ -639,15 +763,48 @@ export default function ResumeRefinerScreen() {
 
           {activeTab === 'match' && matchResult && (
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>Match Score: {(matchResult.match_score * 100).toFixed(1)}%</Text>
-              <Text style={styles.cardSubtitle}>Missing Keywords:</Text>
-              {matchResult.missing_keywords.map((kw, i) => (
-                <Text key={i} style={styles.cardText}>• {kw}</Text>
-              ))}
-              <Text style={styles.cardSubtitle}>Suggestions:</Text>
-              {matchResult.suggestions.map((s, i) => (
-                <Text key={i} style={styles.cardText}>• {s}</Text>
-              ))}
+              <Text style={styles.cardTitle}>Match Score: {matchResult.match_score.toFixed(1)}%</Text>
+              
+              {matchResult.missing_keywords && matchResult.missing_keywords.length > 0 ? (
+                <>
+                  <Text style={styles.cardSubtitle}>Missing Keywords:</Text>
+                  <Text style={styles.cardDescription}>Add these skills to your resume to improve your match:</Text>
+                  {matchResult.missing_keywords.map((kw, i) => (
+                    <Text key={i} style={styles.cardText}>• {kw}</Text>
+                  ))}
+                </>
+              ) : (
+                <Text style={styles.cardDescription}>No missing keywords detected.</Text>
+              )}
+              
+              {matchResult.suggestions && matchResult.suggestions.length > 0 ? (
+                <>
+                  <Text style={styles.cardSubtitle}>Matching Skills:</Text>
+                  <Text style={styles.cardDescription}>These skills from your resume match the job requirements:</Text>
+                  {matchResult.suggestions.map((s, i) => (
+                    <Text key={i} style={styles.cardText}>• {s}</Text>
+                  ))}
+                </>
+              ) : (
+                <Text style={styles.cardDescription}>No matching skills detected. Try adding relevant skills to your resume.</Text>
+              )}
+              
+              {matchResult.improvement_suggestions && matchResult.improvement_suggestions.length > 0 ? (
+                <>
+                  <Text style={styles.cardSubtitle}>Improvement Tips:</Text>
+                  <Text style={styles.cardDescription}>Follow these suggestions to improve your resume match:</Text>
+                  {matchResult.improvement_suggestions.map((tip, i) => (
+                    <Text key={i} style={styles.cardText}>• {tip}</Text>
+                  ))}
+                </>
+              ) : (
+                <>
+                  <Text style={styles.cardSubtitle}>Improvement Tips:</Text>
+                  <Text style={styles.cardText}>• Highlight the matching skills more prominently in your resume</Text>
+                  <Text style={styles.cardText}>• Add missing keywords to relevant sections</Text>
+                  <Text style={styles.cardText}>• Tailor your experience descriptions to include job-specific terminology</Text>
+                </>
+              )}
             </View>
           )}
         </ScrollView>
@@ -669,6 +826,76 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: COLORS.salt }, // Salt
   container: { flex: 1, paddingVertical: 5, paddingHorizontal: 20, backgroundColor: COLORS.salt }, // Salt
   title: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginTop: 0, marginBottom: 5, color: COLORS.nightSky }, // Sky
+  
+  // Job Card Styles
+  jobsContainer: {
+    marginBottom: 15,
+  },
+  jobCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    marginBottom: 12,
+    padding: 12,
+    shadowColor: COLORS.midnight,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: COLORS.salt,
+  },
+  selectedJobCard: {
+    borderColor: COLORS.nightSky,
+    borderWidth: 2,
+    backgroundColor: COLORS.salt,
+  },
+  jobCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  jobLogoContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    overflow: 'hidden',
+    backgroundColor: COLORS.lightRose,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  jobLogo: {
+    width: 50,
+    height: 50,
+    resizeMode: 'cover',
+  },
+  jobInfoContainer: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  jobTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.nightSky,
+    marginBottom: 4,
+  },
+  jobCompany: {
+    fontSize: 14,
+    color: COLORS.sky,
+    marginBottom: 4,
+  },
+  jobLocationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  jobLocation: {
+    fontSize: 12,
+    color: COLORS.nightSky,
+    marginLeft: 4,
+  },
+  selectedIndicator: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
   
   // Circular progress styles
   circularProgressContainer: {
@@ -813,8 +1040,9 @@ const styles = StyleSheet.create({
   sectionHeader: { fontSize: 20, fontWeight: '700', marginTop: 10, marginBottom: 5, color: COLORS.nightSky }, // Night Sky, kompaktere Margins
   card: { backgroundColor: COLORS.lightRose, padding: 12, borderRadius: 10, marginVertical: 8, elevation: 2, shadowColor: COLORS.midnight, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 1.5 }, // Light Rose für Karten
   cardTitle: { fontSize: 18, fontWeight: '500' },
-  cardSubtitle: { fontSize: 16, fontWeight: '500', marginTop: 10 },
-  cardText: { fontSize: 14, marginVertical: 2 },
+  cardSubtitle: { fontSize: 16, fontWeight: '600', marginTop: 16, color: COLORS.nightSky },
+  cardDescription: { fontSize: 14, marginTop: 4, marginBottom: 8, color: COLORS.sky, fontStyle: 'italic' },
+  cardText: { fontSize: 14, marginVertical: 2, paddingLeft: 4 },
   // scoreContainer entfernt - Inhalt direkt auf dem Hintergrund
   overallScoreContainer: { flexDirection: 'row', alignItems: 'center' },
   overallScoreText: { fontSize: 24, fontWeight: 'bold' },
