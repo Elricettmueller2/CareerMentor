@@ -36,7 +36,8 @@ export default function TrackPalScreen() {
   // Application stats
   const [stats, setStats] = useState({
     totalApplications: 0,
-    replyRate: 0,
+    jobsToApply: 0,
+    interviewsSecured: 0,
     interviewRate: 0,
     followUpOpportunities: 0
   });
@@ -75,7 +76,8 @@ export default function TrackPalScreen() {
     if (!apps || apps.length === 0) {
       setStats({
         totalApplications: 0,
-        replyRate: 0,
+        jobsToApply: 0,
+        interviewsSecured: 0,
         interviewRate: 0,
         followUpOpportunities: 0
       });
@@ -84,35 +86,62 @@ export default function TrackPalScreen() {
     
     const total = apps.length;
     
-    // Count applications with responses (interview, accepted, or rejected)
-    const withResponse = apps.filter(app => 
+    // Count applications that are saved but not applied yet
+    const savedJobs = apps.filter(app => app.status === 'saved').length;
+    
+    // Count applications that have secured interviews (including later stages)
+    const withInterview = apps.filter(app => 
       app.status === 'interview' || 
       app.status === 'accepted' || 
       app.status === 'rejected'
     ).length;
-  
-    // Count applications with interviews or accepted
-    const withInterview = apps.filter(app => 
-      app.status === 'interview' || 
-      app.status === 'accepted'
-    ).length;
-  
-    // Count applications that need follow-up
-    const needFollowUp = apps.filter(app => 
-      (app.status === 'applied' && 
-       new Date().getTime() - new Date(app.appliedDate).getTime() > 7 * 24 * 60 * 60 * 1000) || // 7 days since application
-      (app.status === 'interview' && 
-       new Date().getTime() - new Date(app.followUpDate || app.appliedDate).getTime() > 3 * 24 * 60 * 60 * 1000) // 3 days since interview
-    ).length;
+    
+    // Calculate interview success rate as a percentage
+    const interviewRate = total > 0 ? Math.round((withInterview / total) * 100) : 0;
+    
+    // Count applications that need follow-up (based on followUpDate)
+    const withReminders = apps.filter(app => app.followUpDate).length;
     
     setStats({
       totalApplications: total,
-      replyRate: total > 0 ? Math.round((withResponse / total) * 100) : 0,
-      interviewRate: total > 0 ? Math.round((withInterview / total) * 100) : 0,
-      followUpOpportunities: needFollowUp
+      jobsToApply: savedJobs,
+      interviewsSecured: withInterview,
+      interviewRate: interviewRate,
+      followUpOpportunities: withReminders
     });
   };
   
+  // Handle navigation to a random saved job
+  const navigateToRandomSavedJob = () => {
+    if (stats.jobsToApply === 0 || !applications) return;
+    
+    const savedApplications = applications.filter(app => app.status === 'saved');
+    if (savedApplications.length > 0) {
+      const randomIndex = Math.floor(Math.random() * savedApplications.length);
+      const randomApp = savedApplications[randomIndex];
+      router.push(`/job-application-details?id=${randomApp.id}`);
+    }
+  };
+
+  // Handle navigation to the most recent job needing follow-up
+  const navigateToFollowUpJob = () => {
+    if (stats.followUpOpportunities === 0 || !applications) return;
+    
+    // Get applications with follow-up dates set
+    const appsWithReminders = applications.filter(app => app.followUpDate);
+    
+    if (appsWithReminders.length > 0) {
+      // Sort by most recent first
+      appsWithReminders.sort((a, b) => {
+        const dateA = new Date(a.followUpDate || a.applicationDeadline || a.appliedDate);
+        const dateB = new Date(b.followUpDate || b.applicationDeadline || b.appliedDate);
+        return dateB.getTime() - dateA.getTime();
+      });
+      
+      router.push(`/job-application-details?id=${appsWithReminders[0].id}`);
+    }
+  };
+
   const loadApplications = async () => {
     setLoading(true);
     try {
@@ -349,23 +378,37 @@ export default function TrackPalScreen() {
             <Text style={styles.statValue}>{stats.totalApplications}</Text>
           </View>
           
-          {/* Reply Rate */}
+          {/* Interviews Secured */}
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Reply Rate</Text>
-            <Text style={styles.statValue}>{stats.replyRate}%</Text>
-          </View>
-          
-          {/* Interview Rate */}
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Interview Rate</Text>
+            <Text style={styles.statLabel}>Interviews Secured</Text>
             <Text style={styles.statValue}>{stats.interviewRate}%</Text>
           </View>
           
+          {/* Jobs to Apply */}
+          <TouchableOpacity 
+            style={[styles.statCard, stats.jobsToApply > 0 ? styles.clickableCard : null]} 
+            onPress={navigateToRandomSavedJob}
+            disabled={stats.jobsToApply === 0}
+          >
+            <Text style={styles.statLabel}>Jobs to Apply</Text>
+            <View style={styles.statValueContainer}>
+              <Text style={styles.statValue}>{stats.jobsToApply}</Text>
+              {stats.jobsToApply > 0 && <Ionicons name="chevron-forward" size={16} color="#fff" />}
+            </View>
+          </TouchableOpacity>
+          
           {/* Follow-Up Opportunities */}
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Follow-Up Opportunities</Text>
-            <Text style={styles.statValue}>{stats.followUpOpportunities}</Text>
-          </View>
+          <TouchableOpacity 
+            style={[styles.statCard, stats.followUpOpportunities > 0 ? styles.clickableCard : null]} 
+            onPress={navigateToFollowUpJob}
+            disabled={stats.followUpOpportunities === 0}
+          >
+            <Text style={styles.statLabel}>Follow-Ups</Text>
+            <View style={styles.statValueContainer}>
+              <Text style={styles.statValue}>{stats.followUpOpportunities}</Text>
+              {stats.followUpOpportunities > 0 && <Ionicons name="chevron-forward" size={16} color="#fff" />}
+            </View>
+          </TouchableOpacity>
         </View>
       </View>
       
@@ -637,6 +680,21 @@ export default function TrackPalScreen() {
 }
 
 const styles = StyleSheet.create({
+  clickableCard: {
+    borderColor: '#5D5B8D',
+    borderWidth: 1,
+    shadowColor: '#5D5B8D',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  statValueContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 4,
+  },
   responseContainer: {
     backgroundColor: '#f9f9ff',
     padding: 12,
