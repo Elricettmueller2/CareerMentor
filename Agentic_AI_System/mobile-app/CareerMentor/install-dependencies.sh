@@ -10,6 +10,7 @@ npx expo install @react-native-picker/picker
 npx expo install @react-native-community/slider
 npx expo install expo-document-picker
 npx expo install react-native-svg react-native-reanimated
+npx expo install expo-image-picker expo-camera
 
 echo "All dependencies installed successfully!"
 echo "You can now run 'npm start' to start the application."

@@ -2,10 +2,12 @@ import os
 import uuid
 import re
 import logging
+import mimetypes
 from typing import Dict, List, Any
 from pdfminer.high_level import extract_text
 import easyocr
 from fastapi import UploadFile
+from PIL import Image
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -37,9 +39,25 @@ class ParserAgent:
     def save_upload(self, upload_file: UploadFile) -> str:
         """
         Save incoming UploadFile to disk and return upload_id.
+        Handles both PDF and image files (JPG, PNG).
         """
         upload_id = str(uuid.uuid4())
-        dest = os.path.join(self.TMP_DIR, f"{upload_id}.pdf")
+        
+        # Determine file extension from content type or filename
+        content_type = upload_file.content_type or ''
+        filename = upload_file.filename or ''
+        
+        if 'pdf' in content_type.lower() or filename.lower().endswith('.pdf'):
+            extension = '.pdf'
+        elif any(img_type in content_type.lower() for img_type in ['jpeg', 'jpg']):
+            extension = '.jpg'
+        elif 'png' in content_type.lower():
+            extension = '.png'
+        else:
+            # Default to pdf if we can't determine the type
+            extension = '.pdf'
+            
+        dest = os.path.join(self.TMP_DIR, f"{upload_id}{extension}")
         
         logger.info(f"Saving uploaded file to {dest}")
         
@@ -77,28 +95,55 @@ class ParserAgent:
     
     def parse(self, upload_id: str) -> str:
         """
-        Extract plain text from a saved PDF. Falls back to OCR if necessary.
+        Extract plain text from a saved PDF or image file.
+        For PDFs: Uses pdfminer with OCR fallback.
+        For images: Uses OCR directly.
         
         Args:
-            upload_id: ID of the uploaded PDF file
+            upload_id: ID of the uploaded file
             
         Returns:
-            Extracted text from the PDF
+            Extracted text from the file
         """
-        path = os.path.join(self.TMP_DIR, f"{upload_id}.pdf")
-        if not os.path.exists(path):
-            raise FileNotFoundError(f"PDF file not found for upload_id: {upload_id}")
-            
-        try:
-            # Try extracting text with pdfminer
-            text = extract_text(path)
-            if text and text.strip():
-                return text
-            raise ValueError("Empty text from pdfminer")
-        except Exception:
-            # OCR fallback
-            result = _reader.readtext(path, detail=0)
-            return "\n".join(result)
+        # Check for different possible file extensions
+        possible_extensions = ['.pdf', '.jpg', '.png']
+        found_path = None
+        
+        for ext in possible_extensions:
+            path = os.path.join(self.TMP_DIR, f"{upload_id}{ext}")
+            if os.path.exists(path):
+                found_path = path
+                break
+                
+        if not found_path:
+            raise FileNotFoundError(f"No file found for upload_id: {upload_id}")
+        
+        # Get the file extension
+        _, ext = os.path.splitext(found_path)
+        ext = ext.lower()
+        
+        # Process based on file type
+        if ext == '.pdf':
+            try:
+                # Try extracting text with pdfminer
+                text = extract_text(found_path)
+                if text and text.strip():
+                    return text
+                raise ValueError("Empty text from pdfminer")
+            except Exception as e:
+                logger.info(f"PDF text extraction failed, falling back to OCR: {str(e)}")
+                # OCR fallback for PDF
+                result = _reader.readtext(found_path, detail=0)
+                return "\n".join(result)
+        else:  # Image files (.jpg, .png)
+            logger.info(f"Processing image file with OCR: {found_path}")
+            try:
+                # Use OCR directly for images
+                result = _reader.readtext(found_path, detail=0)
+                return "\n".join(result)
+            except Exception as e:
+                logger.error(f"OCR processing failed: {str(e)}")
+                raise
     
     def parse_with_sections(self, upload_id: str) -> Dict[str, Any]:
         """
