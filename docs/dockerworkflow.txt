@@ -1,0 +1,30 @@
+docker ps
+
+docker stop career-mentor-backend-container
+
+docker rm career-mentor-backend-container
+
+docker build -t career-mentor-backend:latest /Users/elricettmuller/Programming/CareerMentor/Agentic_AI_System/backend-api
+
+docker run -d -p 8000:8000 --name career-mentor-backend-container career-mentor-backend:latest
+
+docker logs career-mentor-backend-container
+
+
+Azim:
+
+docker ps
+
+docker stop career-mentor-backend-container
+
+docker rm career-mentor-backend-container
+
+docker build -t career-mentor-backend:latest /Users/azimalizada/Documents/Uni/Sem4/MA/CareerMentor/Agentic_AI_System/backend-api
+
+docker run -d -p 8000:8000 --name career-mentor-backend-container career-mentor-backend:latest
+
+docker logs career-mentor-backend-container
+
+
+
+npx expo start

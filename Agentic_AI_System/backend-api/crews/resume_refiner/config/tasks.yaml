@@ -1,0 +1,96 @@
+analyze_layout:
+  description: >
+    Analyze the uploaded resume PDF to determine if it's a vector PDF or a scanned image,
+    and extract layout metrics such as margins, font sizes, and column structure.
+  expected_output: >
+    A JSON object with the PDF type and layout metrics:
+    {
+      "pdf_type": "vector" or "scanned",
+      "metrics": {
+        "margins": [{"left": 1.0, "right": 1.0, "top": 1.0, "bottom": 1.0}],
+        "font_sizes": [[10.0, 12.0, 14.0]],
+        "columns": [1]
+      }
+    }
+  agent: layout_agent
+
+parse_resume:
+  description: >
+    Extract and normalize text from the uploaded resume file (PDF),
+    preserving section headers and bullet structure. Identify and separate
+    key resume sections such as profile, experience, education, and skills.
+  expected_output: >
+    A JSON object with the full text and parsed sections:
+    {
+      "full_text": "Complete resume text",
+      "sections": {
+        "profile": "Profile section text",
+        "experience": "Experience section text",
+        "education": "Education section text",
+        "skills": "Skills section text"
+      },
+      "keywords": ["keyword1", "keyword2", "keyword3"]
+    }
+  agent: parser_agent
+
+evaluate_resume:
+  description: >
+    Analyze the parsed resume text and layout metrics to generate a comprehensive 
+    evaluation with scores and feedback. Evaluate the resume across four main categories:
+    
+    1. Format & Layout (0-100 points)
+       - Übersichtlichkeit: klare Abschnitte, konsistenter Weißraum
+       - Einheitliche Formatierung: Schriftgrößen, Bullet-Styles, Ränder
+    
+    2. Inhalt & Struktur (0-100 points)
+       - Vollständige Kernabschnitte (Profil, Berufserfahrung, Ausbildung, Skills)
+       - Logischer Aufbau und Fluss zwischen den Abschnitten
+    
+    3. Sprache & Stil (0-100 points)
+       - Aktive, präzise Formulierungen
+       - Rechtschreibung, Grammatik und Tonalität
+    
+    4. Ergebnis-Orientierung (0-100 points)
+       - Fokus auf quantifizierbare Erfolge (KPIs, Zahlen, Prozentwerte)
+       - Klare Herausstellung von Impact und Verantwortungsbereichen
+    
+    For each category, provide a score and specific feedback with improvement suggestions.
+    Calculate an overall score as the weighted average of all categories.
+  expected_output: >
+    A JSON object with the exact structure:
+    {
+      "scores": {
+        "format_layout": 75,
+        "inhalt_struktur": 80,
+        "sprache_stil": 65,
+        "ergebnis_orientierung": 70,
+        "overall": 72.5
+      },
+      "feedback": {
+        "format_layout": ["Feedback point 1", "Feedback point 2"],
+        "inhalt_struktur": ["Feedback point 1", "Feedback point 2"],
+        "sprache_stil": ["Feedback point 1", "Feedback point 2"],
+        "ergebnis_orientierung": ["Feedback point 1", "Feedback point 2"]
+      }
+    }
+    
+    The response must be valid JSON with no text outside this structure.
+  agent: quality_agent
+
+match_resume:
+  description: >
+    Compare the resume content against one or more job descriptions using semantic similarity.
+    Calculate overall match scores, identify matching and missing skills, and provide
+    a summary of the best matching positions.
+  expected_output: >
+    A list of job matches with the following structure for each match:
+    {
+      "job_id": "job123",
+      "job_title": "Software Engineer",
+      "overall_score": 85,
+      "skill_match_percentage": 70,
+      "matching_skills": ["Python", "JavaScript", "React"],
+      "missing_skills": ["Docker", "Kubernetes"],
+      "job_summary": "Brief summary of the job"
+    }
+  agent: match_agent

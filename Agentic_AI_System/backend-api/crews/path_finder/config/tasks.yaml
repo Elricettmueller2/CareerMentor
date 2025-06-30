@@ -1,0 +1,31 @@
+search_jobs:
+  description: >
+    Search for job listings that match the user's criteria.
+    Use the provided job title, education level, years of experience, location radius, and interest points to find relevant opportunities.
+    Collect 80-100 job listings with comprehensive information about each opportunity including:
+    - Job title
+    - Company name
+    - Location
+    - Job description
+    - Required qualifications
+    - Experience level
+    - Salary information (if available)
+    - Application link
+  expected_output: >
+    A list of 80-100 job listings with detailed information structured in a consistent format.
+  agent: job_search_agent
+
+filter_jobs:
+  description: >
+    Filter and rank the collected job listings to identify the top 10 most relevant opportunities.
+    Consider the following factors:
+    - Relevance to the user's job title search
+    - Match with the user's education level
+    - Match with the user's years of experience
+    - Location within the specified radius
+    - Alignment with the user's interest points
+    - Overall job quality and potential fit
+    Provide a detailed explanation for why each job was selected in the top 10.
+  expected_output: >
+    A ranked list of the top 10 job opportunities with detailed information and explanations for why each was selected.
+  agent: job_filter_agent

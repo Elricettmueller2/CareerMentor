@@ -9,14 +9,19 @@ COPY pyproject.toml poetry.lock* ./
 # Install poetry & dependencies
 RUN pip install --no-cache-dir poetry \
  && poetry config virtualenvs.create false \
+ && poetry lock \
  && poetry install --no-interaction --no-ansi --no-root
+
+# Install additional packages needed for web scraping and AI
+RUN pip install --no-cache-dir beautifulsoup4 requests litellm
 
 # Copy specific directories
 COPY crews/ ./crews/
+COPY database/ ./database/
+COPY services/ ./services/
 
 # Create directories if they don't exist in the project yet
 RUN mkdir -p static
-RUN mkdir -p services
 RUN mkdir -p tools
 
 EXPOSE 8000
