@@ -99,12 +99,12 @@ class ResumeRefinerCrew():
         """Save uploaded file and return upload_id"""
         return self._parser_agent.save_upload(upload_file)
     
-    def analyze_pdf_layout(self, upload_id):
-        """Analyze PDF layout using LayoutAgent"""
+    def analyze_document_layout(self, upload_id):
+        """Analyze document layout (PDF or image) using LayoutAgent"""
         return self._layout_agent.analyze_layout(upload_id)
     
-    def parse_pdf(self, upload_id):
-        """Parse PDF and extract sections using ParserAgent"""
+    def parse_document(self, upload_id):
+        """Parse document (PDF or image) and extract sections using ParserAgent"""
         return self._parser_agent.parse_with_sections(upload_id)
     
     def evaluate_quality(self, resume_data, layout_data=None):
@@ -114,3 +114,12 @@ class ResumeRefinerCrew():
     def match_jobs(self, resume_data, job_descriptions):
         """Match resume against job descriptions using MatchAgent"""
         return self._match_agent.match_jobs(resume_data, job_descriptions)
+    
+    # Keep old method names for backward compatibility
+    def analyze_pdf_layout(self, upload_id):
+        """Legacy method - use analyze_document_layout instead"""
+        return self.analyze_document_layout(upload_id)
+    
+    def parse_pdf(self, upload_id):
+        """Legacy method - use parse_document instead"""
+        return self.parse_document(upload_id)
