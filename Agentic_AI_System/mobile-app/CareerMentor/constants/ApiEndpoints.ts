@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 // Determine the base URL based on platform
 const getBaseApiUrl = (): string => {
   if (Platform.OS === 'web') {
-    return 'http://localhost:8080';
+    return 'http://localhost:8000';
   } else if (Platform.OS === 'ios' && !__DEV__) {
     // Production iOS
     return 'https://api.careermentor.app';
@@ -13,35 +13,28 @@ const getBaseApiUrl = (): string => {
   } else {
     // Development on physical device or emulator
     // Using ngrok tunnel for cross-network access
-    return 'https://515c-2001-4ca0-0-f237-c155-66ae-8c77-635c.ngrok-free.app';
+    return 'https://0716-2001-a61-1117-e601-a90c-9022-3de0-e991.ngrok-free.app';
   }
 };
 
 // API Base URL - Update this to your backend server URL
-export const API_BASE_URL = 'https://515c-2001-4ca0-0-f237-c155-66ae-8c77-635c.ngrok-free.app';
+export const API_BASE_URL = 'https://0716-2001-a61-1117-e601-a90c-9022-3de0-e991.ngrok-free.app'; // Using ngrok for physical device access
 
-// Fallback URLs for retry mechanism
+// Simplified fallback URLs
 export const API_FALLBACK_URLS = [
-  'https://515c-2001-4ca0-0-f237-c155-66ae-8c77-635c.ngrok-free.app',
-  'http://localhost:8080',
-  'http://127.0.0.1:8080',
-  'http://192.0.0.2:8080',    // IP address (current)
-  'http://192.0.0.2:8000',    // IP with alternate port
-  'http://172.20.10.14:8080', // Previous hotspot IP
-  'http://172.20.10.14:8000', // Previous hotspot IP with alternate port
-  'http://10.181.216.241:8080', // Previous IP address
-  'http://10.181.216.241:8000', // Previous IP with alternate port
+  'https://0716-2001-a61-1117-e601-a90c-9022-3de0-e991.ngrok-free.app',
   'http://localhost:8000',
   'http://127.0.0.1:8000',
-  'http://192.168.178.24:8080', // Keep old IP as fallback
-  'http://192.168.178.24:8000'  // Keep old IP with alternate port
+  'http://192.168.178.24:8000', // Your actual IP address
 ];
 
 export const ENDPOINTS = {
   RESUME: {
     UPLOAD: '/resumes/upload',
-    ANALYZE: '/resumes/analyze',
-    FEEDBACK: '/resumes/feedback',
+    ANALYZE: '/resumes/{upload_id}/layout',
+    PARSE: '/resumes/{upload_id}/parse',
+    EVALUATE: '/resumes/{upload_id}/evaluate',
+    MATCH: '/resumes/{upload_id}/match',
   },
   JOBS: {
     SEARCH: '/jobs/search',

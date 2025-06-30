@@ -69,9 +69,23 @@ export class FileUploadService {
     try {
       // Create form data for file upload
       const formData = new FormData();
+      
+      // Ensure proper URI formatting based on platform
+      const fileUri = Platform.OS === 'ios' ? uri.replace('file://', '') : uri;
+      
+      // Ensure we have a valid file name with extension
+      const finalFileName = fileName.includes('.') ? fileName : 
+        fileType === 'image/jpeg' ? `${fileName}.jpg` : 
+        fileType === 'image/png' ? `${fileName}.png` : 
+        fileType === 'application/pdf' ? `${fileName}.pdf` : 
+        fileName;
+      
+      console.log(`Uploading file: ${finalFileName} (${fileType}) from ${fileUri}`);
+      
+      // Append file to form data with proper metadata
       formData.append('file', {
-        uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
-        name: fileName,
+        uri: fileUri,
+        name: finalFileName,
         type: fileType,
       } as any);
       
@@ -80,7 +94,9 @@ export class FileUploadService {
         method: 'POST',
         body: formData,
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'Accept': 'application/json',
+          // Let the browser set the Content-Type header with boundary
+          // 'Content-Type': 'multipart/form-data',
         },
         signal: controller.signal,
       });
@@ -90,11 +106,16 @@ export class FileUploadService {
       
       // Check if response is ok
       if (!response.ok) {
+        const errorText = await response.text().catch(() => 'No error details');
+        console.error(`Upload failed with status ${response.status}: ${errorText}`);
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
       
       // Parse and return the response
       return await response.json();
+    } catch (error) {
+      console.error(`Upload error: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
     } finally {
       clearTimeout(timeoutId);
     }
@@ -120,6 +141,8 @@ export class FileUploadService {
         return 'image/jpeg';
       case 'png':
         return 'image/png';
+      case 'heic':
+        return 'image/heic';
       default:
         return 'application/octet-stream';
     }
@@ -132,7 +155,13 @@ export class FileUploadService {
   static async pickDocument() {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: ['application/pdf', 'image/*', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+        type: [
+          'application/pdf', 
+          'image/*', 
+          'application/msword', 
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'image/heic'
+        ],
         copyToCacheDirectory: true,
       });
       
@@ -158,26 +187,39 @@ export class FileUploadService {
    */
   static async takePhoto() {
     try {
+      console.log("Requesting camera permissions...");
       // Request camera permissions
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       
       if (status !== 'granted') {
+        console.log("Camera permission denied");
         throw new Error('Camera permission not granted');
       }
       
+      console.log("Launching camera...");
       // Take a photo
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        quality: 1, // No compression
+        quality: 0.8, // Slightly compress for better upload performance
+        exif: false, // Don't need EXIF data
       });
       
+      console.log("Camera result:", result);
+      
       if (result.canceled) {
+        console.log("Camera capture canceled");
         return null;
       }
       
       const photo = result.assets[0];
-      const fileName = `photo_${Date.now()}.jpg`;
+      const timestamp = Date.now();
+      const fileName = `resume_photo_${timestamp}.jpg`;
+      
+      console.log("Captured photo:", {
+        uri: photo.uri,
+        name: fileName
+      });
       
       return {
         uri: photo.uri,
