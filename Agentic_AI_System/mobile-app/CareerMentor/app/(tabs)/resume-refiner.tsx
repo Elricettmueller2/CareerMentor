@@ -699,6 +699,9 @@ export default function ResumeRefinerScreen() {
   const [uploadError, setUploadError] = useState<string | undefined>(undefined);
   const [uploadId, setUploadId] = useState<string>('');
   
+  // State for upload options modal
+  const [showUploadOptions, setShowUploadOptions] = useState(false);
+  
   // State for UI tabs and job selection
   const [activeTab, setActiveTab] = useState<'analyse' | 'match'>('analyse');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -961,6 +964,9 @@ export default function ResumeRefinerScreen() {
   // Function to handle gallery image pick
   const handleGalleryPick = async () => {
     console.log('Gallery pick handler triggered');
+    
+    // Close the upload options modal first
+    setShowUploadOptions(false);
     
     // Simple delay to ensure modal is closed
     await new Promise(resolve => setTimeout(resolve, 300));
@@ -1261,7 +1267,7 @@ export default function ResumeRefinerScreen() {
               <View style={styles.uploadContainer}>
                 <TouchableOpacity
                   style={styles.uploadButton}
-                  onPress={launchDocumentPicker}
+                  onPress={() => setShowUploadOptions(true)}
                 >
                   <Ionicons name="cloud-upload-outline" size={24} color={COLORS.white} />
                   <Text style={styles.uploadButtonText}>Upload Resume</Text>
@@ -1283,7 +1289,7 @@ export default function ResumeRefinerScreen() {
                 <View style={styles.uploadContainer}>
                   <TouchableOpacity
                     style={styles.uploadButton}
-                    onPress={launchDocumentPicker}
+                    onPress={() => setShowUploadOptions(true)}
                   >
                     <Ionicons name="cloud-upload-outline" size={24} color={COLORS.white} />
                     <Text style={styles.uploadButtonText}>Upload Resume</Text>
@@ -1316,7 +1322,7 @@ export default function ResumeRefinerScreen() {
                   {/* Current CV display */}
                   <TouchableOpacity 
                     style={styles.currentCVContainer}
-                    onPress={launchDocumentPicker}
+                    onPress={() => setShowUploadOptions(true)}
                   >
                     <View style={styles.currentCVContent}>
                       <Ionicons name="document-text" size={20} color={COLORS.nightSky} />
@@ -1473,6 +1479,15 @@ export default function ResumeRefinerScreen() {
           </KeyboardAvoidingView>
         )}
       </View>
+      {showUploadOptions && (
+        <UploadOptionsModal
+          visible={showUploadOptions}
+          onClose={() => setShowUploadOptions(false)}
+          onDocumentSelect={handleDocumentPick}
+          onCameraSelect={handleCameraCapture}
+          onGallerySelect={handleGalleryPick}
+        />
+      )}
     </View>
   );
 }

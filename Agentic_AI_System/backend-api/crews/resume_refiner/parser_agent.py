@@ -8,6 +8,7 @@ from pdfminer.high_level import extract_text
 import easyocr
 from fastapi import UploadFile
 from PIL import Image
+import pillow_heif
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -53,6 +54,8 @@ class ParserAgent:
             extension = '.jpg'
         elif 'png' in content_type.lower():
             extension = '.png'
+        elif 'heic' in content_type.lower():
+            extension = '.heic'
         else:
             # Default to pdf if we can't determine the type
             extension = '.pdf'
@@ -106,7 +109,7 @@ class ParserAgent:
             Extracted text from the file
         """
         # Check for different possible file extensions
-        possible_extensions = ['.pdf', '.jpg', '.png']
+        possible_extensions = ['.pdf', '.jpg', '.jpeg', '.png', '.heic']
         found_path = None
         
         for ext in possible_extensions:
@@ -135,6 +138,34 @@ class ParserAgent:
                 # OCR fallback for PDF
                 result = _reader.readtext(found_path, detail=0)
                 return "\n".join(result)
+        elif ext == '.heic':
+            # Convert HEIC to JPEG first, then use OCR
+            try:
+                pillow_heif.register_heif_opener()
+                
+                # Convert HEIC to JPEG
+                temp_jpg_path = os.path.join(self.TMP_DIR, f"temp_{os.path.basename(found_path)}.jpg")
+                
+                # Open and convert the HEIC image
+                with Image.open(found_path) as img:
+                    # Save as JPEG
+                    img.save(temp_jpg_path, "JPEG")
+                    
+                logger.info(f"Converted HEIC to JPEG for OCR: {temp_jpg_path}")
+                
+                # Use OCR on the converted image
+                result = _reader.readtext(temp_jpg_path, detail=0)
+                
+                # Clean up temporary file
+                try:
+                    os.remove(temp_jpg_path)
+                except:
+                    pass
+                    
+                return "\n".join(result)
+            except Exception as e:
+                logger.error(f"HEIC processing failed: {str(e)}")
+                raise
         else:  # Image files (.jpg, .png)
             logger.info(f"Processing image file with OCR: {found_path}")
             try:
@@ -147,11 +178,11 @@ class ParserAgent:
     
     def parse_with_sections(self, upload_id: str) -> Dict[str, Any]:
         """
-        Extract text from PDF and organize it into sections.
+        Extract text from PDF or image files and organize it into sections.
         
         Args:
-            upload_id: ID of the uploaded PDF file
-            
+            upload_id: ID of the uploaded file (PDF, JPG, PNG)
+        
         Returns:
             Dictionary with full text and parsed sections
         """

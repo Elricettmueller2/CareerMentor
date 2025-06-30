@@ -192,80 +192,108 @@ class MatchAgent:
         Returns:
             List of potential skills
         """
-        # More comprehensive extraction based on common patterns
-        skills = []
+        # Common technical skills pattern
+        tech_pattern = r'\b(?:Python|Java|JavaScript|TypeScript|React|Angular|Vue|Node\.js|Express|Django|Flask|SQL|MySQL|PostgreSQL|MongoDB|Redis|AWS|Azure|GCP|Docker|Kubernetes|CI/CD|Git|GitHub|REST|API|JSON|XML|HTML|CSS|SASS|LESS|Bootstrap|Tailwind|Redux|GraphQL|Webpack|Babel|Jest|Mocha|Cypress|Selenium|TDD|Agile|Scrum|Kanban|DevOps|Machine Learning|AI|NLP|Computer Vision|Data Science|Big Data|Hadoop|Spark|TensorFlow|PyTorch|Keras|scikit-learn|pandas|NumPy|R|Tableau|Power BI|Excel|VBA|C\+\+|C#|Ruby|PHP|Go|Rust|Swift|Kotlin|Objective-C|Unity|Unreal|Photoshop|Illustrator|Figma|Sketch|InDesign|After Effects|Premiere Pro|Final Cut|Logic Pro|Ableton|Pro Tools|Maya|Blender|3D Studio Max|ZBrush|AutoCAD|Revit|SketchUp)\b'
         
-        # Common technical skills to look for (expanded list)
-        common_skills = [
-            "Python", "Java", "JavaScript", "TypeScript", "React", "Angular", "Vue", "Node.js", 
-            "Express", "Django", "Flask", "Spring", "SQL", "NoSQL", "MongoDB", "PostgreSQL", 
-            "MySQL", "AWS", "Azure", "GCP", "Docker", "Kubernetes", "CI/CD", "Git", "REST API",
-            "GraphQL", "HTML", "CSS", "SASS", "LESS", "Redux", "Agile", "Scrum", "Kanban",
-            "TDD", "BDD", "DevOps", "Microservices", "Cloud", "Linux", "Unix", "Windows",
-            "Machine Learning", "AI", "Data Science", "Big Data", "ETL", "Data Warehouse",
-            "Business Intelligence", "Analytics", "Tableau", "Power BI", "Excel", "VBA",
-            "C++", "C#", ".NET", "Ruby", "Rails", "PHP", "Laravel", "Symfony", "WordPress",
-            "Mobile", "iOS", "Android", "Swift", "Kotlin", "React Native", "Flutter",
-            "UI/UX", "Figma", "Sketch", "Adobe XD", "Photoshop", "Illustrator",
-            "Project Management", "Leadership", "Communication", "Problem Solving",
-            "Critical Thinking", "Teamwork", "Collaboration", "Time Management",
-            "Customer Service", "Sales", "Marketing", "SEO", "SEM", "Content Writing",
-            "Technical Writing", "Documentation", "Testing", "QA", "Security", "GDPR",
-            "Compliance", "Blockchain", "Cryptocurrency", "Smart Contracts", "IoT",
-            "Embedded Systems", "Firmware", "Hardware", "Networking", "TCP/IP", "HTTP",
-            "API Design", "System Design", "Architecture", "Database Design", "OOP", "FP",
-            "Design Patterns", "Algorithms", "Data Structures"
-        ]
+        # Common soft skills pattern
+        soft_pattern = r'\b(?:Leadership|Communication|Teamwork|Problem[- ]Solving|Critical Thinking|Decision[- ]Making|Time Management|Project Management|Adaptability|Flexibility|Creativity|Innovation|Collaboration|Interpersonal|Presentation|Negotiation|Conflict Resolution|Emotional Intelligence|Customer Service|Client Relations|Strategic Planning|Analytical|Research|Organization|Detail[- ]Oriented|Multitasking|Self[- ]Motivated|Results[- ]Driven|Goal[- ]Oriented)\b'
         
-        # Look for skill sections with more patterns
-        skill_section_patterns = [
-            r"(?:Skills|Competencies|Expertise|Technologies|Tools|Languages|Frameworks|Platforms):(.*?)(?:\n\n|\Z)",
-            r"(?:Technical Skills|Core Competencies|Key Skills|Professional Skills):(.*?)(?:\n\n|\Z)",
-            r"(?:SKILLS|COMPETENCIES|EXPERTISE|TECHNOLOGIES)(?:\s+|:)(.*?)(?:\n\n|\Z)"
-        ]
+        # Common tools pattern
+        tools_pattern = r'\b(?:Microsoft Office|Word|Excel|PowerPoint|Outlook|Google Workspace|Docs|Sheets|Slides|Gmail|Slack|Teams|Zoom|Skype|Jira|Confluence|Trello|Asana|Monday|Notion|Airtable|Salesforce|HubSpot|Zendesk|ServiceNow|SAP|Oracle|QuickBooks|Adobe Creative Cloud|Photoshop|Illustrator|InDesign|Premiere|After Effects|Figma|Sketch|XD|Canva|WordPress|Shopify|Wix|Squarespace|Mailchimp|Constant Contact|Google Analytics|SEO|SEM|Social Media|Facebook|Instagram|Twitter|LinkedIn|TikTok|YouTube|Google Ads|Facebook Ads)\b'
         
-        for pattern in skill_section_patterns:
-            skill_section = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
-            if skill_section:
-                # Extract items from skill section
-                skill_text = skill_section.group(1)
-                
-                # Extract comma, bullet, or line separated items
-                items = re.split(r'[,•\n|/]', skill_text)
-                skills.extend([item.strip() for item in items if item.strip()])
+        # Extract all matches
+        tech_skills = re.findall(tech_pattern, text, re.IGNORECASE)
+        soft_skills = re.findall(soft_pattern, text, re.IGNORECASE)
+        tool_skills = re.findall(tools_pattern, text, re.IGNORECASE)
         
-        # Extract technical terms and acronyms from whole text (more inclusive pattern)
-        tech_terms = re.findall(r'\b[A-Za-z][A-Za-z0-9+#./]+([\.\-][A-Za-z0-9]+)*\b', text)
-        potential_skills = [term for term in tech_terms if len(term) > 1 and not term.lower() in ['and', 'the', 'with', 'for', 'from', 'this', 'that']]
+        # Combine all skills and normalize case
+        all_skills = [skill.lower() for skill in tech_skills + soft_skills + tool_skills]
         
-        # Filter potential skills to those that are likely actual skills
-        for term in potential_skills:
-            # Check if it's in our common skills list (case insensitive)
-            if any(skill.lower() == term.lower() for skill in common_skills):
-                skills.append(term)
-            # Check if it looks like a technical term (contains special characters or is all caps)
-            elif re.search(r'[A-Z]{2,}|[./+#]|\d', term):
-                skills.append(term)
+        # Extract additional potential skills (capitalized terms that might be technologies or methodologies)
+        # Look for terms that are capitalized or all caps and might be skills
+        potential_skills = re.findall(r'\b[A-Z][a-zA-Z0-9]*(?:[- ][A-Z][a-zA-Z0-9]*)*\b|\b[A-Z]{2,}\b', text)
         
-        # Also directly check for common skills in the text
-        for skill in common_skills:
-            if re.search(r'\b' + re.escape(skill) + r'\b', text, re.IGNORECASE):
-                skills.append(skill)
+        # Filter out common non-skill capitalized words
+        non_skills = {'I', 'A', 'The', 'My', 'Your', 'Our', 'Their', 'We', 'You', 'He', 'She', 'It', 'They', 'This', 'That', 'These', 'Those', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'}
+        filtered_potential = [skill for skill in potential_skills if skill not in non_skills and len(skill) > 1]
         
-        # Remove duplicates and normalize
+        # Add filtered potential skills
+        all_skills.extend([skill.lower() for skill in filtered_potential])
+        
+        # Remove duplicates while preserving order
         unique_skills = []
-        seen_skills = set()
-        
-        for skill in skills:
-            skill_lower = skill.lower()
-            if skill_lower not in seen_skills and len(skill) > 1:
-                seen_skills.add(skill_lower)
-                # Use the version with proper capitalization from common_skills if available
-                proper_case = next((s for s in common_skills if s.lower() == skill_lower), skill)
-                unique_skills.append(proper_case)
+        seen = set()
+        for skill in all_skills:
+            if skill not in seen:
+                seen.add(skill)
+                unique_skills.append(skill)
         
         return unique_skills
-    
+        
+    def _match_skills(self, resume_skills: List[str], job_skills: List[str]) -> Tuple[List[str], List[str], float]:
+        """
+        Match skills from resume against skills required in job description.
+        
+        Args:
+            resume_skills: List of skills extracted from resume
+            job_skills: List of skills extracted from job description
+            
+        Returns:
+            Tuple containing:
+            - List of matching skills
+            - List of missing skills (in job but not in resume)
+            - Percentage of job skills matched
+        """
+        # Convert to sets for easier matching
+        resume_skill_set = set(skill.lower() for skill in resume_skills)
+        job_skill_set = set(skill.lower() for skill in job_skills)
+        
+        # Find exact matches
+        exact_matches = resume_skill_set.intersection(job_skill_set)
+        
+        # Find fuzzy matches for skills that didn't match exactly
+        fuzzy_matches = set()
+        missing_skills = set()
+        
+        for job_skill in job_skill_set:
+            if job_skill in exact_matches:
+                continue
+                
+            # Check if job skill is a substring of any resume skill
+            found_match = False
+            for resume_skill in resume_skill_set:
+                # Check for partial matches (one is substring of the other)
+                if job_skill in resume_skill or resume_skill in job_skill:
+                    fuzzy_matches.add(job_skill)
+                    found_match = True
+                    break
+                    
+                # Check for similar skills with slight variations (e.g., "React" vs "ReactJS")
+                # Remove common suffixes/prefixes and compare
+                job_skill_base = re.sub(r'(\.js|js|\.net|framework|library|\d+(\.\d+)*)', '', job_skill).strip()
+                resume_skill_base = re.sub(r'(\.js|js|\.net|framework|library|\d+(\.\d+)*)', '', resume_skill).strip()
+                
+                if (job_skill_base and resume_skill_base and 
+                    (job_skill_base in resume_skill_base or resume_skill_base in job_skill_base)):
+                    fuzzy_matches.add(job_skill)
+                    found_match = True
+                    break
+                    
+            if not found_match:
+                missing_skills.add(job_skill)
+        
+        # Combine exact and fuzzy matches
+        all_matches = list(exact_matches.union(fuzzy_matches))
+        missing_skills_list = list(missing_skills)
+        
+        # Calculate match percentage
+        if not job_skill_set:
+            match_percentage = 0.0
+        else:
+            match_percentage = len(all_matches) / len(job_skill_set) * 100
+            
+        return all_matches, missing_skills_list, match_percentage
+        
     def _generate_job_summary(self, job_text: str) -> str:
         """
         Generate a brief summary of the job description.
