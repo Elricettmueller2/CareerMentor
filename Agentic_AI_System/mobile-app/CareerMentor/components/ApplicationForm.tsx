@@ -6,10 +6,14 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   Platform,
-  ScrollView
+  ScrollView,
+  Modal,
+  ActionSheetIOS
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 
 interface ApplicationFormProps {
   onSubmit: (application: {
@@ -21,24 +25,24 @@ interface ApplicationFormProps {
     followUpDate: Date | null;
     followUpTime: string;
     notes: string;
-    jobUrl?: string;
   }) => void;
   onCancel: () => void;
 }
 
 const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSubmit, onCancel }) => {
-  const [jobUrl, setJobUrl] = useState('');
   const [jobTitle, setJobTitle] = useState('');
   const [company, setCompany] = useState('');
   const [location, setLocation] = useState('');
   const [applicationDeadline, setApplicationDeadline] = useState<Date | null>(null);
-  const [status, setStatus] = useState('To Apply');
+  const [status, setStatus] = useState('saved');
   const [followUpDate, setFollowUpDate] = useState<Date | null>(null);
   const [followUpTime, setFollowUpTime] = useState('12:00');
   const [notes, setNotes] = useState('');
   
   const [showDeadlinePicker, setShowDeadlinePicker] = useState(false);
   const [showFollowUpPicker, setShowFollowUpPicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showStatusPicker, setShowStatusPicker] = useState(false);
 
   const formatDate = (date: Date | null) => {
     if (!date) return 'mm/dd/yyyy';
@@ -47,6 +51,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSubmit, onCancel })
 
   const handleDeadlineChange = (event: any, selectedDate?: Date) => {
     setShowDeadlinePicker(Platform.OS === 'ios');
+    
     if (selectedDate) {
       setApplicationDeadline(selectedDate);
     }
@@ -54,8 +59,55 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSubmit, onCancel })
 
   const handleFollowUpChange = (event: any, selectedDate?: Date) => {
     setShowFollowUpPicker(Platform.OS === 'ios');
+    
     if (selectedDate) {
       setFollowUpDate(selectedDate);
+    }
+  };
+  
+  const handleTimeChange = (event: any, selectedTime?: Date) => {
+    setShowTimePicker(Platform.OS === 'ios');
+    
+    if (selectedTime) {
+      const hours = selectedTime.getHours();
+      const minutes = selectedTime.getMinutes();
+      const formattedHours = hours < 10 ? `0${hours}` : hours;
+      const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+      setFollowUpTime(`${formattedHours}:${formattedMinutes}`);
+    }
+  };
+  
+  const getStatusLabel = (value: string) => {
+    switch(value) {
+      case 'saved': return 'Saved';
+      case 'applied': return 'Applied';
+      case 'interview': return 'Interview';
+      case 'rejected': return 'Rejected';
+      case 'accepted': return 'Accepted';
+      default: return 'Saved';
+    }
+  };
+  
+  const showStatusActionSheet = () => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Saved', 'Applied', 'Interview', 'Rejected', 'Accepted'],
+          cancelButtonIndex: 0,
+          title: 'Select Status'
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 0) {
+            // Cancel
+            return;
+          }
+          
+          const statusValues = ['saved', 'applied', 'interview', 'rejected', 'accepted'];
+          setStatus(statusValues[buttonIndex - 1]);
+        }
+      );
+    } else {
+      setShowStatusPicker(true);
     }
   };
 
@@ -73,42 +125,14 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSubmit, onCancel })
       status,
       followUpDate,
       followUpTime,
-      notes,
-      jobUrl: jobUrl.trim() ? jobUrl : undefined
+      notes
     });
   };
 
-  const handleAutoFill = () => {
-    // In a real app, this would parse the job URL and extract information
-    // For now, we'll just fill in some dummy data
-    if (jobUrl.includes('google')) {
-      setJobTitle('UX Designer');
-      setCompany('Google');
-      setLocation('Mountain View, CA');
-    } else if (jobUrl.includes('microsoft')) {
-      setJobTitle('Software Engineer');
-      setCompany('Microsoft');
-      setLocation('Redmond, WA');
-    } else {
-      alert('Could not auto-fill from this URL. Please enter details manually.');
-    }
-  };
+
 
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.urlContainer}>
-        <TextInput
-          style={styles.urlInput}
-          placeholder="Paste job URL here"
-          value={jobUrl}
-          onChangeText={setJobUrl}
-        />
-        <TouchableOpacity style={styles.autoFillButton} onPress={handleAutoFill}>
-          <Text style={styles.autoFillButtonText}>Auto-Fill</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.divider}>- or -</Text>
 
       <Text style={styles.label}>Job Title</Text>
       <TextInput
@@ -134,65 +158,104 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSubmit, onCancel })
         placeholder="Enter job location"
       />
 
-      <Text style={styles.label}>Application Deadline</Text>
+      <Text style={styles.label}>
+        {status === 'saved' ? 'Application Deadline' : 
+         status === 'applied' ? 'Date Applied' : 
+         status === 'interview' ? 'Interview Date' : 
+         'Important Date'}
+      </Text>
       <TouchableOpacity 
         style={styles.dateInput} 
         onPress={() => setShowDeadlinePicker(true)}
+        activeOpacity={0.7}
       >
         <Text style={applicationDeadline ? styles.dateText : styles.placeholderText}>
           {formatDate(applicationDeadline)}
         </Text>
+        <Ionicons name="calendar-outline" size={20} color="#5D5B8D" style={styles.calendarIcon} />
       </TouchableOpacity>
       
       {showDeadlinePicker && (
         <DateTimePicker
           value={applicationDeadline || new Date()}
           mode="date"
-          display="default"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={handleDeadlineChange}
+          minimumDate={new Date()}
         />
       )}
 
       <Text style={styles.label}>Status</Text>
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={status}
-          style={styles.picker}
-          onValueChange={(itemValue: string) => setStatus(itemValue)}
+      {Platform.OS === 'ios' ? (
+        <TouchableOpacity 
+          style={styles.statusInput}
+          onPress={showStatusActionSheet}
+          activeOpacity={0.7}
         >
-          <Picker.Item label="To Apply" value="To Apply" />
-          <Picker.Item label="Applied" value="Applied" />
-          <Picker.Item label="Interview Scheduled" value="Interview Scheduled" />
-          <Picker.Item label="Offer Received" value="Offer Received" />
-          <Picker.Item label="Rejected" value="Rejected" />
-        </Picker>
-      </View>
+          <Text style={styles.statusText}>{getStatusLabel(status)}</Text>
+          <Ionicons name="chevron-down" size={20} color="#5D5B8D" />
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={status}
+            style={styles.picker}
+            onValueChange={(itemValue: string) => setStatus(itemValue)}
+          >
+            <Picker.Item label="Saved" value="saved" />
+            <Picker.Item label="Applied" value="applied" />
+            <Picker.Item label="Interview" value="interview" />
+            <Picker.Item label="Rejected" value="rejected" />
+            <Picker.Item label="Accepted" value="accepted" />
+          </Picker>
+        </View>
+      )}
 
       <Text style={styles.label}>Set Follow-up Reminder</Text>
       <View style={styles.reminderContainer}>
         <TouchableOpacity 
           style={[styles.dateInput, { flex: 2 }]} 
           onPress={() => setShowFollowUpPicker(true)}
+          activeOpacity={0.7}
         >
           <Text style={followUpDate ? styles.dateText : styles.placeholderText}>
             {formatDate(followUpDate)}
           </Text>
+          <Ionicons name="calendar-outline" size={20} color="#5D5B8D" style={styles.calendarIcon} />
         </TouchableOpacity>
         
-        <TextInput
-          style={[styles.input, { flex: 1, marginLeft: 10 }]}
-          value={followUpTime}
-          onChangeText={setFollowUpTime}
-          placeholder="--:-- --"
+        <TouchableOpacity 
+          style={[styles.dateInput, { flex: 1, marginLeft: 10 }]}
+          onPress={() => setShowTimePicker(true)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.dateText}>{followUpTime}</Text>
+          <Ionicons name="time-outline" size={20} color="#5D5B8D" style={styles.calendarIcon} />
+        </TouchableOpacity>
+        
+      {showTimePicker && (
+        <DateTimePicker
+          value={(() => {
+            const [hours, minutes] = followUpTime.split(':').map(Number);
+            const date = new Date();
+            date.setHours(hours);
+            date.setMinutes(minutes);
+            return date;
+          })()}
+          mode="time"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={handleTimeChange}
         />
+      )}
       </View>
 
       {showFollowUpPicker && (
         <DateTimePicker
           value={followUpDate || new Date()}
           mode="date"
-          display="default"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={handleFollowUpChange}
+          minimumDate={new Date()}
         />
       )}
 
@@ -206,7 +269,14 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSubmit, onCancel })
       />
 
       <TouchableOpacity style={styles.saveButton} onPress={handleSubmit}>
-        <Text style={styles.saveButtonText}>Save Application</Text>
+        <LinearGradient
+          colors={['#C29BB8', '#8089B4']}
+          style={styles.saveButtonGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          <Text style={styles.saveButtonText}>Save Application</Text>
+        </LinearGradient>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -216,40 +286,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+    backgroundColor: '#f9f9f9',
+    paddingTop: 8,
   },
-  urlContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  urlInput: {
-    flex: 1,
-    height: 50,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    marginRight: 8,
-  },
-  autoFillButton: {
-    backgroundColor: '#222',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-  },
-  autoFillButtonText: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  divider: {
-    textAlign: 'center',
-    marginVertical: 16,
-    color: '#666',
-  },
+
   label: {
     fontSize: 16,
     fontWeight: '500',
     marginBottom: 8,
+    color: '#5D5B8D',
   },
   input: {
     height: 50,
@@ -258,6 +303,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 10,
     marginBottom: 16,
+    backgroundColor: '#fff',
   },
   dateInput: {
     height: 50,
@@ -266,7 +312,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 10,
     marginBottom: 16,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+  },
+  calendarIcon: {
+    marginLeft: 5,
   },
   dateText: {
     color: '#000',
@@ -279,9 +331,26 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     borderRadius: 8,
     marginBottom: 16,
+    backgroundColor: '#fff',
   },
   picker: {
     height: 50,
+  },
+  statusInput: {
+    height: 50,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 16,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statusText: {
+    color: '#000',
+    fontSize: 16,
   },
   reminderContainer: {
     flexDirection: 'row',
@@ -293,16 +362,22 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   saveButton: {
-    backgroundColor: '#000',
     height: 50,
-    borderRadius: 8,
+    borderRadius: 25,
+    marginVertical: 16,
+    overflow: 'hidden',
+  },
+  saveButtonGradient: {
+    height: '100%',
+    width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 25,
   },
   saveButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
   },
 });

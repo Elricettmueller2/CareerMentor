@@ -1,6 +1,7 @@
 import React from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Link, Tabs } from 'expo-router';
 import { Pressable } from 'react-native';
 
@@ -12,6 +13,7 @@ import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
   color: string;
+  size?: number;
 }) {
   return <FontAwesome size={props.size || 28} style={{ marginBottom: -3 }} {...props} />;
 }
@@ -19,8 +21,9 @@ function TabBarIcon(props: {
 function IonIcon(props: {
   name: React.ComponentProps<typeof Ionicons>['name'];
   color: string;
+  size?: number;
 }) {
-  return <Ionicons size={28} style={{ marginBottom: -3 }} {...props} />;
+  return <Ionicons size={props.size || 28} style={{ marginBottom: -3 }} {...props} />;
 }
 
 export default function TabLayout() {
@@ -38,9 +41,8 @@ export default function TabLayout() {
         name="trackpal"
         options={{
           title: 'TrackPal',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          // Removed headerRight to hide the info icon
-          headerShown: false, // Hide the entire header for TrackPal
+          tabBarIcon: ({ color }) => <MaterialIcons name="insights" color={color} size={28}/>,
+          headerShown: false,
         }}
       />
       <Tabs.Screen
@@ -48,6 +50,7 @@ export default function TabLayout() {
         options={{
           title: 'Path Finder',
           tabBarIcon: ({ color }) => <IonIcon name="compass" color={color} />,
+          headerShown: false,
         }}
       />
       <Tabs.Screen
@@ -55,6 +58,7 @@ export default function TabLayout() {
         options={{
           title: 'Interview',
           tabBarIcon: ({ color }) => <IonIcon name="chatbubbles" color={color} />,
+          headerShown: false,
         }}
       />
       <Tabs.Screen
@@ -62,6 +66,7 @@ export default function TabLayout() {
         options={{
           title: 'ResumeRefiner',
           tabBarIcon: ({ color }) => <TabBarIcon name="file-text" color={color} size={20} />,
+          headerShown: false,
         }}
       />
     </Tabs>
