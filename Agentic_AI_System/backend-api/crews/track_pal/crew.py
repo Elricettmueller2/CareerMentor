@@ -141,8 +141,8 @@ class ApplicationManager:
 
 # Initialize LLM with Ollama
 llm = LLM(
-    model="ollama/llama3",
-    base_url="http://host.docker.internal:11434",
+    model="ollama/llama3.2",
+    base_url="http://ollama:11434",
 )
 
 @CrewBase
@@ -351,7 +351,7 @@ def respond(message):
     
     response = litellm.completion(
         model="ollama/llama3.2",
-        api_base="http://host.docker.internal:11434",
+        api_base="http://ollama:11434",
         messages=[{"role": "user", "content": formatted_message}]
     )
     raw_response = response.choices[0].message.content

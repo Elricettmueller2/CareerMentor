@@ -410,7 +410,9 @@ def search_jobs_online(job_title: str, education_level: str, years_experience: i
         print(f"Error in LinkedIn job scraping: {e}")
     
     # Wenn wir genügend echte Jobs haben, verwende diese
-    if all_jobs and len(all_jobs) >= 5:
+    # Deaktiviert für jetzt, um immer Mock-Jobs zu verwenden
+    use_real_jobs = False  # Ändern Sie dies auf True, um echte Jobs zu verwenden, wenn verfügbar
+    if use_real_jobs and all_jobs and len(all_jobs) >= 5:
         print(f"Using {len(all_jobs)} real job listings")
         
         # Create the response with real jobs

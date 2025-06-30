@@ -11,7 +11,7 @@ litellm._turn_on_debug()
 
 llm = LLM(
     model="ollama/llama3.2",
-    base_url="http://host.docker.internal:11434",
+    base_url="http://ollama:11434",
 )
 
 @CrewBase

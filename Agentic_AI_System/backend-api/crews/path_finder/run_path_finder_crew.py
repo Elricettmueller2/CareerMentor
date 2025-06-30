@@ -20,7 +20,9 @@ DIRECT_MODE = True
 try:
     from crewai import Agent, Task, Crew, LLM
     from crew import PathFinderCrew
-    DIRECT_MODE = False
+    # Wir verwenden immer den direkten Modus, um Probleme mit Ollama zu vermeiden
+    # DIRECT_MODE = False
+    print("Crew AI module found, but using direct mode for reliability.")
 except ImportError:
     print("Note: crewai module not found. Running in direct mode without Crew AI framework.")
     DIRECT_MODE = True

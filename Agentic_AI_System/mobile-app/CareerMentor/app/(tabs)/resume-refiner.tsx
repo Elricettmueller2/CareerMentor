@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, View } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native';
 import { Text } from '@/components/Themed';
 import * as DocumentPicker from 'expo-document-picker';
+import { DEFAULT_API_BASE_URL, API_ENDPOINTS, getApiUrl } from '../../config/api';
 
 export default function ResumeRefinerScreen() {
   console.log("🏁 ResumeRefinerScreen rendered");
@@ -21,7 +22,7 @@ export default function ResumeRefinerScreen() {
     overall: number;
   } | null>(null);
 
-  const API_BASE_URL = 'http://192.168.178.24:8000';
+  // API-URLs werden jetzt zentral in config/api.ts verwaltet
 
   const pickAndUpload = async () => {
     console.log("🖱️ Upload button pressed");
@@ -55,8 +56,8 @@ export default function ResumeRefinerScreen() {
           console.log("📄 FormData created with file:", name);
           
           // Upload to backend with explicit headers
-          console.log("🔗 POST →", `${API_BASE_URL}/resumes/upload`);
-          const resp = await fetch(`${API_BASE_URL}/resumes/upload`, {
+          console.log("🔗 POST →", getApiUrl(API_ENDPOINTS.resumeRefiner.upload));
+          const resp = await fetch(getApiUrl(API_ENDPOINTS.resumeRefiner.upload), {
             method: 'POST',
             headers: {
               'Accept': 'application/json',
@@ -95,7 +96,7 @@ export default function ResumeRefinerScreen() {
     try {
       // Step 1: Analyze layout
       console.log(`🔍 Analyzing layout with upload_id: ${id}`);
-      const layoutResp = await fetch(`${API_BASE_URL}/resumes/${id}/layout`);
+      const layoutResp = await fetch(getApiUrl(`${API_ENDPOINTS.resumeRefiner.layout}/${id}/layout`));
       
       if (layoutResp.status !== 200) {
         console.error(`❌ Layout analysis failed with status: ${layoutResp.status}`);
@@ -112,7 +113,7 @@ export default function ResumeRefinerScreen() {
       
       // Step 2: Parse resume
       console.log(`🔍 Parsing resume with upload_id: ${id}`);
-      const parseResp = await fetch(`${API_BASE_URL}/resumes/${id}/parse`);
+      const parseResp = await fetch(getApiUrl(`${API_ENDPOINTS.resumeRefiner.parse}/${id}/parse`));
       
       if (parseResp.status !== 200) {
         console.error(`❌ Parse request failed with status: ${parseResp.status}`);
@@ -129,7 +130,7 @@ export default function ResumeRefinerScreen() {
       
       // Step 3: Evaluate resume quality
       console.log(`🔄 Evaluating resume quality with id: ${id}`);
-      const evalResp = await fetch(`${API_BASE_URL}/resumes/${id}/evaluate`);
+      const evalResp = await fetch(getApiUrl(`${API_ENDPOINTS.resumeRefiner.evaluate}/${id}/evaluate`));
       
       if (evalResp.status !== 200) {
         console.error(`❌ Evaluation request failed with status: ${evalResp.status}`);
@@ -227,7 +228,7 @@ export default function ResumeRefinerScreen() {
       };
       
       console.log(`🔍 Matching resume with job description, upload_id: ${uploadId}`);
-      const matchResp = await fetch(`${API_BASE_URL}/resumes/${uploadId}/match`, {
+      const matchResp = await fetch(getApiUrl(`${API_ENDPOINTS.resumeRefiner.match}/${uploadId}/match`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(jobData)

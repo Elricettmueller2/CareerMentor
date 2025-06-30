@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, Keyboard, View, FlatList, RefreshControl, Alert, Platform } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Alert, Platform, Keyboard } from 'react-native';
 import { Text } from '@/components/Themed';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import * as Location from 'expo-location';
+import { DEFAULT_API_BASE_URL, API_ENDPOINTS, getApiUrl } from '../../config/api';
 
 export default function PathFinderScreen() {
   const router = useRouter();
@@ -25,40 +26,43 @@ export default function PathFinderScreen() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Verwende die IP-Adresse statt localhost für den Zugriff von mobilen Geräten
-  const API_BASE_URL = 'http://192.168.1.218:8000';
+  // API-URLs werden jetzt zentral in config/api.ts verwaltet
   const userId = 'default_user';
 
   const fetchSavedJobs = async () => {
+    setLoading(true);
     try {
-      console.log('Fetching saved jobs from:', `${API_BASE_URL}/agents/path_finder/saved_jobs/${userId}`);
-      const response = await fetch(`${API_BASE_URL}/agents/path_finder/saved_jobs/${userId}`);
+      const url = getApiUrl(`${API_ENDPOINTS.pathFinder.savedJobs}/${userId}`);
+      console.log('Fetching saved jobs from:', url);
+      const response = await fetch(url);
       if (!response.ok) {
-        console.error('Error response:', response.status, response.statusText);
-        const errorText = await response.text();
-        console.error('Error details:', errorText);
         throw new Error(`API error: ${response.status}`);
       }
       const data = await response.json();
-      console.log('Saved jobs data:', data);
       setSavedJobs(data.saved_jobs || []);
-    } catch (err: any) {
-      console.error('Error fetching saved jobs:', err);
-      setError('Failed to load saved jobs');
+    } catch (error) {
+      console.error('Error fetching saved jobs:', error);
+      setSavedJobs([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
   const fetchRecommendations = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/agents/path_finder/recommend`, {
+      const url = getApiUrl(API_ENDPOINTS.pathFinder.recommendJobs);
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: { user_id: userId, limit: 3 } }),
+        body: JSON.stringify({ data: { user_id: userId } }),
       });
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
       const data = await response.json();
       setRecommendations(data.recommendations || []);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching recommendations:', err);
     }
   };
@@ -167,10 +171,11 @@ export default function PathFinderScreen() {
 
     try {
       console.log('Searching for jobs with criteria:', searchCriteria);
-      console.log('API endpoint:', `${API_BASE_URL}/agents/path_finder/search_jobs_online`);
+      console.log('API endpoint:', getApiUrl(API_ENDPOINTS.pathFinder.search));
       console.log('Request body:', JSON.stringify({ data: searchCriteria }));
       
-      const response = await fetch(`${API_BASE_URL}/agents/path_finder/search_jobs_online`, {
+      // Verwende die richtige API-Route für die Jobsuche
+    const response = await fetch(getApiUrl(API_ENDPOINTS.pathFinder.search), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data: searchCriteria }), 
@@ -217,8 +222,8 @@ export default function PathFinderScreen() {
   const toggleSaveJob = async (job: any) => {
     try {
       const endpoint = job.is_saved 
-        ? `${API_BASE_URL}/agents/path_finder/unsave_job`
-        : `${API_BASE_URL}/agents/path_finder/save_job`;
+        ? getApiUrl(API_ENDPOINTS.pathFinder.unsaveJob)
+        : getApiUrl(API_ENDPOINTS.pathFinder.saveJob);
       
       const payload = job.is_saved
         ? { data: { user_id: userId, job_id: job.id } }

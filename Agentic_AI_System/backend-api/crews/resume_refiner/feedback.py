@@ -6,7 +6,7 @@ def llm_call(prompt: str) -> str:
     """
     resp = completion(
         model="ollama/llama3.2",
-        api_base="http://host.docker.internal:11434",
+        api_base="http://ollama:11434",
         messages=[{"role": "user", "content": prompt}]
     )
     return resp.choices[0].message.content.strip()

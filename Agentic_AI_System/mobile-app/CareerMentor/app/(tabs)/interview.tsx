@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, TextInput, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Text, View } from '@/components/Themed';
+import { StyleSheet, TextInput, ScrollView, TouchableOpacity, ActivityIndicator, Keyboard, View } from 'react-native';
+import { Text } from '@/components/Themed';
+import { Ionicons } from '@expo/vector-icons';
+import { DEFAULT_API_BASE_URL, API_ENDPOINTS, getApiUrl } from '../../config/api';
 
 export default function InterviewScreen() {
   const [jobRole, setJobRole] = useState('Software Engineer');
@@ -13,7 +15,7 @@ export default function InterviewScreen() {
 
   // API base URL - use Docker container hostname when running in Docker
   // Verwende die IP-Adresse statt localhost für den Zugriff von mobilen Geräten
-  const API_BASE_URL = 'http://192.168.1.218:8000';
+  // API-URLs werden jetzt zentral in config/api.ts verwaltet
 
   const startInterview = async () => {
     setLoading(true);
@@ -23,7 +25,7 @@ export default function InterviewScreen() {
       setSessionId(newSessionId);
       
       // Simplest possible fetch request with session ID
-      const response = await fetch(`${API_BASE_URL}/agents/mock_mate/start_interview`, {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.mockMate.startInterview), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -62,7 +64,7 @@ export default function InterviewScreen() {
     
     try {
       // Simplest possible fetch request with session ID
-      const response = await fetch(`${API_BASE_URL}/agents/mock_mate/respond`, {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.mockMate.respond), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

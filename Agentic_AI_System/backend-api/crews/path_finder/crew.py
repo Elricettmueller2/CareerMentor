@@ -3,13 +3,23 @@ from crewai.project import CrewBase, agent, task, crew
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from typing import List
 import litellm
+import os
 
 litellm._turn_on_debug()
 
-llm = LLM(
-    model="ollama/llama3.2",
-    base_url="http://host.docker.internal:11434",
-)
+# Verwende eine Umgebungsvariable oder Fallback für die Ollama-URL
+# In Docker wäre es "http://ollama:11434"
+# Lokal könnte es "http://localhost:11434" sein
+OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+
+try:
+    llm = LLM(
+        model="ollama/llama3.2",
+        base_url=OLLAMA_BASE_URL,
+    )
+except Exception as e:
+    print(f"Fehler beim Initialisieren des LLM: {e}")
+    print("Verwende Fallback-Modus ohne LLM")
 
 @CrewBase
 class PathFinderCrew():
