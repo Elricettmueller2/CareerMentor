@@ -378,6 +378,12 @@ export default function TrackPalScreen() {
             <Text style={styles.statValue}>{stats.totalApplications}</Text>
           </View>
           
+          {/* Interviews Secured */}
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Interviews Secured</Text>
+            <Text style={styles.statValue}>{stats.interviewRate}%</Text>
+          </View>
+          
           {/* Jobs to Apply */}
           <TouchableOpacity 
             style={[styles.statCard, stats.jobsToApply > 0 ? styles.clickableCard : null]} 
@@ -390,12 +396,6 @@ export default function TrackPalScreen() {
               {stats.jobsToApply > 0 && <Ionicons name="chevron-forward" size={16} color="#fff" />}
             </View>
           </TouchableOpacity>
-          
-          {/* Interviews Secured */}
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Interviews Secured</Text>
-            <Text style={styles.statValue}>{stats.interviewRate}%</Text>
-          </View>
           
           {/* Follow-Up Opportunities */}
           <TouchableOpacity 
