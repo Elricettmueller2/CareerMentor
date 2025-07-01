@@ -278,27 +278,30 @@ class TrackPalCrew():
 
             {apps_text}
 
-            Your job is to analyze these applications and identify patterns to provide strategic advice.
-            Look for:
-            1. Types of positions they're applying to and any patterns
-            2. Success rate for different types of applications
-            3. Time between application stages
-            4. Any potential issues in their job search strategy
+            Based on the user's job application data, generate up to 3 concise and actionable insights. Each insight should be short (1–2 sentences), clear, and suggest a next step. Do not repeat background data or job titles unnecessarily. Do not include markdown formatting like **bold** or *italics*. Each insight should stand alone and be understandable at a glance.
 
-            Provide insights on:
-            - Strengths in their current approach
-            - Potential weaknesses or blind spots
-            - Recommendations for improving their job search
-            - Suggestions for resume or career focus shifts if needed
+            Only focus on:
+            - Patterns in job titles, sectors, or companies applied to
+            - Time between application and responses
+            - Missed follow-ups
+            - Resume version effectiveness (if available)
+            - Suggested next actions
+
+            Output each insight as a standalone string for display in a card.
+
+            Avoid:
+            - Repeating job titles more than once
+            - Explaining what "this might mean"
+            - Long analysis or context
+            - Generic advice (e.g., "Stay consistent")
 
             IMPORTANT: Your response must be in the following format:
-            - Start with a brief introduction of your analysis
-            - Organize insights into clearly labeled sections
-            - End with 2-3 specific actionable recommendations
+            - Each insight should be on its own line
+            - No more than 3 insights total
+            - No introduction, conclusion, or additional context
             - DO NOT include any "Thought:" or internal reasoning in your response
             - DO NOT include any metadata or prefixes like "Response:" or "Answer:"
-
-            Be honest but encouraging. Focus on actionable insights that can improve their job search outcomes.
+            - DO NOT use bullet points or numbering
         """
         
         return Task(
@@ -326,15 +329,70 @@ class TrackPalCrew():
 
 # Helper function to clean AI responses
 def clean_ai_response(response):
-    """Remove any 'Thought:' text and other unwanted patterns from AI responses"""
-    # Remove any line starting with 'Thought:' and everything after it until a blank line
+    """Clean AI responses to extract only the actionable insights without formatting"""
     import re
-    cleaned = re.sub(r'\nThought:.*?(\n\n|$)', r'\n\n', response, flags=re.DOTALL)
-    # Remove standalone 'Thought:' lines
-    cleaned = re.sub(r'^Thought:.*?$', '', cleaned, flags=re.MULTILINE)
-    # Remove any other metadata prefixes
-    cleaned = re.sub(r'^(Response:|Answer:|Final Answer:)\s*', '', cleaned, flags=re.MULTILINE)
-    return cleaned.strip()
+    
+    # First, remove any markdown formatting
+    cleaned = re.sub(r'\*\*|\*|__|\_\_|\_|\#\#|\#', '', response)
+    
+    # Remove any line starting with 'Thought:' and everything after it until a blank line
+    cleaned = re.sub(r'\nThought:.*?(\n\n|$)', r'\n\n', cleaned, flags=re.DOTALL)
+    
+    # Remove common prefixes and headers
+    patterns_to_remove = [
+        r'^Thought:.*?$',
+        r'^(Response:|Answer:|Final Answer:)\s*',
+        r'^Here\'s my analysis.*?$',
+        r'^.*?analysis and strategic advice:.*?$',
+        r'^.*?Pattern(s)? Analysis.*?$',
+        r'^.*?Application Patterns and Insights.*?$',
+        r'^The user has applied.*?$',
+        r'^After analyzing.*?$',
+        r'^Based on.*?analysis.*?$',
+        r'^Your final answer.*?$'
+    ]
+    
+    for pattern in patterns_to_remove:
+        cleaned = re.sub(pattern, '', cleaned, flags=re.MULTILINE | re.IGNORECASE)
+    
+    # Parse the structured insights
+    insight_pattern = r'Insight #\d+:.*?\n(.*?)(?=\n\s*Insight #\d+:|$)'
+    matches = re.findall(insight_pattern, cleaned, re.DOTALL)
+    
+    # Process each insight description (skip the title)
+    actionable_insights = []
+    for match in matches:
+        # Get the description part (after the title line)
+        description_lines = [line.strip() for line in match.strip().split('\n')]
+        description_lines = [line for line in description_lines if line and len(line) > 15]
+        
+        if description_lines:
+            description = description_lines[0]  # Take the first line after the title
+            
+            # Skip negative insights that tell users what NOT to do
+            if re.search(r'\b(no need|don\'t|do not|shouldn\'t|not necessary)\b', description, re.IGNORECASE):
+                continue
+                
+            # Skip insights suggesting follow-ups for rejected or accepted applications
+            if re.search(r'\b(follow.?up|reach.?out|contact|email)\b.*\b(rejected|declined|accepted|offer)\b', description, re.IGNORECASE):
+                continue
+                
+            actionable_insights.append(description)
+    
+    # If we have more than 3 insights, take only the first 3
+    if len(actionable_insights) > 3:
+        actionable_insights = actionable_insights[:3]
+    
+    # If we don't have any actionable insights, return an empty string
+    # This will trigger the "No insights available" message in the frontend
+    if len(actionable_insights) == 0:
+        return ''
+    
+    # Join the insights with newlines
+    return '\n'.join(actionable_insights)
+
+
+# Function removed - no longer needed for default insights
 
 # Direct LLM function for simple API calls without using CrewAI
 def respond(message):
@@ -342,17 +400,51 @@ def respond(message):
     formatted_message = f"""
     {message}
     
-    IMPORTANT: Your response must be clear and direct.
-    - DO NOT include any "Thought:" or internal reasoning in your response
-    - DO NOT include any metadata or prefixes like "Response:" or "Answer:"
-    - Respond in a friendly, helpful tone
-    - Be concise and to the point
+    CRITICAL INSTRUCTIONS - READ CAREFULLY:
+    
+    1. FORMAT REQUIREMENTS:
+       - You MUST generate EXACTLY 3 insights with the following structure:
+         Insight #1: [Title of the first insight]
+         [1-2 sentence description of the insight with actionable advice]
+         
+         Insight #2: [Title of the second insight]
+         [1-2 sentence description of the insight with actionable advice]
+         
+         Insight #3: [Title of the third insight]
+         [1-2 sentence description of the insight with actionable advice]
+       - Each insight must have a clear title after "Insight #N:" and a 1-2 sentence description below it
+       - NO additional introductions, conclusions, or explanations
+       - NO markdown formatting, bullets, or numbering (except the insight titles)
+    
+    2. CONTENT REQUIREMENTS:
+       - Each insight MUST be positive and actionable with a clear next step
+       - Each insight MUST be unique and different from the others
+       - Focus on job application patterns, response times, follow-ups, or resume effectiveness
+       - ONLY suggest productive actions the user CAN take (use action verbs)
+       - NEVER tell the user what they DON'T need to do
+       - NEVER use phrases like "no need to", "don't worry", or "not necessary"
+       - NEVER suggest following up with applications that have been rejected or accepted
+       - Only suggest follow-ups for applications that are still pending or in progress
+       - If there isn't enough data, provide general job search advice
+    
+    3. EXAMPLE FORMAT (create your own unique insights, don't copy these):
+       Insight #1: Target High-Response Industries
+       Focus on applying to UX design roles where you've had the most interview success.
+       
+       Insight #2: Follow Up on Pending Applications
+       Send follow-up emails to the 3 companies with pending applications that haven't responded in over 10 days.
+       
+       Insight #3: Highlight Key Skills
+       Emphasize your project management skills more prominently on your resume to attract more interviews.
+    
+    YOUR RESPONSE MUST FOLLOW THIS EXACT FORMAT WITH 3 INSIGHTS.
     """
     
     response = litellm.completion(
         model="ollama/llama3.2",
-        api_base="http://ollama:11434",
-        messages=[{"role": "user", "content": formatted_message}]
+        api_base="http://host.docker.internal:11434",
+        messages=[{"role": "user", "content": formatted_message}],
+        temperature=0.5  # Lower temperature for more consistent outputs
     )
     raw_response = response.choices[0].message.content
     return clean_ai_response(raw_response)

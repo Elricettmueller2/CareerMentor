@@ -115,82 +115,62 @@ export const TrackPalService = {
 
   // Parse pattern analysis text into structured insights
   parsePatternInsights: (analysisText: string): PatternInsight[] => {
-    // Default insights if we can't extract meaningful ones
-    const defaultInsights: PatternInsight[] = [
-      {
-        id: '1',
-        icon: 'business',
-        content: "You've had a 45% higher response rate from companies with < 50 employees."
-      },
-      {
-        id: '2',
-        icon: 'search',
-        content: "Try adding \"Full Stack\" to your job search - it appears in 70% of matching positions."
-      },
-      {
-        id: '3',
-        icon: 'time',
-        content: "Applications sent between 9-11am have 30% higher response rates."
-      }
-    ];
-
-    if (!analysisText || analysisText.includes('No pattern analysis available') || analysisText.includes('Failed to analyze patterns')) {
-      return defaultInsights;
+    // Return empty array if no analysis text or error message
+    if (!analysisText || analysisText.trim() === '' || 
+        analysisText.includes('No pattern analysis available') || 
+        analysisText.includes('Failed to analyze patterns')) {
+      return [];
     }
 
     try {
-      // Extract key insights from the analysis text
-      // Look for sentences with percentages, numbers, or strong recommendations
-      const lines = analysisText.split('\n').filter(line => line.trim().length > 0);
+      // The backend now sends descriptions that follow the titled insights
+      // Each insight is a complete sentence/paragraph
+      const lines = analysisText.split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+      
       const insights: PatternInsight[] = [];
       
-      // Patterns to look for in the text
+      // Patterns to match for icon selection
       const patterns = [
         { regex: /([\d.]+)\s*%|percent|percentage/i, icon: 'stats-chart' },  // Percentage stats
-        { regex: /response rate|callback|interview rate/i, icon: 'mail' },      // Response rates
-        { regex: /time|hour|morning|afternoon|evening|day/i, icon: 'time' },    // Timing related
-        { regex: /skill|technology|keyword|stack|language/i, icon: 'code' },    // Skills/keywords
-        { regex: /company|employer|startup|corporation|size/i, icon: 'business' }, // Company related
-        { regex: /resume|cv|application|cover letter/i, icon: 'document-text' }, // Application docs
-        { regex: /follow.?up|contact|reach out/i, icon: 'chatbubbles' }         // Follow-ups
+        { regex: /response|callback|interview|reply/i, icon: 'mail' },      // Response rates
+        { regex: /time|hour|morning|afternoon|evening|day|week/i, icon: 'time' },    // Timing related
+        { regex: /skill|technology|keyword|stack|language|code/i, icon: 'code' },    // Skills/keywords
+        { regex: /company|employer|startup|corporation|size|industry|sector/i, icon: 'business' }, // Company related
+        { regex: /resume|cv|application|cover letter|version/i, icon: 'document-text' }, // Application docs
+        { regex: /follow.?up|contact|reach out|check.?in/i, icon: 'chatbubbles' }         // Follow-ups
       ];
 
-      // Process each line to find insights
+      // Process each line as a complete insight
       for (const line of lines) {
-        // Skip short lines or headers
-        if (line.length < 20 || line.endsWith(':') || line.startsWith('#')) continue;
+        // Skip if too short or if it's an insight title line
+        if (line.length < 10 || line.match(/^Insight #\d+:/i)) continue;
         
-        // Look for actionable insights with data or strong recommendations
-        if (line.match(/\d+%|\d+ percent|higher|lower|increase|improve|try|should|recommend|suggest/i)) {
-          // Find appropriate icon based on content
-          let icon = 'analytics';
-          for (const pattern of patterns) {
-            if (line.match(pattern.regex)) {
-              icon = pattern.icon;
-              break;
-            }
+        // Find appropriate icon based on content
+        let icon = 'analytics';
+        for (const pattern of patterns) {
+          if (line.match(pattern.regex)) {
+            icon = pattern.icon;
+            break;
           }
-          
-          insights.push({
-            id: `insight-${insights.length + 1}`,
-            icon,
-            content: line.trim()
-          });
-
-          // Limit to 3 insights
-          if (insights.length >= 3) break;
         }
+        
+        insights.push({
+          id: `insight-${insights.length + 1}`,
+          icon,
+          content: line
+        });
+
+        // Limit to 3 insights
+        if (insights.length >= 3) break;
       }
 
-      // If we couldn't extract enough insights, add some default ones
-      if (insights.length === 0) {
-        return defaultInsights;
-      }
-
+      // Return whatever insights we found, even if less than 3
       return insights;
     } catch (error) {
       console.error('Error parsing pattern insights:', error);
-      return defaultInsights;
+      return [];
     }
   },
 

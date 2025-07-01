@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NotificationService from './NotificationService';
 
 export interface JobApplication {
   id: string;
@@ -100,6 +101,26 @@ export const ApplicationService = {
       const updatedApplications = [...applications, newApplication];
       await AsyncStorage.setItem(APPLICATIONS_STORAGE_KEY, JSON.stringify(updatedApplications));
       
+      // Schedule follow-up notification if a follow-up date is set
+      if (newApplication.followUpDate) {
+        try {
+          const followUpDate = new Date(newApplication.followUpDate);
+          const notificationId = await NotificationService.scheduleFollowUpReminder(
+            newApplication.id,
+            newApplication.company,
+            newApplication.jobTitle,
+            followUpDate
+          );
+          
+          if (notificationId) {
+            console.log(`Scheduled follow-up notification ${notificationId} for new application ${newApplication.id}`);
+          }
+        } catch (notificationError) {
+          // Log but don't throw - we don't want to prevent application creation if notification fails
+          console.error('Error scheduling follow-up notification:', notificationError);
+        }
+      }
+      
       return newApplication;
     } catch (error) {
       console.error('Error adding application:', error);
@@ -115,13 +136,44 @@ export const ApplicationService = {
       
       if (index === -1) return null;
       
+      const originalApplication = applications[index];
       const updatedApplication = {
-        ...applications[index],
+        ...originalApplication,
         ...updatedData
       };
       
       applications[index] = updatedApplication;
       await AsyncStorage.setItem(APPLICATIONS_STORAGE_KEY, JSON.stringify(applications));
+      
+      // Handle notification updates if follow-up date changed
+      if (updatedData.followUpDate !== undefined && 
+          updatedData.followUpDate !== originalApplication.followUpDate) {
+        try {
+          // Get existing notifications for this application
+          const notifications = await NotificationService.getApplicationNotifications(id);
+          
+          // Cancel existing notifications
+          for (const notification of notifications) {
+            if (notification.notificationId) {
+              await NotificationService.cancelNotification(notification.notificationId);
+            }
+          }
+          
+          // Schedule new notification if follow-up date is set
+          if (updatedData.followUpDate) {
+            const followUpDate = new Date(updatedData.followUpDate);
+            await NotificationService.scheduleFollowUpReminder(
+              id,
+              updatedApplication.company,
+              updatedApplication.jobTitle,
+              followUpDate
+            );
+          }
+        } catch (notificationError) {
+          console.error('Error updating notification:', notificationError);
+          // Continue with application update even if notification update fails
+        }
+      }
       
       return updatedApplication;
     } catch (error) {
@@ -141,6 +193,20 @@ export const ApplicationService = {
       }
       
       await AsyncStorage.setItem(APPLICATIONS_STORAGE_KEY, JSON.stringify(updatedApplications));
+      
+      // Cancel any notifications associated with this application
+      try {
+        const notifications = await NotificationService.getApplicationNotifications(id);
+        for (const notification of notifications) {
+          if (notification.notificationId) {
+            await NotificationService.cancelNotification(notification.notificationId);
+          }
+        }
+      } catch (notificationError) {
+        console.error('Error canceling notifications:', notificationError);
+        // Continue with application deletion even if notification cancellation fails
+      }
+      
       return true;
     } catch (error) {
       console.error('Error deleting application:', error);

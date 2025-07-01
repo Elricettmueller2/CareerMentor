@@ -353,10 +353,20 @@ async def path_finder_get_saved_jobs(user_id: str = "default_user"):
 #Resume Refiner Agent Endpoints
 @app.post("/resumes/upload", tags=["ResumeRefiner"])
 async def upload_resume(file: UploadFile = File(...)):
-    """Upload a resume PDF and get an upload_id"""
+    """Upload a resume PDF or image (JPEG, PNG, HEIC) and get an upload_id"""
     print("🖨️ upload_resume called")
-    if file.content_type != "application/pdf":
-        raise HTTPException(400, "Only PDF files are supported")
+    
+    # Check if the file is a supported type (PDF, JPEG, PNG, HEIC)
+    content_type = file.content_type.lower() if file.content_type else ""
+    filename = file.filename.lower() if file.filename else ""
+    
+    is_pdf = "pdf" in content_type or filename.endswith(".pdf")
+    is_jpeg = any(img_type in content_type for img_type in ["jpeg", "jpg"]) or filename.endswith((".jpg", ".jpeg"))
+    is_png = "png" in content_type or filename.endswith(".png")
+    is_heic = "heic" in content_type or filename.endswith(".heic")
+    
+    if not (is_pdf or is_jpeg or is_png or is_heic):
+        raise HTTPException(400, "Only PDF, JPEG, PNG, and HEIC files are supported")
     
     try:
         # Debug logging to inspect the file
