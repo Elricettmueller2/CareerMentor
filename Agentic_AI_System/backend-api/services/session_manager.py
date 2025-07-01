@@ -70,11 +70,14 @@ def set_session_metadata(session_id: str, key: str, value: Any) -> None:
     session["last_accessed"] = time.time()
 
 
-def get_session_metadata(session_id: str, key: str, default: Any = None) -> Any:
+def get_session_metadata(session_id: str, key: str = None, default: Any = None) -> Any:
     """
     Retrieve metadata from the session.
+    If key is None, returns all metadata.
     """
     session = get_session(session_id)
+    if key is None:
+        return session.get("metadata", {})
     return session.get("metadata", {}).get(key, default)
 
 
