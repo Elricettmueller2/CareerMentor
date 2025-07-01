@@ -371,92 +371,117 @@ export default function PathFinderScreen() {
     </View>
   );
 
+  const navigateToAdvancedSearch = () => {
+    router.push('/job-search');
+  };
+
   const renderSearchContent = () => (
-    <ScrollView keyboardShouldPersistTaps="handled" style={styles.searchScrollView}>
+    <ScrollView 
+      style={styles.searchScrollView}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+      }
+    >
       <View style={styles.detailedSearchContainer}>
-        <Text style={styles.inputLabel}>Job-Titel (Pflichtfeld)</Text>
+        <Text style={styles.inputLabel}>Jobtitel</Text>
         <TextInput
           style={styles.textInput}
-          placeholder="z.B. Software Entwickler"
+          placeholder="z.B. Software Developer"
           value={jobTitle}
           onChangeText={setJobTitle}
         />
-
-        <Text style={styles.inputLabel}>Höchster erreichter Abschluss (Pflichtfeld)</Text>
+        
+        <Text style={styles.inputLabel}>Bildungsabschluss</Text>
         <TextInput
           style={styles.textInput}
           placeholder="z.B. Bachelor"
           value={degree}
           onChangeText={setDegree}
         />
-
+        
+        <Text style={styles.inputLabel}>Berufserfahrung (Jahre)</Text>
         <View style={styles.sliderContainer}>
-          <Text style={styles.inputLabel}>Job Erfahrung (Jahre)</Text>
-          <View style={styles.sliderValueContainer}>
-            <CustomSlider
-              style={styles.slider}
-              minimumValue={0}
-              maximumValue={10}
-              step={1}
-              value={yearsExperience}
-              onValueChange={setYearsExperience}
-              minimumTrackTintColor="#2f95dc"
-              maximumTrackTintColor="#d3d3d3"
-              thumbTintColor="#2f95dc"
-            />
-            <Text style={styles.sliderValue}>{yearsExperience === 10 ? "10+" : yearsExperience} Jahre</Text>
-          </View>
+          <CustomSlider
+            style={styles.slider}
+            minimumValue={0}
+            maximumValue={10}
+            step={1}
+            value={yearsExperience}
+            onValueChange={setYearsExperience}
+            minimumTrackTintColor="#2f95dc"
+            maximumTrackTintColor="#d3d3d3"
+            thumbTintColor="#2f95dc"
+          />
+          <Text style={styles.sliderValue}>{yearsExperience}</Text>
         </View>
-
+        
+        <Text style={styles.inputLabel}>Suchradius (km)</Text>
         <View style={styles.sliderContainer}>
-          <Text style={styles.inputLabel}>Entfernung (km)</Text>
-          <View style={styles.sliderValueContainer}>
-            <CustomSlider
-              style={styles.slider}
-              minimumValue={10}
-              maximumValue={200}
-              step={10}
-              value={locationRadius}
-              onValueChange={setLocationRadius}
-              minimumTrackTintColor="#2f95dc"
-              maximumTrackTintColor="#d3d3d3"
-              thumbTintColor="#2f95dc"
-            />
-            <Text style={styles.sliderValue}>{locationRadius} km</Text>
-          </View>
+          <CustomSlider
+            style={styles.slider}
+            minimumValue={5}
+            maximumValue={100}
+            step={5}
+            value={locationRadius}
+            onValueChange={setLocationRadius}
+            minimumTrackTintColor="#2f95dc"
+            maximumTrackTintColor="#d3d3d3"
+            thumbTintColor="#2f95dc"
+          />
+          <Text style={styles.sliderValue}>{locationRadius}</Text>
         </View>
         
         <View style={styles.locationContainer}>
           <Text style={styles.locationStatus}>
-            {locationPermission ? "✓ Standort verfügbar" : "⚠️ Standort wird benötigt"}
+            {locationPermission 
+              ? userLocation 
+                ? 'Standort verfügbar' 
+                : 'Standort wird ermittelt...'
+              : 'Standort nicht verfügbar'
+            }
           </Text>
-          {!locationPermission && (
-            <TouchableOpacity style={styles.locationButton} onPress={requestLocationPermission}>
-              <Text style={styles.locationButtonText}>Standort freigeben</Text>
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity 
+            style={styles.locationButton}
+            onPress={requestLocationPermission}
+          >
+            <Text style={styles.locationButtonText}>
+              {locationPermission ? 'Aktualisieren' : 'Erlauben'}
+            </Text>
+          </TouchableOpacity>
         </View>
-
-        <Text style={styles.inputLabel}>Interessenpunkte (Pflichtfeld)</Text>
+        
+        <Text style={styles.inputLabel}>Interessen (durch Komma getrennt)</Text>
         <TextInput
           style={[styles.textInput, styles.textArea]}
-          placeholder="z.B. Nachhaltigkeit, KI, Remote Work"
+          placeholder="z.B. Python, JavaScript, React"
           value={interests}
           onChangeText={setInterests}
           multiline
-          numberOfLines={3}
         />
-        <Text style={styles.inputHint}>Mehrere Punkte durch Komma trennen</Text>
-
-        <TouchableOpacity 
-          style={[styles.searchButton, (!jobTitle || !degree || !interests) && styles.searchButtonDisabled]} 
+        <Text style={styles.inputHint}>
+          Gib deine Fähigkeiten und Interessen an, um passendere Ergebnisse zu erhalten.
+        </Text>
+        
+        <TouchableOpacity
+          style={[
+            styles.searchButton,
+            (!jobTitle || jobTitle.trim().length < 2) && styles.searchButtonDisabled
+          ]}
           onPress={handleSearch}
-          disabled={!jobTitle || !degree || !interests || loading}
+          disabled={!jobTitle || jobTitle.trim().length < 2}
         >
           <Text style={styles.searchButtonText}>Suchen</Text>
         </TouchableOpacity>
-      </View>
 
+        <TouchableOpacity
+          style={styles.advancedSearchButton}
+          onPress={navigateToAdvancedSearch}
+        >
+          <Ionicons name="search" size={20} color="#fff" />
+          <Text style={styles.advancedSearchButtonText}>Erweiterte Suche</Text>
+        </TouchableOpacity>
+      </View>
+      
       <Text style={styles.sectionTitle}>Job Ergebnisse</Text>
       
       {loading && (
@@ -796,5 +821,21 @@ const styles = StyleSheet.create({
   resultSkills: {
     fontSize: 14,
     color: '#2f95dc',
+  },
+  advancedSearchButton: {
+    marginTop: 16,
+    backgroundColor: '#5A5D80',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  advancedSearchButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginLeft: 8,
   },
 });
