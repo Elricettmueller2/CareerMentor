@@ -5,6 +5,7 @@ import { Text } from '@/components/Themed';
 import { useLocalSearchParams, useRouter, Link, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { CAREER_COLORS } from '../constants/Colors';
 import { ApplicationService, JobApplication } from '@/services/ApplicationService';
 import NotificationService from '@/services/NotificationService';
 import { useState, useEffect } from 'react';
@@ -317,11 +318,48 @@ export default function TrackPalJobDetailsScreen() {
   };
 
   const getTimelineSteps = () => {
+    // Base steps with dates
     const steps = [
-      { status: 'saved', label: 'Saved' },
-      { status: 'applied', label: 'Applied' },
-      { status: 'interview', label: 'Interview' },
-      { status: 'accepted', label: 'Accepted' }
+      { 
+        status: 'saved', 
+        label: 'Saved',
+        dates: [] // Saved status doesn't typically have dates
+      },
+      { 
+        status: 'applied', 
+        label: 'Applied',
+        dates: application ? [
+          { 
+            label: 'Applied on:', 
+            value: new Date(application.appliedDate).toLocaleDateString(),
+            icon: 'calendar-outline' as const
+          },
+          // Add application deadline if it exists
+          ...(application.applicationDeadline ? [
+            { 
+              label: 'Application Deadline:', 
+              value: new Date(application.applicationDeadline).toLocaleDateString(),
+              icon: 'hourglass-outline' as const
+            }
+          ] : [])
+        ] : []
+      },
+      { 
+        status: 'interview', 
+        label: 'Interview',
+        dates: application && application.followUpDate && application.status.toLowerCase() === 'interview' ? [
+          { 
+            label: 'Follow-up Reminder:', 
+            value: `${new Date(application.followUpDate).toLocaleDateString()} at ${application.followUpTime}`,
+            icon: 'notifications-outline' as const
+          }
+        ] : []
+      },
+      { 
+        status: 'accepted', 
+        label: 'Accepted',
+        dates: []
+      }
     ];
     
     // If rejected, we want to show a different flow
@@ -331,10 +369,24 @@ export default function TrackPalJobDetailsScreen() {
                              application.notes?.toLowerCase().includes('interviewed');
       
       return [
-        { status: 'saved', label: 'Saved' },
-        { status: 'applied', label: 'Applied' },
-        ...(hasHadInterview ? [{ status: 'interview', label: 'Interview' }] : []),
-        { status: 'rejected', label: 'Rejected' }
+        { status: 'saved', label: 'Saved', dates: [] },
+        { 
+          status: 'applied', 
+          label: 'Applied',
+          dates: application ? [
+            { 
+              label: 'Applied on:', 
+              value: new Date(application.appliedDate).toLocaleDateString(),
+              icon: 'calendar-outline' as const
+            }
+          ] : []
+        },
+        ...(hasHadInterview ? [{ 
+          status: 'interview', 
+          label: 'Interview',
+          dates: []
+        }] : []),
+        { status: 'rejected', label: 'Rejected', dates: [] }
       ];
     }
     
@@ -570,11 +622,30 @@ export default function TrackPalJobDetailsScreen() {
                     </Text>
                   </View>
                   
+                  {/* Date information for this step */}
+                  {step.dates && step.dates.length > 0 && (
+                    <View style={styles.timelineDates}>
+                      {step.dates.map((dateItem, dateIndex) => (
+                        <View key={dateIndex} style={styles.timelineDateItem}>
+                          <Ionicons name={dateItem.icon} size={16} color="#5D5B8D" style={styles.timelineDateIcon} />
+                          <Text style={styles.timelineDateLabel}>{dateItem.label}</Text>
+                          <Text style={styles.timelineDateValue}>{dateItem.value}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                  
                   {!isLastItem && (
-                    <View style={[
-                      styles.timelineConnector,
-                      index < currentIndex ? { backgroundColor: '#5D5B8D' } : {}
-                    ]} />
+                    <View 
+                      style={{
+                        position: 'absolute',
+                        left: 11,
+                        top: 24,
+                        bottom: -20,
+                        width: 2,
+                        backgroundColor: index < currentIndex ? CAREER_COLORS.nightSky : '#dee2e6'
+                      }}
+                    />
                   )}
                 </View>
               );
@@ -592,39 +663,7 @@ export default function TrackPalJobDetailsScreen() {
           </View>
         </View>
         
-        {/* Dates Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Important Dates</Text>
-          <View style={styles.datesContainer}>
-            <View style={styles.dateItem}>
-              <Ionicons name="calendar-outline" size={20} color="#5D5B8D" />
-              <Text style={styles.dateLabel}>Applied on:</Text>
-              <Text style={styles.dateValue}>
-                {new Date(application.appliedDate).toLocaleDateString()}
-              </Text>
-            </View>
-            
-            {application.applicationDeadline && (
-              <View style={styles.dateItem}>
-                <Ionicons name="hourglass-outline" size={20} color="#5D5B8D" />
-                <Text style={styles.dateLabel}>Application Deadline:</Text>
-                <Text style={styles.dateValue}>
-                  {new Date(application.applicationDeadline).toLocaleDateString()}
-                </Text>
-              </View>
-            )}
-            
-            {application.followUpDate && (
-              <View style={styles.dateItem}>
-                <Ionicons name="notifications-outline" size={20} color="#5D5B8D" />
-                <Text style={styles.dateLabel}>Follow-up Reminder:</Text>
-                <Text style={styles.dateValue}>
-                  {new Date(application.followUpDate).toLocaleDateString()} at {application.followUpTime}
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
+        {/* Important dates have been moved to the timeline */}
         
         {/* Resume Section (placeholder for future) */}
         <View style={styles.section}>
@@ -890,9 +929,12 @@ const styles = StyleSheet.create({
   },
   timeline: {
     marginLeft: 8,
+    paddingBottom: 10,
   },
   timelineItem: {
-    marginBottom: 8,
+    marginBottom: 0,
+    position: 'relative',
+    paddingBottom: 20,
   },
   timelineStepRow: {
     flexDirection: 'row',
@@ -911,11 +953,43 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6c757d',
   },
+  timelineConnectorContainer: {
+    position: 'absolute',
+    left: 11,
+    top: 24,
+    bottom: -10,
+    width: 2,
+    zIndex: -1,
+  },
   timelineConnector: {
     width: 2,
-    height: 24,
-    backgroundColor: '#dee2e6',
-    marginLeft: 11,
+    height: '100%',
+    backgroundColor: CAREER_COLORS.nightSky,
+    opacity: 0.7,
+  },
+  timelineDates: {
+    marginLeft: 40,
+    marginTop: 5,
+    marginBottom: 10,
+  },
+  timelineDateItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+    paddingVertical: 3,
+  },
+  timelineDateIcon: {
+    marginRight: 5,
+  },
+  timelineDateLabel: {
+    fontSize: 12,
+    color: '#5D5B8D',
+    marginRight: 5,
+    fontWeight: '500',
+  },
+  timelineDateValue: {
+    fontSize: 12,
+    color: '#333',
   },
   notesContainer: {
     backgroundColor: '#f8f9fa',

@@ -377,31 +377,11 @@ export default function TrackPalScreen() {
 
           
           {/* Add Application Button */}
-          <AddApplicationButton onPress={() => setModalVisible(true)} />
+          <AddApplicationButton onPress={() => router.push('/trackpal-add-application')} />
         </>
       )}
 
-      {/* Add Application Modal */}
-      <Modal
-        animationType="slide"
-        transparent={false}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <Ionicons name="arrow-back" size={24} color="white" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Add New Application</Text>
-            <View style={{ width: 24 }} />
-          </View>
-          <ApplicationForm 
-            onSubmit={handleAddApplication}
-            onCancel={() => setModalVisible(false)}
-          />
-        </SafeAreaView>
-      </Modal>
+      {/* Add Application functionality moved to fullscreen page */}
     </SafeAreaView>
   );
 }
