@@ -129,7 +129,7 @@ export default function TrackPalScreen() {
     if (savedApplications.length > 0) {
       const randomIndex = Math.floor(Math.random() * savedApplications.length);
       const randomApp = savedApplications[randomIndex];
-      router.push(`/job-application-details?id=${randomApp.id}`);
+      router.push(`/trackpal-job-details?id=${randomApp.id}`);
     }
   };
 
@@ -148,7 +148,7 @@ export default function TrackPalScreen() {
         return dateB.getTime() - dateA.getTime();
       });
       
-      router.push(`/job-application-details?id=${appsWithReminders[0].id}`);
+      router.push(`/trackpal-job-details?id=${appsWithReminders[0].id}`);
     }
   };
 

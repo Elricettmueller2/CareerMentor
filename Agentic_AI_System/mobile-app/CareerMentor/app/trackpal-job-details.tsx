@@ -9,7 +9,7 @@ import { ApplicationService, JobApplication } from '@/services/ApplicationServic
 import NotificationService from '@/services/NotificationService';
 import { useState, useEffect } from 'react';
 
-export default function JobApplicationDetailsScreen() {
+export default function TrackPalJobDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const [application, setApplication] = useState<JobApplication | null>(null);
@@ -844,8 +844,6 @@ export default function JobApplicationDetailsScreen() {
                     placeholder="Add your notes here..."
                     multiline
                   />
-
-                  {/* Save button removed - using Done button in header instead */}
                 </>
               )}
             </ScrollView>

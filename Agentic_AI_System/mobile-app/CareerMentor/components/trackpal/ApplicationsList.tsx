@@ -43,7 +43,7 @@ const ApplicationsList = ({
     return (
       <TouchableOpacity 
         style={styles.applicationItem}
-        onPress={() => router.push(`/job-application-details?id=${item.id}`)}
+        onPress={() => router.push(`/trackpal-job-details?id=${item.id}`)}
       >
         <View style={styles.applicationHeader}>
           <Text style={styles.jobTitle}>{item.jobTitle}</Text>
