@@ -9,6 +9,7 @@ import os
 import json
 import time
 from typing import Dict, Any, Optional, List
+import uuid
 
 from .client import MongoDBClient
 
@@ -236,6 +237,130 @@ class GlobalStateService:
             {"$set": {f"agent_knowledge.interview.history.{session_id}": session_data}},
             upsert=True
         )
+    
+    def add_mock_resume(self, user_id: str = "default_user") -> Dict[str, Any]:
+        """
+        Add a mock parsed resume to the database for testing PathFinder
+        
+        Args:
+            user_id: The user ID to add the resume for
+            
+        Returns:
+            The added resume data
+        """
+        resume_id = str(uuid.uuid4())
+        
+        # Create a mock parsed resume similar to what ParserAgent would produce
+        mock_resume = {
+            "full_text": """
+            Max Mustermann
+            Software Developer
+            
+            Profile
+            Experienced software developer with 3 years of experience in web development and machine learning.
+            Passionate about creating user-friendly applications and implementing AI solutions.
+            
+            Experience
+            Software Developer, TechCorp GmbH
+            January 2020 - Present
+            - Developed and maintained web applications using React and Node.js
+            - Implemented machine learning models for data analysis
+            - Collaborated with cross-functional teams to deliver high-quality software
+            - Improved application performance by 30%
+            
+            Junior Developer, StartUp Solutions
+            June 2018 - December 2019
+            - Assisted in front-end development using HTML, CSS, and JavaScript
+            - Participated in code reviews and testing
+            - Developed small features for the company's main product
+            
+            Education
+            Bachelor of Science in Computer Science
+            Technical University of Munich
+            2015 - 2019
+            
+            Skills
+            Programming Languages: Python, JavaScript, Java, C++
+            Frameworks & Libraries: React, Node.js, Express, TensorFlow, PyTorch
+            Database: MongoDB, PostgreSQL, MySQL
+            Tools: Git, Docker, AWS, Azure
+            Languages: German (Native), English (Fluent)
+            """,
+            "sections": {
+                "profile": "Experienced software developer with 3 years of experience in web development and machine learning. Passionate about creating user-friendly applications and implementing AI solutions.",
+                "experience": """Software Developer, TechCorp GmbH
+                January 2020 - Present
+                - Developed and maintained web applications using React and Node.js
+                - Implemented machine learning models for data analysis
+                - Collaborated with cross-functional teams to deliver high-quality software
+                - Improved application performance by 30%
+                
+                Junior Developer, StartUp Solutions
+                June 2018 - December 2019
+                - Assisted in front-end development using HTML, CSS, and JavaScript
+                - Participated in code reviews and testing
+                - Developed small features for the company's main product""",
+                "education": """Bachelor of Science in Computer Science
+                Technical University of Munich
+                2015 - 2019""",
+                "skills": """Programming Languages: Python, JavaScript, Java, C++
+                Frameworks & Libraries: React, Node.js, Express, TensorFlow, PyTorch
+                Database: MongoDB, PostgreSQL, MySQL
+                Tools: Git, Docker, AWS, Azure
+                Languages: German (Native), English (Fluent)"""
+            },
+            "keywords": [
+                "python", "javascript", "react", "node", "machine", "learning", 
+                "developer", "software", "web", "applications", "tensorflow"
+            ]
+        }
+        
+        # Update the global state with the mock resume
+        self.global_state_collection.update_one(
+            {"user.id": user_id},
+            {
+                "$set": {
+                    "agent_knowledge.resume.current_resume_id": resume_id,
+                    f"agent_knowledge.resume.resumes.{resume_id}": mock_resume
+                }
+            },
+            upsert=True
+        )
+        
+        # Also update the user profile with information from the resume
+        user_profile = {
+            "skills": ["Python", "JavaScript", "React", "Node.js", "Machine Learning", "TensorFlow"],
+            "experience": [
+                {
+                    "title": "Software Developer",
+                    "company": "TechCorp GmbH",
+                    "duration": "3 years",
+                    "description": "Web development and machine learning"
+                },
+                {
+                    "title": "Junior Developer",
+                    "company": "StartUp Solutions",
+                    "duration": "1.5 years",
+                    "description": "Front-end development"
+                }
+            ],
+            "education": [
+                {
+                    "degree": "Bachelor of Science in Computer Science",
+                    "institution": "Technical University of Munich",
+                    "year": "2019"
+                }
+            ],
+            "job_preferences": {
+                "roles": ["Software Developer", "Machine Learning Engineer", "Full Stack Developer"],
+                "locations": ["Munich", "Berlin", "Remote"],
+                "industries": ["Technology", "AI", "Web Development"]
+            }
+        }
+        
+        self.update_user_profile(user_profile, user_id)
+        
+        return mock_resume
 
 
 # Create a singleton instance

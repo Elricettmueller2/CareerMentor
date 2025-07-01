@@ -7,6 +7,22 @@ import time
 import requests
 from bs4 import BeautifulSoup
 from typing import Dict, List, Any, Optional
+from dotenv import load_dotenv
+from pathlib import Path
+
+# Bestimme den Pfad zur .env-Datei (im Hauptverzeichnis des Projekts)
+base_dir = Path(__file__).parent.parent.parent
+env_path = base_dir / '.env'
+
+# Lade Umgebungsvariablen aus .env-Datei mit explizitem Pfad
+print(f"Loading environment variables from: {env_path}")
+load_dotenv(dotenv_path=env_path)
+
+# Überprüfe, ob die API-Schlüssel geladen wurden
+app_id = os.environ.get("ADZUNA_APP_ID")
+api_key = os.environ.get("ADZUNA_API_KEY")
+print(f"ADZUNA_APP_ID loaded: {'Yes' if app_id else 'No'}")
+print(f"ADZUNA_API_KEY loaded: {'Yes' if api_key else 'No'}")
 
 # Helper functions for job scraping
 def calculate_match_score(job: Dict[str, Any], job_title: str, education_level: str, 
@@ -75,12 +91,22 @@ def search_adzuna_jobs(query: str, location: str = "de", num_results: int = 100)
         List of job listings
     """
     try:
-        # Get API credentials from environment variables or use defaults for development
-        app_id = os.environ.get("ADZUNA_APP_ID", "YOUR_APP_ID_HERE")
-        api_key = os.environ.get("ADZUNA_API_KEY", "YOUR_API_KEY_HERE")
+        # Get API credentials from environment variables
+        app_id = os.environ.get("ADZUNA_APP_ID")
+        api_key = os.environ.get("ADZUNA_API_KEY")
+        
+        if not app_id or not api_key:
+            print("Error: Adzuna API credentials not found in environment variables")
+            print("Please set ADZUNA_APP_ID and ADZUNA_API_KEY environment variables")
+            return []
         
         # Construct the Adzuna API URL
         base_url = f"https://api.adzuna.com/v1/api/jobs/{location}/search/1"
+        
+        # Füge Debugging-Ausgabe hinzu
+        print(f"Using Adzuna API with APP_ID: {app_id[:4]}...{app_id[-4:] if len(app_id) > 8 else ''}")
+        print(f"API URL: {base_url}")
+        print(f"Search query: '{query}'")
         
         params = {
             "app_id": app_id,
@@ -93,12 +119,18 @@ def search_adzuna_jobs(query: str, location: str = "de", num_results: int = 100)
         print(f"Searching Adzuna jobs for query: '{query}' in {location}")
         response = requests.get(base_url, params=params)
         
+        # Zeige vollständige Antwort für Debugging
+        print(f"API response status code: {response.status_code}")
+        
         if response.status_code != 200:
             print(f"Error: Adzuna API returned status code {response.status_code}")
             print(f"Response: {response.text}")
             return []
         
         data = response.json()
+        
+        # Zeige Antwortdaten für Debugging
+        print(f"API response data: count={data.get('count', 0)}, total={data.get('__META__', {}).get('total_count', 0)}")
         
         if "results" not in data:
             print("Error: No results found in Adzuna API response")
@@ -167,205 +199,10 @@ def search_adzuna_jobs(query: str, location: str = "de", num_results: int = 100)
         print(f"Error in Adzuna job search: {e}")
         return []
 
-def scrape_indeed_jobs(query: str, location: str = "Germany", num_results: int = 100) -> List[Dict[str, Any]]:
-    """Scrape job listings from Indeed
-    
-    Args:
-        query: Search query (job title + keywords)
-        location: Location to search in
-        num_results: Maximum number of results to return
-        
-    Returns:
-        List of job listings
-    """
-    try:
-        # Construct the Indeed search URL
-        base_url = "https://de.indeed.com/jobs"
-        params = {
-            "q": query,
-            "l": location,
-            "sort": "date",  # Sort by date (newest first)
-            "limit": num_results
-        }
-        
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept-Language": "en-US,en;q=0.9,de;q=0.8",
-            "Referer": "https://de.indeed.com/"
-        }
-        
-        print(f"Scraping Indeed jobs for query: '{query}' in {location}")
-        response = requests.get(base_url, params=params, headers=headers)
-        
-        if response.status_code != 200:
-            print(f"Error: Received status code {response.status_code} from Indeed")
-            print(f"Response content: {response.text[:200]}...")
-            return []
-        
-        # Parse the HTML response
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Find job listings
-        job_listings = []
-        job_cards = soup.select('div.job_seen_beacon')
-        
-        print(f"Found {len(job_cards)} Indeed job cards")
-        
-        for i, card in enumerate(job_cards[:num_results]):
-            try:
-                # Extract job details
-                title_elem = card.select_one('h2.jobTitle')
-                company_elem = card.select_one('span.companyName')
-                location_elem = card.select_one('div.companyLocation')
-                description_elem = card.select_one('div.job-snippet')
-                
-                title = title_elem.text.strip() if title_elem else "Unknown Title"
-                company = company_elem.text.strip() if company_elem else "Unknown Company"
-                location = location_elem.text.strip() if location_elem else "Unknown Location"
-                description = description_elem.text.strip() if description_elem else ""
-                
-                # Extract salary if available
-                salary_elem = card.select_one('div.salary-snippet')
-                salary = salary_elem.text.strip() if salary_elem else "Salary not specified"
-                
-                # Generate a unique job ID
-                job_id = f"indeed_{i+1}_{hash(title + company) % 10000}"
-                
-                # Extract education and experience requirements from description
-                education_required = "Bachelor"
-                if "master" in description.lower() or "master's" in description.lower():
-                    education_required = "Master"
-                elif "phd" in description.lower() or "doctorate" in description.lower():
-                    education_required = "PhD"
-                
-                # Estimate experience required
-                experience_required = 0
-                exp_indicators = ["jahre erfahrung", "years experience", "years of experience"]
-                for indicator in exp_indicators:
-                    if indicator in description.lower():
-                        # Try to find a number before the indicator
-                        parts = description.lower().split(indicator)[0].split()
-                        for part in reversed(parts):
-                            if part.isdigit():
-                                experience_required = int(part)
-                                break
-                
-                # Create job listing
-                job = {
-                    "id": job_id,
-                    "title": title,
-                    "company_name": company,
-                    "location": location,
-                    "description": description,
-                    "salary": salary,
-                    "application_link": "https://de.indeed.com/viewjob?jk=" + job_id.split('_')[2],
-                    "experience_required": experience_required,
-                    "education_required": education_required,
-                    "distance": random.randint(5, 50),  # Simulate distance
-                    "source": "Indeed"
-                }
-                
-                job_listings.append(job)
-            except Exception as e:
-                print(f"Error parsing Indeed job card: {e}")
-        
-        return job_listings
-    
-    except Exception as e:
-        print(f"Error scraping Indeed Jobs: {e}")
-        return []
-
-def scrape_linkedin_jobs(query: str, location: str = "Germany", num_results: int = 100) -> List[Dict[str, Any]]:
-    """Scrape job listings from LinkedIn
-    
-    Args:
-        query: Search query (job title + keywords)
-        location: Location to search in
-        num_results: Maximum number of results to return
-        
-    Returns:
-        List of job listings
-    """
-    try:
-        # Construct the LinkedIn search URL
-        base_url = "https://www.linkedin.com/jobs/search"
-        params = {
-            "keywords": query,
-            "location": location,
-            "position": 1,
-            "pageNum": 0
-        }
-        
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept-Language": "en-US,en;q=0.9,de;q=0.8",
-            "Referer": "https://www.linkedin.com/"
-        }
-        
-        print(f"Scraping LinkedIn jobs for query: '{query}' in {location}")
-        response = requests.get(base_url, params=params, headers=headers)
-        
-        if response.status_code != 200:
-            print(f"Error: Received status code {response.status_code} from LinkedIn")
-            print(f"Response content: {response.text[:200]}...")
-            return []
-        
-        # Parse the HTML response
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Find job listings
-        job_listings = []
-        job_cards = soup.select('div.base-card')
-        
-        print(f"Found {len(job_cards)} LinkedIn job cards")
-        
-        for i, card in enumerate(job_cards[:num_results]):
-            try:
-                # Extract job details
-                title_elem = card.select_one('h3.base-search-card__title')
-                company_elem = card.select_one('h4.base-search-card__subtitle')
-                location_elem = card.select_one('span.job-search-card__location')
-                
-                title = title_elem.text.strip() if title_elem else "Unknown Title"
-                company = company_elem.text.strip() if company_elem else "Unknown Company"
-                location = location_elem.text.strip() if location_elem else "Unknown Location"
-                
-                # Get job link
-                link_elem = card.select_one('a.base-card__full-link')
-                job_link = link_elem['href'] if link_elem and 'href' in link_elem.attrs else ""
-                
-                # Generate a unique job ID
-                job_id = f"linkedin_{i+1}_{hash(title + company) % 10000}"
-                
-                # Create job listing with minimal info (we would need to click into each job for full details)
-                job = {
-                    "id": job_id,
-                    "title": title,
-                    "company_name": company,
-                    "location": location,
-                    "description": f"Position at {company}. Click the application link for more details.",
-                    "salary": "Salary not specified",
-                    "application_link": job_link,
-                    "experience_required": 0,  # Default
-                    "education_required": "Bachelor",  # Default
-                    "distance": random.randint(5, 50),  # Simulate distance
-                    "source": "LinkedIn"
-                }
-                
-                job_listings.append(job)
-            except Exception as e:
-                print(f"Error parsing LinkedIn job card: {e}")
-        
-        return job_listings
-    
-    except Exception as e:
-        print(f"Error scraping LinkedIn Jobs: {e}")
-        return []
-
-# Main function for job search
 def search_jobs_online(job_title: str, education_level: str, years_experience: int,
                      location_radius: int, interest_points: List[str], limit: int = 100) -> Dict[str, Any]:
-    """Searches for jobs online based on various criteria
+    """
+    Search for jobs online based on user criteria using only Adzuna API
     
     Args:
         job_title: The job title to search for
@@ -378,67 +215,49 @@ def search_jobs_online(job_title: str, education_level: str, years_experience: i
     Returns:
         Dictionary containing search results
     """
-    print(f"Searching for jobs: '{job_title}' with education '{education_level}', "
-          f"{years_experience} years experience, {location_radius}km radius")
-    print(f"Interest points: {', '.join(interest_points)}")
+    print(f"Searching for jobs with title: {job_title}, education: {education_level}, experience: {years_experience} years")
     
-    # Sammle alle Jobs von verschiedenen Quellen
     all_jobs = []
     
-    # Try to search jobs from Adzuna API
+    # Try to search for jobs using Adzuna API
     try:
         # Build search query with job title and interest points
         query = job_title
         if interest_points:
-            # Add top 2 interest points to the query
+            # Add top interest points to the query (up to 2)
             query += " " + " ".join(interest_points[:2])
         
-        # Search jobs from Adzuna
+        # Search for jobs using Adzuna API
         adzuna_jobs = search_adzuna_jobs(query, "de", limit)
         
         if adzuna_jobs:
             print(f"Successfully found {len(adzuna_jobs)} jobs from Adzuna")
             all_jobs.extend(adzuna_jobs)
+            
+            # If we need more jobs, try with a more specific query
+            if len(all_jobs) < limit and len(interest_points) > 2:
+                # Try with different interest points
+                for i in range(2, min(len(interest_points), 4)):
+                    if len(all_jobs) >= limit:
+                        break
+                        
+                    additional_query = f"{job_title} {interest_points[i]}"
+                    print(f"Searching for more jobs with query: '{additional_query}'")
+                    
+                    additional_jobs = search_adzuna_jobs(additional_query, "de", limit - len(all_jobs))
+                    if additional_jobs:
+                        print(f"Found {len(additional_jobs)} additional jobs")
+                        # Filter out duplicates by ID
+                        existing_ids = {job["id"] for job in all_jobs}
+                        new_jobs = [job for job in additional_jobs if job["id"] not in existing_ids]
+                        all_jobs.extend(new_jobs)
+                        print(f"Added {len(new_jobs)} unique jobs")
     except Exception as e:
         print(f"Error in Adzuna job search: {e}")
     
-    # Try to scrape jobs from Indeed
-    try:
-        # Build search query with job title and interest points
-        query = job_title
-        if interest_points:
-            # Add top 2 interest points to the query
-            query += " " + " ".join(interest_points[:2])
-        
-        # Scrape jobs from Indeed
-        indeed_jobs = scrape_indeed_jobs(query, "Deutschland", limit)
-        
-        if indeed_jobs:
-            print(f"Successfully scraped {len(indeed_jobs)} jobs from Indeed")
-            all_jobs.extend(indeed_jobs)
-    except Exception as e:
-        print(f"Error in Indeed job scraping: {e}")
-    
-    # Try to scrape jobs from LinkedIn
-    try:
-        # Build search query with job title and interest points
-        query = job_title
-        if interest_points:
-            # Add top interest point to the query
-            query += " " + interest_points[0] if interest_points else ""
-        
-        # Scrape jobs from LinkedIn
-        linkedin_jobs = scrape_linkedin_jobs(query, "Deutschland", limit)
-        
-        if linkedin_jobs:
-            print(f"Successfully scraped {len(linkedin_jobs)} jobs from LinkedIn")
-            all_jobs.extend(linkedin_jobs)
-    except Exception as e:
-        print(f"Error in LinkedIn job scraping: {e}")
-    
     # Wenn wir Jobs gefunden haben
     if all_jobs:
-        print(f"Using {len(all_jobs)} real job listings")
+        print(f"Using {len(all_jobs)} job listings from Adzuna")
         
         # Füge Match-Score hinzu, basierend auf den Suchkriterien
         for job in all_jobs:
@@ -451,7 +270,7 @@ def search_jobs_online(job_title: str, education_level: str, years_experience: i
         # Begrenze die Anzahl der zurückgegebenen Jobs
         all_jobs = all_jobs[:limit]
         
-        # Create the response with real jobs
+        # Create the response with jobs
         response = {
             "job_title": job_title,
             "education_level": education_level,
@@ -462,8 +281,8 @@ def search_jobs_online(job_title: str, education_level: str, years_experience: i
             "jobs": all_jobs
         }
     else:
-        # Keine Jobs gefunden - Fehlermeldung zurückgeben
-        print("No jobs found. Returning error message.")
+        # Keine Jobs gefunden - Fehlermeldung nur für Benutzer, nicht für Datenbank
+        print("No jobs found. Returning empty result without error message.")
         
         response = {
             "job_title": job_title,
@@ -472,8 +291,8 @@ def search_jobs_online(job_title: str, education_level: str, years_experience: i
             "location_radius": location_radius,
             "interest_points": interest_points,
             "count": 0,
-            "jobs": [],
-            "error": "Leider konnten keine Jobs gefunden werden."
+            "jobs": []
+            # Kein "error" Feld hier, damit es nicht in der Datenbank gespeichert wird
         }
     
     return response
