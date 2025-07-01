@@ -25,6 +25,17 @@ import TrackPalService, { PatternInsight } from '../../services/TrackPalService'
 import NotificationService from '../../services/NotificationService';
 import NotificationTest from '../../components/NotificationTest';
 
+// Import new modular components
+import StatsCard from '../../components/trackpal/StatsCard';
+import StatsDashboard from '../../components/trackpal/StatsDashboard';
+import InsightCard from '../../components/trackpal/InsightCard';
+import AIInsightsSection from '../../components/trackpal/AIInsightsSection';
+import AddApplicationButton from '../../components/trackpal/AddApplicationButton';
+import ChatButton from '../../components/trackpal/ChatButton';
+import TabNavigation from '../../components/trackpal/TabNavigation';
+import EmptyState from '../../components/trackpal/EmptyState';
+import ApplicationsList from '../../components/trackpal/ApplicationsList';
+
 export default function TrackPalScreen() {
   const router = useRouter();
   const [applications, setApplications] = useState<JobApplication[]>([]);
@@ -54,10 +65,11 @@ export default function TrackPalScreen() {
   const [loadingAnswer, setLoadingAnswer] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'ai'>('dashboard');
 
-  // No auto-loading of insights when the component mounts
-  // useEffect(() => {
-  //   loadPatternInsights();
-  // }, []);
+  // Auto-loading of insights when the component mounts
+  // (comment out if you don't want to load insights on initial load)
+  useEffect(() => {
+    loadPatternInsights();
+  }, []);
 
   // Load applications when screen comes into focus
   // We'll use a ref to track if we've already loaded the AI data
@@ -273,88 +285,7 @@ export default function TrackPalScreen() {
       Alert.alert('Error', 'Failed to add application');
     }
   };
-
-  // checkReminders function removed as it's no longer needed
-
-  // Format status text for display
-  const formatStatusText = (status: string): string => {
-    switch(status.toLowerCase()) {
-      case 'saved': return 'Saved';
-      case 'applied': return 'Applied';
-      case 'interview': return 'Interview';
-      case 'rejected': return 'Rejected';
-      case 'accepted': return 'Accepted';
-      default: return 'Saved';
-    }
-  };
-
-  const renderApplicationItem = ({ item }: { item: JobApplication }) => {
-    return (
-      <TouchableOpacity 
-        style={styles.applicationItem}
-        onPress={() => router.push(`/job-application-details?id=${item.id}`)}
-      >
-        <View style={styles.applicationHeader}>
-          <Text style={styles.jobTitle}>{item.jobTitle}</Text>
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>{formatStatusText(item.status)}</Text>
-          </View>
-        </View>
-        <Text style={styles.companyText}>{item.company}</Text>
-        {item.location && <Text style={styles.locationText}>{item.location}</Text>}
-        
-        <View style={styles.applicationFooter}>
-          <Text style={styles.dateText}>
-            {item.applicationDeadline ? 
-              `Deadline: ${new Date(item.applicationDeadline).toLocaleDateString()}` : 
-              `Added: ${new Date(item.appliedDate).toLocaleDateString()}`}
-          </Text>
-          
-          {item.followUpDate && (
-            <View style={styles.reminderBadge}>
-              <Ionicons name="notifications" size={14} color="#fff" />
-              <Text style={styles.reminderText}>
-                {new Date(item.followUpDate).toLocaleDateString()}
-              </Text>
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
-  // Tab navigation component
-  const renderTabs = () => (
-    <View style={styles.tabContainer}>
-      <TouchableOpacity 
-        style={[styles.tab, activeTab === 'dashboard' && styles.activeTab]}
-        onPress={() => setActiveTab('dashboard')}
-      >
-        <Ionicons 
-          name="list-outline" 
-          size={20} 
-          color={activeTab === 'dashboard' ? '#000' : '#666'} 
-        />
-        <Text style={[styles.tabText, activeTab === 'dashboard' && styles.activeTabText]}>Dashboard</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={[styles.tab, activeTab === 'ai' && styles.activeTab]}
-        onPress={() => {
-          setActiveTab('ai');
-          // No auto-loading of AI data when switching tabs
-        }}
-      >
-        <Ionicons 
-          name="bulb-outline" 
-          size={20} 
-          color={activeTab === 'ai' ? '#000' : '#666'} 
-        />
-        <Text style={[styles.tabText, activeTab === 'ai' && styles.activeTabText]}>Testing</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
+  
   // Toggle chat modal
   const toggleChatModal = () => {
     setChatModalVisible(!chatModalVisible);
@@ -368,110 +299,34 @@ export default function TrackPalScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
-      {/* Stats Section */}
-      <View style={styles.statsSection}>
-        <Text style={styles.statsTitle}>Stats</Text>
-        <View style={styles.statsGrid}>
-          {/* Total Applications */}
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Total Applications</Text>
-            <Text style={styles.statValue}>{stats.totalApplications}</Text>
-          </View>
-          
-          {/* Interviews Secured */}
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Interviews Secured</Text>
-            <Text style={styles.statValue}>{stats.interviewRate}%</Text>
-          </View>
-          
-          {/* Jobs to Apply */}
-          <TouchableOpacity 
-            style={[styles.statCard, stats.jobsToApply > 0 ? styles.clickableCard : null]} 
-            onPress={navigateToRandomSavedJob}
-            disabled={stats.jobsToApply === 0}
-          >
-            <Text style={styles.statLabel}>Jobs to Apply</Text>
-            <View style={styles.statValueContainer}>
-              <Text style={styles.statValue}>{stats.jobsToApply}</Text>
-              {stats.jobsToApply > 0 && <Ionicons name="chevron-forward" size={16} color="#fff" />}
-            </View>
-          </TouchableOpacity>
-          
-          {/* Follow-Up Opportunities */}
-          <TouchableOpacity 
-            style={[styles.statCard, stats.followUpOpportunities > 0 ? styles.clickableCard : null]} 
-            onPress={navigateToFollowUpJob}
-            disabled={stats.followUpOpportunities === 0}
-          >
-            <Text style={styles.statLabel}>Follow-Ups</Text>
-            <View style={styles.statValueContainer}>
-              <Text style={styles.statValue}>{stats.followUpOpportunities}</Text>
-              {stats.followUpOpportunities > 0 && <Ionicons name="chevron-forward" size={16} color="#fff" />}
-            </View>
-          </TouchableOpacity>
-        </View>
-      </View>
+      {/* Stats Dashboard */}
+      <StatsDashboard 
+        stats={stats}
+        onJobsToApplyPress={navigateToRandomSavedJob}
+        onFollowUpPress={navigateToFollowUpJob}
+      />
       
       {/* AI Insights Section */}
-      <View style={styles.aiInsightsSection}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.insightsSectionTitle}>AI Insights</Text>
-          <TouchableOpacity onPress={loadPatternInsights} disabled={loadingInsights}>
-            <Ionicons name="refresh" size={20} color="#4a6da7" />
-          </TouchableOpacity>
-        </View>
-        
-        {loadingInsights ? (
-          <ActivityIndicator size="small" color="#4a6da7" style={{marginVertical: 20}} />
-        ) : (
-          <View style={styles.insightsContainer}>
-            {patternInsights.map((insight) => (
-              <View key={insight.id} style={styles.insightCard}>
-                <View style={styles.insightIconCircle}>
-                  <Ionicons name={insight.icon as any} size={24} color="#fff" />
-                </View>
-                <Text style={styles.insightText}>{insight.content}</Text>
-              </View>
-            ))}
-            
-            {patternInsights.length === 0 && (
-              <Text style={styles.noInsightsText}>No insights available. Add more applications to get personalized insights.</Text>
-            )}
-          </View>
-        )}
-      </View>
+      <AIInsightsSection 
+        insights={patternInsights}
+        loading={loadingInsights}
+        onRefresh={loadPatternInsights}
+      />
 
       {/* Applications Section */}
-      <Text style={styles.applicationSectionTitle}>Your Applications</Text>
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0000ff" />
-        </View>
-      ) : applications.length > 0 ? (
-        <FlatList
-          data={applications}
-          renderItem={renderApplicationItem}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.listContainer}
-          scrollEnabled={false}
-          nestedScrollEnabled={false}
-        />
-      ) : (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="document-text-outline" size={64} color="#ccc" />
-          <Text style={styles.emptyText}>No Applications Yet</Text>
-          <Text style={styles.emptySubText}>
-            Add your first job application to start tracking
-          </Text>
-        </View>
-      )}
+      <Text style={styles.applicationSectionTitle}>Applications</Text>
+      <ApplicationsList 
+        applications={applications}
+        loading={loading}
+        refreshing={refreshing}
+      />
     </ScrollView>
   );
 
   // Testing tab content
   const renderAIAssistantTab = () => (
     <ScrollView 
-      style={styles.container}
+      style={styles.scrollContainer}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -504,10 +359,10 @@ export default function TrackPalScreen() {
             <Text style={styles.aiResponse}>{reminders}</Text>
           </View>
         ) : (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="notifications-off-outline" size={40} color="#ccc" />
-            <Text style={styles.emptyText}>No reminders at this time</Text>
-          </View>
+          <EmptyState 
+            icon="notifications-outline"
+            title="No reminders at this time"
+          />
         )}
       </View>
       
@@ -531,22 +386,35 @@ export default function TrackPalScreen() {
             <Text style={styles.aiResponse}>{patterns}</Text>
           </View>
         ) : (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="analytics-outline" size={40} color="#ccc" />
-            <Text style={styles.emptyText}>No pattern analysis available</Text>
-          </View>
+          <EmptyState 
+            icon="analytics-outline"
+            title="No pattern analysis available"
+          />
         )}
+      </View>
+      
+      {/* Ask TrackPal Section */}
+      <View style={styles.askTrackPalSection}>
+        <Text style={styles.askTrackPalTitle}>Ask TrackPal</Text>
+        <Text style={styles.askTrackPalSubtitle}>Get personalized advice for your job search</Text>
+        
+        <TouchableOpacity style={styles.askButton} onPress={toggleChatModal}>
+          <Text style={styles.askButtonText}>Ask a Question</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
-
+  
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>CareerMentor</Text>
       </View>
 
-      {renderTabs()}
+      <TabNavigation 
+        activeTab={activeTab}
+        onTabChange={(tab: 'dashboard' | 'ai') => setActiveTab(tab)}
+      />
       
       {activeTab === 'dashboard' ? renderDashboardTab() : renderAIAssistantTab()}
 
@@ -554,35 +422,10 @@ export default function TrackPalScreen() {
       {activeTab === 'dashboard' && (
         <>
           {/* Chat Button */}
-          <TouchableOpacity
-            style={styles.chatFab}
-            onPress={toggleChatModal}
-          >
-            <LinearGradient
-              colors={['#5D5B8D', '#4a6da7']}
-              style={styles.chatFabGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Ionicons name="chatbubbles" size={24} color="#fff" />
-            </LinearGradient>
-          </TouchableOpacity>
+          <ChatButton onPress={toggleChatModal} />
           
           {/* Add Application Button */}
-          <TouchableOpacity
-            style={styles.fab}
-            onPress={() => setModalVisible(true)}
-          >
-            <LinearGradient
-              colors={['#C29BB8', '#8089B4']}
-              style={styles.fabGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Text style={styles.fabText}>Add Application</Text>
-              <Ionicons name="add" size={30} color="#fff" />
-            </LinearGradient>
-          </TouchableOpacity>
+          <AddApplicationButton onPress={() => setModalVisible(true)} />
         </>
       )}
 
@@ -680,50 +523,13 @@ export default function TrackPalScreen() {
 }
 
 const styles = StyleSheet.create({
-  clickableCard: {
-    borderColor: '#5D5B8D',
-    borderWidth: 1,
-    shadowColor: '#5D5B8D',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
-  },
-  statValueContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    gap: 4,
-  },
   responseContainer: {
     backgroundColor: '#f9f9ff',
     padding: 12,
     borderRadius: 8,
     marginTop: 10,
   },
-  // Chat floating button styles
-  chatFab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 85,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    borderRadius: 30,
-    zIndex: 999,
-  },
-  
-  chatFabGradient: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-  },
 
-  // Chat modal styles
   chatModalContainer: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -842,137 +648,15 @@ const styles = StyleSheet.create({
   chatSendButtonDisabled: {
     backgroundColor: '#ccc',
   },
+
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  // Stats section styles
-  statsSection: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 16,
-  },
-  statsTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  statCard: {
-    backgroundColor: '#5D5B8D',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    width: '48%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  statLabel: {
-    fontSize: 14,
-    color: '#fff',
-    opacity: 0.8,
-    marginBottom: 8,
-  },
-  statValue: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
+
   scrollContainer: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-  },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 20,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    borderRadius: 50,
-    zIndex: 999,
-  },
-  
-  fabGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 15,
-    paddingHorizontal: 25,
-    borderRadius: 50,
-  },
-  
-  fabText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-    marginRight: 10,
-  },
-  // AI Insights styles
-  aiInsightsSection: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 8,
-    backgroundColor: 'transparent',
-  },
-  insightsSectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 5,
-  },
-  insightsContainer: {
-    marginBottom: 16,
-  },
-  insightsList: {
-    paddingBottom: 8,
-  },
-  noInsightsText: {
-    textAlign: 'center',
-    color: '#666',
-    fontStyle: 'italic',
-    padding: 15,
-  },
-
-  insightCard: {
-    borderRadius: 10,
-    padding: 16,
-    marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-    backgroundColor: '#5D5B8D',
-  },
-
-  insightIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-
-  insightText: {
-    flex: 1,
-    marginLeft: 12,
-    fontSize: 14,
-    color: '#fff',
   },
 
   applicationSectionTitle: {
@@ -1005,38 +689,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-  },
-
-  // Tab styles
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-  },
-
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#000',
-  },
-
-  tabText: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 6,
-  },
-
-  activeTabText: {
-    color: '#000',
-    fontWeight: '600',
   },
 
   // AI tab styles
@@ -1132,119 +784,9 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
 
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  listContainer: {
-    padding: 16,
-  },
-
-  applicationItem: {
-    backgroundColor: '#5D5B8D',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-
-  applicationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-
-  jobTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    flex: 1,
-    color: '#fff',
-  },
-
-  statusBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-
-  statusText: {
-    fontSize: 12,
-    color: '#fff',
-  },
-
-  companyText: {
-    fontSize: 16,
-    color: '#fff',
-    marginBottom: 4,
-  },
-
-  locationText: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 8,
-  },
-
-  applicationFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-
-  dateText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-
-  reminderBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-
-  reminderText: {
-    fontSize: 12,
-    color: '#fff',
-    marginLeft: 4,
-  },
-
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 16,
-    color: '#333',
-  },
-  
-  // Fix for duplicate property
-  // This is a placeholder to avoid duplicate property error
   placeholderFix: {
     width: 0,
     height: 0,
-  },
-
-  emptySubText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 8,
   },
 
   aiSection: {
@@ -1326,9 +868,7 @@ const styles = StyleSheet.create({
   
   askTrackPalSubtitle: {
     fontSize: 14,
-    color: '#6c757d',
+    color: '#e0e0ff',
     marginBottom: 16,
   },
-  
-
 });
