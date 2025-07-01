@@ -135,13 +135,18 @@ export default function TrackPalJobDetailsScreen() {
         // Update application based on reminder type
         let updateData: any = {};
         let successMessage = '';
+        const isEditing = (
+          (reminderType === 'application' && application.applicationDeadlineReminder) ||
+          (reminderType === 'follow-up' && application.followUpDate) ||
+          (reminderType === 'interview' && application.interviewReminder)
+        );
         
         switch (reminderType) {
           case 'application':
             updateData = {
               applicationDeadlineReminder: combinedDate.toISOString()
             };
-            successMessage = 'Application deadline reminder set successfully!';
+            successMessage = isEditing ? 'Application deadline reminder updated successfully!' : 'Application deadline reminder set successfully!';
             break;
             
           case 'follow-up':
@@ -149,14 +154,14 @@ export default function TrackPalJobDetailsScreen() {
               followUpDate: combinedDate.toISOString(),
               followUpTime: `${combinedDate.getHours().toString().padStart(2, '0')}:${combinedDate.getMinutes().toString().padStart(2, '0')}`
             };
-            successMessage = 'Follow-up reminder set successfully!';
+            successMessage = isEditing ? 'Follow-up reminder updated successfully!' : 'Follow-up reminder set successfully!';
             break;
             
           case 'interview':
             updateData = {
               interviewReminder: combinedDate.toISOString()
             };
-            successMessage = 'Interview reminder set successfully!';
+            successMessage = isEditing ? 'Interview reminder updated successfully!' : 'Interview reminder set successfully!';
             break;
         }
         
@@ -401,6 +406,51 @@ export default function TrackPalJobDetailsScreen() {
     return steps.findIndex(step => step.status === currentStatus);
   };
 
+  // Format reminder date for display in Smart Action card
+  const formatReminderForDisplay = (dateString: string | null) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return `${date.toLocaleDateString()} at ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+  };
+
+  // Prepare reminder modal with existing data
+  const prepareReminderModal = (type: 'application' | 'follow-up' | 'interview', existingDate?: string | null) => {
+    setReminderType(type);
+    
+    // Set title based on whether we're editing or creating
+    const action = existingDate ? 'Edit' : 'Set';
+    
+    // Set appropriate title and message
+    switch(type) {
+      case 'application':
+        setReminderTitle(`${action} Reminder`);
+        setReminderMessage(`You will receive a notification at the specified date and time to apply to ${application?.company} before the deadline.`);
+        break;
+      case 'follow-up':
+        setReminderTitle(`${action} Follow-up Reminder`);
+        setReminderMessage(`You will receive a notification at the specified date and time to follow up on your application to ${application?.company}.`);
+        break;
+      case 'interview':
+        setReminderTitle(`${action} Interview Reminder`);
+        setReminderMessage(`You will receive a notification at the specified date and time to review your notes for the interview with ${application?.company}.`);
+        break;
+    }
+    
+    // If editing an existing reminder, set the date and time fields
+    if (existingDate) {
+      const existingDateTime = new Date(existingDate);
+      setReminderDate(existingDateTime);
+      setReminderTime(existingDateTime);
+    } else {
+      // Otherwise use current date/time as default
+      const now = new Date();
+      setReminderDate(now);
+      setReminderTime(now);
+    }
+    
+    setShowReminderModal(true);
+  };
+
   const renderSmartActions = () => {
     if (!application) return null;
     
@@ -418,34 +468,42 @@ export default function TrackPalJobDetailsScreen() {
                 onPress={() => {}}
               />
             </Link>
-            <SmartActionCard
-              title="Set Reminder"
-              description="Set a reminder to apply before deadline"
-              iconName="notifications-outline"
-              onPress={() => {
-                setReminderType('application');
-                setReminderTitle('Set Reminder');
-                setReminderMessage(`You will receive a notification at the specified date and time to apply to ${application?.company} before the deadline.`);
-                setShowReminderModal(true);
-              }}
-            />
+            {application.applicationDeadlineReminder ? (
+              <SmartActionCard
+                title="Application Reminder"
+                description={`Reminder set for: ${formatReminderForDisplay(application.applicationDeadlineReminder)}`}
+                iconName="notifications"
+                onPress={() => prepareReminderModal('application', application.applicationDeadlineReminder)}
+              />
+            ) : (
+              <SmartActionCard
+                title="Set Reminder"
+                description="Set a reminder to apply before deadline"
+                iconName="notifications-outline"
+                onPress={() => prepareReminderModal('application')}
+              />
+            )}
           </>
         );
         
       case 'applied':
         return (
           <>
-            <SmartActionCard
-              title="Follow-up Reminder"
-              description="Set a follow-up reminder"
-              iconName="notifications-outline"
-              onPress={() => {
-                setReminderType('follow-up');
-                setReminderTitle('Set Follow-up Reminder');
-                setReminderMessage(`You will receive a notification at the specified date and time to follow up on your application to ${application?.company}.`);
-                setShowReminderModal(true);
-              }}
-            />
+            {application.followUpDate ? (
+              <SmartActionCard
+                title="Follow-up Reminder"
+                description={`Reminder set for: ${formatReminderForDisplay(application.followUpDate)}`}
+                iconName="notifications"
+                onPress={() => prepareReminderModal('follow-up', application.followUpDate)}
+              />
+            ) : (
+              <SmartActionCard
+                title="Follow-up Reminder"
+                description="Set a follow-up reminder"
+                iconName="notifications-outline"
+                onPress={() => prepareReminderModal('follow-up')}
+              />
+            )}
             <Link href="/interview" asChild>
               <SmartActionCard
                 title="Interview Prep"
@@ -468,17 +526,21 @@ export default function TrackPalJobDetailsScreen() {
                 onPress={() => {}}
               />
             </Link>
-            <SmartActionCard
-              title="Interview Reminder"
-              description="Interview in 24h — Review your notes?"
-              iconName="time-outline"
-              onPress={() => {
-                setReminderType('interview');
-                setReminderTitle('Set Interview Reminder');
-                setReminderMessage(`You will receive a notification at the specified date and time to review your notes for the interview with ${application?.company}.`);
-                setShowReminderModal(true);
-              }}
-            />
+            {application.interviewReminder ? (
+              <SmartActionCard
+                title="Interview Reminder"
+                description={`Reminder set for: ${formatReminderForDisplay(application.interviewReminder)}`}
+                iconName="notifications"
+                onPress={() => prepareReminderModal('interview', application.interviewReminder)}
+              />
+            ) : (
+              <SmartActionCard
+                title="Interview Reminder"
+                description="Set a reminder for your interview"
+                iconName="notifications-outline"
+                onPress={() => prepareReminderModal('interview')}
+              />
+            )}
           </>
         );
         

@@ -10,6 +10,9 @@ export const CAREER_COLORS = {
   nightSky: '#5A5D80',
   midnight: '#272727',
   white: '#FFFFFF',
+  green: '#60D394',
+  red: '#D7263D',
+  yellow: '#F9CB40',
 };
 
 export default {
