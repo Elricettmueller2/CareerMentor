@@ -6,6 +6,7 @@ import { useLocalSearchParams, useRouter, Link, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ApplicationService, JobApplication } from '@/services/ApplicationService';
+import NotificationService from '@/services/NotificationService';
 import { useState, useEffect } from 'react';
 
 export default function JobApplicationDetailsScreen() {
@@ -20,6 +21,17 @@ export default function JobApplicationDetailsScreen() {
   const [showDeadlinePicker, setShowDeadlinePicker] = useState(false);
   const [showFollowUpPicker, setShowFollowUpPicker] = useState(false);
   const [showAndroidStatusPicker, setShowAndroidStatusPicker] = useState(false);
+  
+  // Reminder modal states
+  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [reminderDate, setReminderDate] = useState<Date>(new Date());
+  const [showReminderDatePicker, setShowReminderDatePicker] = useState(false);
+  const [reminderTime, setReminderTime] = useState<Date>(new Date());
+  const [showReminderTimePicker, setShowReminderTimePicker] = useState(false);
+  const [settingReminder, setSettingReminder] = useState(false);
+  const [reminderType, setReminderType] = useState<'application' | 'follow-up' | 'interview'>('follow-up');
+  const [reminderTitle, setReminderTitle] = useState('Set Follow-up Reminder');
+  const [reminderMessage, setReminderMessage] = useState('');
 
   useEffect(() => {
     if (application) {
@@ -66,6 +78,91 @@ export default function JobApplicationDetailsScreen() {
     
     if (selectedDate && editedApplication) {
       setEditedApplication({...editedApplication, followUpDate: selectedDate.toISOString()});
+    }
+  };
+  
+  // Handle reminder date change
+  const handleReminderDateChange = (event: any, selectedDate?: Date) => {
+    setShowReminderDatePicker(Platform.OS === 'ios');
+    
+    if (selectedDate) {
+      setReminderDate(selectedDate);
+    }
+  };
+  
+  // Handle reminder time change
+  const handleReminderTimeChange = (event: any, selectedDate?: Date) => {
+    setShowReminderTimePicker(Platform.OS === 'ios');
+    
+    if (selectedDate) {
+      setReminderTime(selectedDate);
+    }
+  };
+  
+  // Save the reminder
+  const saveReminder = async () => {
+    if (!application) return;
+    
+    setSettingReminder(true);
+    
+    try {
+      // Combine date and time into a single Date object
+      const combinedDate = new Date(reminderDate);
+      combinedDate.setHours(reminderTime.getHours());
+      combinedDate.setMinutes(reminderTime.getMinutes());
+      
+      // Schedule the notification
+      const notificationId = await NotificationService.scheduleFollowUpReminder(
+        application.id,
+        application.company,
+        application.jobTitle,
+        combinedDate
+      );
+      
+      if (notificationId) {
+        // Update application based on reminder type
+        let updateData: any = {};
+        let successMessage = '';
+        
+        switch (reminderType) {
+          case 'application':
+            updateData = {
+              applicationDeadlineReminder: combinedDate.toISOString()
+            };
+            successMessage = 'Application deadline reminder set successfully!';
+            break;
+            
+          case 'follow-up':
+            updateData = {
+              followUpDate: combinedDate.toISOString(),
+              followUpTime: `${combinedDate.getHours().toString().padStart(2, '0')}:${combinedDate.getMinutes().toString().padStart(2, '0')}`
+            };
+            successMessage = 'Follow-up reminder set successfully!';
+            break;
+            
+          case 'interview':
+            updateData = {
+              interviewReminder: combinedDate.toISOString()
+            };
+            successMessage = 'Interview reminder set successfully!';
+            break;
+        }
+        
+        const updatedApp = await ApplicationService.updateApplication(application.id, updateData);
+        
+        if (updatedApp) {
+          setApplication(updatedApp);
+          Alert.alert('Success', successMessage);
+          setShowReminderModal(false);
+        }
+      } else {
+        Alert.alert('Error', 'Failed to schedule notification. Please check notification permissions.');
+      }
+    } catch (error) {
+      console.error('Error setting reminder:', error);
+      Alert.alert('Error', 'An error occurred while setting the reminder');
+    } finally {
+      setSettingReminder(false);
     }
   };
 
@@ -123,23 +220,50 @@ export default function JobApplicationDetailsScreen() {
     setShowAndroidStatusPicker(false);
   };
 
-  const handleDelete = () => {
+  const saveChanges = () => {
+    if (!editedApplication) return;
+    
+    // Validate required fields
+    if (!editedApplication.jobTitle.trim() || !editedApplication.company.trim()) {
+      Alert.alert('Error', 'Job title and company are required');
+      return;
+    }
+    
+    setUpdating(true);
+    ApplicationService.updateApplication(editedApplication.id, editedApplication)
+      .then(updatedApp => {
+        if (updatedApp) {
+          setApplication(updatedApp);
+          setShowEditModal(false);
+          // Alert.alert('Success', 'Job application updated successfully');
+        } else {
+          Alert.alert('Error', 'Failed to update job application');
+        }
+      })
+      .catch(error => {
+        console.error('Error updating application:', error);
+        Alert.alert('Error', 'An error occurred while updating the job application');
+      })
+      .finally(() => {
+        setUpdating(false);
+      });
+  };
+
+  const handleDeletePress = () => {
     Alert.alert(
       'Delete Application',
-      'Are you sure you want to delete this job application? This action cannot be undone.',
+      'Are you sure you want to delete this job application?',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
           text: 'Delete', 
           style: 'destructive',
           onPress: async () => {
-            if (!application) return;
-            
-            setDeleting(true);
             try {
-              const success = await ApplicationService.deleteApplication(application.id);
+              setDeleting(true);
+              const success = await ApplicationService.deleteApplication(id as string);
+              
               if (success) {
-                Alert.alert('Success', 'Job application deleted successfully');
                 router.replace('/(tabs)/trackpal');
               } else {
                 Alert.alert('Error', 'Failed to delete job application');
@@ -232,7 +356,12 @@ export default function JobApplicationDetailsScreen() {
             </Link>
             <TouchableOpacity 
               style={styles.smartAction}
-              onPress={() => Alert.alert('Coming Soon', 'Reminder feature will be implemented soon!')}
+              onPress={() => {
+                setReminderType('application');
+                setReminderTitle('Set Application Deadline Reminder');
+                setReminderMessage(`You will receive a notification at the specified date and time to apply to ${application?.company} before the deadline.`);
+                setShowReminderModal(true);
+              }}
             >
               <Ionicons name="notifications-outline" size={24} color="#5D5B8D" />
               <Text style={styles.smartActionText}>Set a reminder to apply before deadline</Text>
@@ -246,7 +375,12 @@ export default function JobApplicationDetailsScreen() {
           <>
             <TouchableOpacity 
               style={styles.smartAction}
-              onPress={() => Alert.alert('Coming Soon', 'Reminder feature will be implemented soon!')}
+              onPress={() => {
+                setReminderType('follow-up');
+                setReminderTitle('Set Follow-up Reminder');
+                setReminderMessage(`You will receive a notification at the specified date and time to follow up on your application to ${application?.company}.`);
+                setShowReminderModal(true);
+              }}
             >
               <Ionicons name="notifications-outline" size={24} color="#5D5B8D" />
               <Text style={styles.smartActionText}>Set a follow-up reminder</Text>
@@ -274,7 +408,12 @@ export default function JobApplicationDetailsScreen() {
             </Link>
             <TouchableOpacity 
               style={styles.smartAction}
-              onPress={() => Alert.alert('Coming Soon', 'Reminder feature will be implemented soon!')}
+              onPress={() => {
+                setReminderType('interview');
+                setReminderTitle('Set Interview Reminder');
+                setReminderMessage(`You will receive a notification at the specified date and time to review your notes for the interview with ${application?.company}.`);
+                setShowReminderModal(true);
+              }}
             >
               <Ionicons name="time-outline" size={24} color="#5D5B8D" />
               <Text style={styles.smartActionText}>Interview in 24h — Review your notes?</Text>
@@ -342,11 +481,16 @@ export default function JobApplicationDetailsScreen() {
     <View style={styles.container}>
       <Stack.Screen 
         options={{
-          title: application.jobTitle,
+          title: "",  // Empty title to remove the job name from header
           headerTintColor: '#5D5B8D',
           headerTitleStyle: {
             color: '#5D5B8D',
           },
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 10 }}>
+              <Ionicons name="arrow-back" size={24} color="#5D5B8D" />
+            </TouchableOpacity>
+          ),
           headerRight: () => (
             <TouchableOpacity onPress={() => setShowEditModal(true)} style={{ marginRight: 16 }}>
               <Ionicons name="pencil-outline" size={24} color="#5D5B8D" />
@@ -370,6 +514,14 @@ export default function JobApplicationDetailsScreen() {
           
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(application.status) }]}>
             <Text style={styles.statusText}>{formatStatusText(application.status)}</Text>
+          </View>
+        </View>
+        
+        {/* Smart Actions Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Smart Actions</Text>
+          <View style={styles.smartActionsContainer}>
+            {renderSmartActions()}
           </View>
         </View>
         
@@ -408,7 +560,7 @@ export default function JobApplicationDetailsScreen() {
                   {!isLastItem && (
                     <View style={[
                       styles.timelineConnector,
-                      index < currentIndex ? { backgroundColor: getStatusColor(application.status) } : {}
+                      index < currentIndex ? { backgroundColor: '#5D5B8D' } : {}
                     ]} />
                   )}
                 </View>
@@ -461,14 +613,6 @@ export default function JobApplicationDetailsScreen() {
           </View>
         </View>
         
-        {/* Smart Actions Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Smart Actions</Text>
-          <View style={styles.smartActionsContainer}>
-            {renderSmartActions()}
-          </View>
-        </View>
-        
         {/* Resume Section (placeholder for future) */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Resume Used</Text>
@@ -484,7 +628,7 @@ export default function JobApplicationDetailsScreen() {
         <View style={styles.deleteButtonContainer}>
           <TouchableOpacity 
             style={styles.deleteButton}
-            onPress={handleDelete}
+            onPress={handleDeletePress}
             disabled={deleting}
           >
             <Ionicons name="trash-outline" size={20} color="white" />
@@ -495,6 +639,90 @@ export default function JobApplicationDetailsScreen() {
         </View>
       </ScrollView>
 
+      {/* Follow-up Reminder Modal */}
+      <Modal
+        visible={showReminderModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowReminderModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{reminderTitle}</Text>
+              <TouchableOpacity style={styles.doneButton} onPress={saveReminder} disabled={settingReminder}>
+                <LinearGradient
+                  colors={['#C29BB8', '#8089B4']}
+                  style={styles.doneButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Text style={styles.doneButtonText}>{settingReminder ? 'Setting...' : 'Done'}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.modalScrollContent}>
+              <Text style={styles.label}>Reminder Date</Text>
+              <TouchableOpacity 
+                style={styles.dateInput} 
+                onPress={() => {
+                  setShowReminderDatePicker(!showReminderDatePicker);
+                  setShowReminderTimePicker(false);
+                }}
+              >
+                <Text style={styles.dateText}>
+                  {reminderDate.toLocaleDateString()}
+                </Text>
+                <Ionicons name="calendar-outline" size={20} color="#5D5B8D" style={styles.calendarIcon} />
+              </TouchableOpacity>
+              
+              {showReminderDatePicker && (
+                <DateTimePicker
+                  value={reminderDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={handleReminderDateChange}
+                  minimumDate={new Date()}
+                  style={Platform.OS === 'ios' ? styles.picker : undefined}
+                />
+              )}
+              
+              <Text style={styles.label}>Reminder Time</Text>
+              <TouchableOpacity 
+                style={styles.dateInput} 
+                onPress={() => {
+                  setShowReminderTimePicker(!showReminderTimePicker);
+                  setShowReminderDatePicker(false);
+                }}
+              >
+                <Text style={styles.dateText}>
+                  {reminderTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                </Text>
+                <Ionicons name="time-outline" size={20} color="#5D5B8D" style={styles.calendarIcon} />
+              </TouchableOpacity>
+              
+              {showReminderTimePicker && (
+                <DateTimePicker
+                  value={reminderTime}
+                  mode="time"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={handleReminderTimeChange}
+                  style={Platform.OS === 'ios' ? styles.picker : undefined}
+                />
+              )}
+              
+              <View style={styles.reminderInfoContainer}>
+                <Ionicons name="information-circle-outline" size={20} color="#5D5B8D" />
+                <Text style={styles.reminderInfoText}>
+                  {reminderMessage}
+                </Text>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+      
       {/* Edit Modal */}
       <Modal
         visible={showEditModal}
@@ -506,8 +734,18 @@ export default function JobApplicationDetailsScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Edit Job Application</Text>
-              <TouchableOpacity onPress={() => setShowEditModal(false)}>
-                <Ionicons name="close" size={24} color="#5D5B8D" />
+              <TouchableOpacity 
+                style={styles.doneButton}
+                onPress={saveChanges}
+              >
+                <LinearGradient
+                  colors={['#C29BB8', '#8089B4']}
+                  style={styles.doneButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Text style={styles.doneButtonText}>Done</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
 
@@ -607,47 +845,7 @@ export default function JobApplicationDetailsScreen() {
                     multiline
                   />
 
-                  <TouchableOpacity 
-                    style={styles.saveButton} 
-                    onPress={() => {
-                      if (!editedApplication) return;
-                      
-                      // Validate required fields
-                      if (!editedApplication.jobTitle.trim() || !editedApplication.company.trim()) {
-                        Alert.alert('Error', 'Job title and company are required');
-                        return;
-                      }
-                      
-                      setUpdating(true);
-                      ApplicationService.updateApplication(editedApplication.id, editedApplication)
-                        .then(updatedApp => {
-                          if (updatedApp) {
-                            setApplication(updatedApp);
-                            setShowEditModal(false);
-                            Alert.alert('Success', 'Job application updated successfully');
-                          } else {
-                            Alert.alert('Error', 'Failed to update job application');
-                          }
-                        })
-                        .catch(error => {
-                          console.error('Error updating application:', error);
-                          Alert.alert('Error', 'An error occurred while updating the job application');
-                        })
-                        .finally(() => {
-                          setUpdating(false);
-                        });
-                    }}
-                    disabled={updating}
-                  >
-                    <LinearGradient
-                      colors={['#C29BB8', '#8089B4']}
-                      style={styles.saveButtonGradient}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                    >
-                      <Text style={styles.saveButtonText}>{updating ? 'Updating...' : 'Save Changes'}</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
+                  {/* Save button removed - using Done button in header instead */}
                 </>
               )}
             </ScrollView>
@@ -714,7 +912,6 @@ const styles = StyleSheet.create({
     color: '#dc3545',
     marginBottom: 20,
   },
-  // Header styles removed as we're using the default header
   scrollContainer: {
     flex: 1,
   },
@@ -907,6 +1104,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
+  doneButton: {
+    overflow: 'hidden',
+    borderRadius: 20,
+    width: 75,
+    height: 36,
+  },
+  doneButtonGradient: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doneButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -1013,7 +1227,7 @@ const styles = StyleSheet.create({
     padding: 20,
     elevation: 5,
     marginBottom: 0,
-    paddingBottom: 30, /* Extra padding at the bottom for better touch area */
+    paddingBottom: 30,
   },
   androidStatusPickerTitle: {
     fontSize: 18,
@@ -1042,5 +1256,26 @@ const styles = StyleSheet.create({
     color: '#5D5B8D',
     fontWeight: '600',
     fontSize: 16,
+  },
+  reminderInfoContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#f8f9fa',
+    padding: 15,
+    borderRadius: 8,
+    marginTop: 20,
+    alignItems: 'flex-start',
+  },
+  reminderInfoText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#5D5B8D',
+    marginLeft: 10,
+    lineHeight: 20,
+  },
+  picker: {
+    height: 120,
+    width: '100%',
+    alignSelf: 'center',
+    marginBottom: 15,
   }
 });

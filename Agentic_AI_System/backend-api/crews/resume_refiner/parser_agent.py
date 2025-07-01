@@ -2,10 +2,13 @@ import os
 import uuid
 import re
 import logging
+import mimetypes
 from typing import Dict, List, Any
 from pdfminer.high_level import extract_text
 import easyocr
 from fastapi import UploadFile
+from PIL import Image
+import pillow_heif
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -37,9 +40,27 @@ class ParserAgent:
     def save_upload(self, upload_file: UploadFile) -> str:
         """
         Save incoming UploadFile to disk and return upload_id.
+        Handles both PDF and image files (JPG, PNG).
         """
         upload_id = str(uuid.uuid4())
-        dest = os.path.join(self.TMP_DIR, f"{upload_id}.pdf")
+        
+        # Determine file extension from content type or filename
+        content_type = upload_file.content_type or ''
+        filename = upload_file.filename or ''
+        
+        if 'pdf' in content_type.lower() or filename.lower().endswith('.pdf'):
+            extension = '.pdf'
+        elif any(img_type in content_type.lower() for img_type in ['jpeg', 'jpg']):
+            extension = '.jpg'
+        elif 'png' in content_type.lower():
+            extension = '.png'
+        elif 'heic' in content_type.lower():
+            extension = '.heic'
+        else:
+            # Default to pdf if we can't determine the type
+            extension = '.pdf'
+            
+        dest = os.path.join(self.TMP_DIR, f"{upload_id}{extension}")
         
         logger.info(f"Saving uploaded file to {dest}")
         
@@ -77,36 +98,91 @@ class ParserAgent:
     
     def parse(self, upload_id: str) -> str:
         """
-        Extract plain text from a saved PDF. Falls back to OCR if necessary.
+        Extract plain text from a saved PDF or image file.
+        For PDFs: Uses pdfminer with OCR fallback.
+        For images: Uses OCR directly.
         
         Args:
-            upload_id: ID of the uploaded PDF file
+            upload_id: ID of the uploaded file
             
         Returns:
-            Extracted text from the PDF
+            Extracted text from the file
         """
-        path = os.path.join(self.TMP_DIR, f"{upload_id}.pdf")
-        if not os.path.exists(path):
-            raise FileNotFoundError(f"PDF file not found for upload_id: {upload_id}")
-            
-        try:
-            # Try extracting text with pdfminer
-            text = extract_text(path)
-            if text and text.strip():
-                return text
-            raise ValueError("Empty text from pdfminer")
-        except Exception:
-            # OCR fallback
-            result = _reader.readtext(path, detail=0)
-            return "\n".join(result)
+        # Check for different possible file extensions
+        possible_extensions = ['.pdf', '.jpg', '.jpeg', '.png', '.heic']
+        found_path = None
+        
+        for ext in possible_extensions:
+            path = os.path.join(self.TMP_DIR, f"{upload_id}{ext}")
+            if os.path.exists(path):
+                found_path = path
+                break
+                
+        if not found_path:
+            raise FileNotFoundError(f"No file found for upload_id: {upload_id}")
+        
+        # Get the file extension
+        _, ext = os.path.splitext(found_path)
+        ext = ext.lower()
+        
+        # Process based on file type
+        if ext == '.pdf':
+            try:
+                # Try extracting text with pdfminer
+                text = extract_text(found_path)
+                if text and text.strip():
+                    return text
+                raise ValueError("Empty text from pdfminer")
+            except Exception as e:
+                logger.info(f"PDF text extraction failed, falling back to OCR: {str(e)}")
+                # OCR fallback for PDF
+                result = _reader.readtext(found_path, detail=0)
+                return "\n".join(result)
+        elif ext == '.heic':
+            # Convert HEIC to JPEG first, then use OCR
+            try:
+                pillow_heif.register_heif_opener()
+                
+                # Convert HEIC to JPEG
+                temp_jpg_path = os.path.join(self.TMP_DIR, f"temp_{os.path.basename(found_path)}.jpg")
+                
+                # Open and convert the HEIC image
+                with Image.open(found_path) as img:
+                    # Save as JPEG
+                    img.save(temp_jpg_path, "JPEG")
+                    
+                logger.info(f"Converted HEIC to JPEG for OCR: {temp_jpg_path}")
+                
+                # Use OCR on the converted image
+                result = _reader.readtext(temp_jpg_path, detail=0)
+                
+                # Clean up temporary file
+                try:
+                    os.remove(temp_jpg_path)
+                except:
+                    pass
+                    
+                return "\n".join(result)
+            except Exception as e:
+                logger.error(f"HEIC processing failed: {str(e)}")
+                raise
+        else:  # Image files (.jpg, .png)
+            logger.info(f"Processing image file with OCR: {found_path}")
+            try:
+                # Use OCR directly for images
+                result = _reader.readtext(found_path, detail=0)
+                return "\n".join(result)
+            except Exception as e:
+                logger.error(f"OCR processing failed: {str(e)}")
+                raise
     
     def parse_with_sections(self, upload_id: str) -> Dict[str, Any]:
         """
-        Extract text from PDF and organize it into sections.
+        Extract text from PDF or image files and organize it into sections.
         
         Args:
-            upload_id: ID of the uploaded PDF file
-            
+            upload_id: ID of the uploaded file (PDF, JPG, PNG)
+        
         Returns:
             Dictionary with full text and parsed sections
         """

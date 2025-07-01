@@ -22,6 +22,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import ApplicationForm from '../../components/ApplicationForm';
 import ApplicationService, { JobApplication } from '../../services/ApplicationService';
 import TrackPalService, { PatternInsight } from '../../services/TrackPalService';
+import NotificationService from '../../services/NotificationService';
+import NotificationTest from '../../components/NotificationTest';
 
 export default function TrackPalScreen() {
   const router = useRouter();
@@ -34,7 +36,8 @@ export default function TrackPalScreen() {
   // Application stats
   const [stats, setStats] = useState({
     totalApplications: 0,
-    replyRate: 0,
+    jobsToApply: 0,
+    interviewsSecured: 0,
     interviewRate: 0,
     followUpOpportunities: 0
   });
@@ -51,10 +54,10 @@ export default function TrackPalScreen() {
   const [loadingAnswer, setLoadingAnswer] = useState(false);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'ai'>('dashboard');
 
-  // Load insights once when the component mounts
-  useEffect(() => {
-    loadPatternInsights();
-  }, []);
+  // No auto-loading of insights when the component mounts
+  // useEffect(() => {
+  //   loadPatternInsights();
+  // }, []);
 
   // Load applications when screen comes into focus
   // We'll use a ref to track if we've already loaded the AI data
@@ -64,10 +67,7 @@ export default function TrackPalScreen() {
     useCallback(() => {
       loadApplications();
       
-      if (activeTab === 'ai') {
-        loadReminders();
-        loadPatternAnalysis();
-      }
+      // No auto-loading of AI data when the tab is focused
     }, [activeTab])
   );
 
@@ -76,7 +76,8 @@ export default function TrackPalScreen() {
     if (!apps || apps.length === 0) {
       setStats({
         totalApplications: 0,
-        replyRate: 0,
+        jobsToApply: 0,
+        interviewsSecured: 0,
         interviewRate: 0,
         followUpOpportunities: 0
       });
@@ -85,35 +86,62 @@ export default function TrackPalScreen() {
     
     const total = apps.length;
     
-    // Count applications with responses (interview, accepted, or rejected)
-    const withResponse = apps.filter(app => 
+    // Count applications that are saved but not applied yet
+    const savedJobs = apps.filter(app => app.status === 'saved').length;
+    
+    // Count applications that have secured interviews (including later stages)
+    const withInterview = apps.filter(app => 
       app.status === 'interview' || 
       app.status === 'accepted' || 
       app.status === 'rejected'
     ).length;
-  
-    // Count applications with interviews or accepted
-    const withInterview = apps.filter(app => 
-      app.status === 'interview' || 
-      app.status === 'accepted'
-    ).length;
-  
-    // Count applications that need follow-up
-    const needFollowUp = apps.filter(app => 
-      (app.status === 'applied' && 
-       new Date().getTime() - new Date(app.appliedDate).getTime() > 7 * 24 * 60 * 60 * 1000) || // 7 days since application
-      (app.status === 'interview' && 
-       new Date().getTime() - new Date(app.followUpDate || app.appliedDate).getTime() > 3 * 24 * 60 * 60 * 1000) // 3 days since interview
-    ).length;
+    
+    // Calculate interview success rate as a percentage
+    const interviewRate = total > 0 ? Math.round((withInterview / total) * 100) : 0;
+    
+    // Count applications that need follow-up (based on followUpDate)
+    const withReminders = apps.filter(app => app.followUpDate).length;
     
     setStats({
       totalApplications: total,
-      replyRate: total > 0 ? Math.round((withResponse / total) * 100) : 0,
-      interviewRate: total > 0 ? Math.round((withInterview / total) * 100) : 0,
-      followUpOpportunities: needFollowUp
+      jobsToApply: savedJobs,
+      interviewsSecured: withInterview,
+      interviewRate: interviewRate,
+      followUpOpportunities: withReminders
     });
   };
   
+  // Handle navigation to a random saved job
+  const navigateToRandomSavedJob = () => {
+    if (stats.jobsToApply === 0 || !applications) return;
+    
+    const savedApplications = applications.filter(app => app.status === 'saved');
+    if (savedApplications.length > 0) {
+      const randomIndex = Math.floor(Math.random() * savedApplications.length);
+      const randomApp = savedApplications[randomIndex];
+      router.push(`/job-application-details?id=${randomApp.id}`);
+    }
+  };
+
+  // Handle navigation to the most recent job needing follow-up
+  const navigateToFollowUpJob = () => {
+    if (stats.followUpOpportunities === 0 || !applications) return;
+    
+    // Get applications with follow-up dates set
+    const appsWithReminders = applications.filter(app => app.followUpDate);
+    
+    if (appsWithReminders.length > 0) {
+      // Sort by most recent first
+      appsWithReminders.sort((a, b) => {
+        const dateA = new Date(a.followUpDate || a.applicationDeadline || a.appliedDate);
+        const dateB = new Date(b.followUpDate || b.applicationDeadline || b.appliedDate);
+        return dateB.getTime() - dateA.getTime();
+      });
+      
+      router.push(`/job-application-details?id=${appsWithReminders[0].id}`);
+    }
+  };
+
   const loadApplications = async () => {
     setLoading(true);
     try {
@@ -205,13 +233,38 @@ export default function TrackPalScreen() {
 
   const handleAddApplication = async (applicationData: any) => {
     try {
-      await ApplicationService.addApplication({
+      // Add the application to storage
+      const newApplication = await ApplicationService.addApplication({
         ...applicationData,
         applicationDeadline: applicationData.applicationDeadline ? 
           applicationData.applicationDeadline.toISOString() : null,
         followUpDate: applicationData.followUpDate ? 
           applicationData.followUpDate.toISOString() : null,
       });
+      
+      // Schedule notification for follow-up reminder if a follow-up date is set
+      if (applicationData.followUpDate) {
+        try {
+          // Request notification permissions if not already granted
+          await NotificationService.requestPermissions();
+          
+          // Schedule the notification for the follow-up date
+          const notificationId = await NotificationService.scheduleFollowUpReminder(
+            newApplication.id,
+            applicationData.company,
+            applicationData.jobTitle,
+            applicationData.followUpDate
+          );
+          
+          if (notificationId) {
+            console.log(`Scheduled follow-up reminder notification: ${notificationId}`);
+          }
+        } catch (notificationError) {
+          console.error('Error scheduling notification:', notificationError);
+          // Don't alert the user about notification errors, just log them
+        }
+      }
+      
       setModalVisible(false);
       loadApplications();
       Alert.alert('Success', 'Application added successfully');
@@ -289,13 +342,7 @@ export default function TrackPalScreen() {
         style={[styles.tab, activeTab === 'ai' && styles.activeTab]}
         onPress={() => {
           setActiveTab('ai');
-          // Don't automatically load AI data when switching tabs
-          // Only load if we haven't loaded it before
-          if (!aiDataLoaded.current) {
-            loadReminders();
-            loadPatternAnalysis();
-            aiDataLoaded.current = true;
-          }
+          // No auto-loading of AI data when switching tabs
         }}
       >
         <Ionicons 
@@ -303,7 +350,7 @@ export default function TrackPalScreen() {
           size={20} 
           color={activeTab === 'ai' ? '#000' : '#666'} 
         />
-        <Text style={[styles.tabText, activeTab === 'ai' && styles.activeTabText]}>AI Assistant</Text>
+        <Text style={[styles.tabText, activeTab === 'ai' && styles.activeTabText]}>Testing</Text>
       </TouchableOpacity>
     </View>
   );
@@ -331,23 +378,37 @@ export default function TrackPalScreen() {
             <Text style={styles.statValue}>{stats.totalApplications}</Text>
           </View>
           
-          {/* Reply Rate */}
+          {/* Interviews Secured */}
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Reply Rate</Text>
-            <Text style={styles.statValue}>{stats.replyRate}%</Text>
-          </View>
-          
-          {/* Interview Rate */}
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Interview Rate</Text>
+            <Text style={styles.statLabel}>Interviews Secured</Text>
             <Text style={styles.statValue}>{stats.interviewRate}%</Text>
           </View>
           
+          {/* Jobs to Apply */}
+          <TouchableOpacity 
+            style={[styles.statCard, stats.jobsToApply > 0 ? styles.clickableCard : null]} 
+            onPress={navigateToRandomSavedJob}
+            disabled={stats.jobsToApply === 0}
+          >
+            <Text style={styles.statLabel}>Jobs to Apply</Text>
+            <View style={styles.statValueContainer}>
+              <Text style={styles.statValue}>{stats.jobsToApply}</Text>
+              {stats.jobsToApply > 0 && <Ionicons name="chevron-forward" size={16} color="#fff" />}
+            </View>
+          </TouchableOpacity>
+          
           {/* Follow-Up Opportunities */}
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Follow-Up Opportunities</Text>
-            <Text style={styles.statValue}>{stats.followUpOpportunities}</Text>
-          </View>
+          <TouchableOpacity 
+            style={[styles.statCard, stats.followUpOpportunities > 0 ? styles.clickableCard : null]} 
+            onPress={navigateToFollowUpJob}
+            disabled={stats.followUpOpportunities === 0}
+          >
+            <Text style={styles.statLabel}>Follow-Ups</Text>
+            <View style={styles.statValueContainer}>
+              <Text style={styles.statValue}>{stats.followUpOpportunities}</Text>
+              {stats.followUpOpportunities > 0 && <Ionicons name="chevron-forward" size={16} color="#fff" />}
+            </View>
+          </TouchableOpacity>
         </View>
       </View>
       
@@ -404,64 +465,90 @@ export default function TrackPalScreen() {
           </Text>
         </View>
       )}
-      
-      {/* Ask TrackPal Section removed - now available via floating chat button */}
     </ScrollView>
   );
 
-  // AI Assistant tab content
-  const renderAITab = () => (
+  // Testing tab content
+  const renderAIAssistantTab = () => (
     <ScrollView 
-      style={styles.aiTabContainer}
+      style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={['#8089B4']}
+          tintColor="#8089B4"
+        />
       }
     >
+      {/* Notification Test Section */}
+      <NotificationTest />
+      
       {/* Reminders Section */}
       <View style={styles.aiSection}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Reminders & Follow-ups</Text>
-          <TouchableOpacity onPress={loadReminders} disabled={loadingReminders}>
-            <Ionicons name="refresh" size={20} color="#4a6da7" />
+          <Text style={styles.sectionTitle}>Reminders</Text>
+          <TouchableOpacity onPress={loadReminders} style={{padding: 5}}>
+            {loadingReminders ? (
+              <ActivityIndicator size="small" color="#8089B4" />
+            ) : (
+              <Ionicons name="refresh" size={20} color="#8089B4" />
+            )}
           </TouchableOpacity>
         </View>
         
         {loadingReminders ? (
-          <ActivityIndicator size="small" color="#4a6da7" style={{marginVertical: 20}} />
+          <ActivityIndicator size="large" color="#8089B4" style={{marginVertical: 20}} />
+        ) : reminders ? (
+          <View style={styles.responseContainer}>
+            <Text style={styles.aiResponse}>{reminders}</Text>
+          </View>
         ) : (
-          <Text style={styles.aiResponse}>{reminders || 'No reminders available.'}</Text>
+          <View style={styles.emptyContainer}>
+            <Ionicons name="notifications-off-outline" size={40} color="#ccc" />
+            <Text style={styles.emptyText}>No reminders at this time</Text>
+          </View>
         )}
       </View>
-
+      
       {/* Pattern Analysis Section */}
       <View style={styles.aiSection}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Application Insights</Text>
-          <TouchableOpacity onPress={loadPatternAnalysis} disabled={loadingPatterns}>
-            <Ionicons name="refresh" size={20} color="#4a6da7" />
+          <Text style={styles.sectionTitle}>Pattern Analysis</Text>
+          <TouchableOpacity onPress={loadPatternAnalysis} style={{padding: 5}}>
+            {loadingPatterns ? (
+              <ActivityIndicator size="small" color="#8089B4" />
+            ) : (
+              <Ionicons name="refresh" size={20} color="#8089B4" />
+            )}
           </TouchableOpacity>
         </View>
         
         {loadingPatterns ? (
-          <ActivityIndicator size="small" color="#4a6da7" style={{marginVertical: 20}} />
+          <ActivityIndicator size="large" color="#8089B4" style={{marginVertical: 20}} />
+        ) : patterns ? (
+          <View style={styles.responseContainer}>
+            <Text style={styles.aiResponse}>{patterns}</Text>
+          </View>
         ) : (
-          <Text style={styles.aiResponse}>{patterns || 'No pattern analysis available.'}</Text>
+          <View style={styles.emptyContainer}>
+            <Ionicons name="analytics-outline" size={40} color="#ccc" />
+            <Text style={styles.emptyText}>No pattern analysis available</Text>
+          </View>
         )}
       </View>
-
-      {/* End of dashboard content */}
     </ScrollView>
   );
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>TrackPal</Text>
+        <Text style={styles.title}>CareerMentor</Text>
       </View>
 
       {renderTabs()}
       
-      {activeTab === 'dashboard' ? renderDashboardTab() : renderAITab()}
+      {activeTab === 'dashboard' ? renderDashboardTab() : renderAIAssistantTab()}
 
       {/* Floating Action Buttons */}
       {activeTab === 'dashboard' && (
@@ -593,11 +680,32 @@ export default function TrackPalScreen() {
 }
 
 const styles = StyleSheet.create({
+  clickableCard: {
+    borderColor: '#5D5B8D',
+    borderWidth: 1,
+    shadowColor: '#5D5B8D',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  statValueContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 4,
+  },
+  responseContainer: {
+    backgroundColor: '#f9f9ff',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 10,
+  },
   // Chat floating button styles
   chatFab: {
     position: 'absolute',
     right: 20,
-    bottom: 85, // Position above the add button
+    bottom: 85,
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

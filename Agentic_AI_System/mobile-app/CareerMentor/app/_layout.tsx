@@ -3,10 +3,12 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import 'react-native-reanimated';
+import { Platform } from 'react-native';
 
 import { useColorScheme } from '@/components/useColorScheme';
+import { initializeNotifications } from '@/services/NotificationInit';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -32,10 +34,32 @@ export default function RootLayout() {
     if (error) throw error;
   }, [error]);
 
+  // Initialize notifications when app loads
+  const notificationCleanupRef = useRef<(() => void) | null>(null);
+
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
+      
+      // Initialize notifications
+      const setupNotifications = async () => {
+        try {
+          const cleanup = await initializeNotifications();
+          notificationCleanupRef.current = cleanup;
+        } catch (error) {
+          console.error('Failed to initialize notifications:', error);
+        }
+      };
+      
+      setupNotifications();
     }
+    
+    // Cleanup notification listeners when component unmounts
+    return () => {
+      if (notificationCleanupRef.current) {
+        notificationCleanupRef.current();
+      }
+    };
   }, [loaded]);
 
   if (!loaded) {
@@ -46,10 +70,11 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  // Always use light theme for consistent white appearance
+  // const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
