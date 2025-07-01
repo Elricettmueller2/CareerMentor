@@ -12,7 +12,7 @@ from crews.mock_mate.run_mock_mate_crew import run_respond_to_answer, run_start_
 from crews.track_pal.run_track_pal_crew import run_check_reminders, run_analyze_patterns, get_applications, save_application, update_application
 from crews.track_pal.crew import respond
 from crews.test.run_test_crew import run_test_crew
-from services.session_manager import add_message_to_history, get_conversation_history
+from services.session_manager import add_message_to_history, get_conversation_history, set_session_metadata
 from crews.path_finder.run_path_finder_crew import run_path_finder_crew, run_path_finder_direct
 from crews.path_finder.search_path import get_job_details, get_job_recommendations, save_job, unsave_job, get_saved_jobs
 from crews.resume_refiner.run_resume_refiner_crew import (
@@ -150,6 +150,10 @@ async def mock_mate_endpoint(action: str, request: AgentRequest):
             
             # Initialize session if provided
             if session_id:
+                # Store job role and experience level in session metadata
+                set_session_metadata(session_id, "job_role", job_role)
+                set_session_metadata(session_id, "experience_level", experience_level)
+                
                 # Add system message to conversation history
                 add_message_to_history(session_id, "system", 
                     f"This is a mock interview for a {job_role} position at {experience_level} experience level.")

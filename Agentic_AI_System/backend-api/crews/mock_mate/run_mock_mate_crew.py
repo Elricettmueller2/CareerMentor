@@ -1,5 +1,5 @@
 from crews.mock_mate.crew import MockInterviewCrew
-from services.session_manager import get_conversation_history
+from services.session_manager import get_conversation_history, get_session_metadata
 
 def run_start_interview(job_role, experience_level):
     mock_crew = MockInterviewCrew()
@@ -17,9 +17,13 @@ def run_respond_to_answer(user_respond, session_id):
     crew = mock_crew.crew()
     crew.tasks = [mock_crew.respond_to_answer_task()]
     conversation = get_conversation_history(session_id)
+    metadata = get_session_metadata(session_id)
+    job_role = metadata.get("job_role")
+
     result = crew.kickoff(inputs={
         "interview_history": conversation,
-        "user_response": user_respond
+        "user_response": user_respond,
+        "job_role": job_role,
     })
 
     return result.raw
