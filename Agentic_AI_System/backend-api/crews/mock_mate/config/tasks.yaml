@@ -20,7 +20,7 @@ start_interview:
         "company_culture": "Balanced"
       }
     }
-  agent: technical_interviewer or behavioral_interviewer (based on interview_type)
+  agent: technical_interviewer
 
 respond_to_answer:
   description: >
@@ -41,7 +41,7 @@ respond_to_answer:
       "follow_up": "The next question to ask",
       "notes": "Internal notes on candidate performance (not shown to candidate)"
     }
-  agent: technical_interviewer or behavioral_interviewer (based on interview_type)
+  agent: technical_interviewer
 
 review_interview:
   description: >
