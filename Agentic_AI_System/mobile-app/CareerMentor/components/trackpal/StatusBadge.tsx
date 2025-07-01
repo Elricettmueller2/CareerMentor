@@ -50,9 +50,9 @@ export const getStatusColor = (status: string): string => {
     case 'offer':
       return CAREER_COLORS.nightSky; // NightSky from CareerMentor colors
     case 'rejected':
-      return '#dc3545'; // Danger red (keep as is)
+      return CAREER_COLORS.red; // Red from CareerMentor colors
     case 'accepted':
-      return '#28a745'; // Success green (keep as is)
+      return CAREER_COLORS.green; // Green from CareerMentor colors
     case 'declined':
       return CAREER_COLORS.nightSky; // NightSky from CareerMentor colors
     default:

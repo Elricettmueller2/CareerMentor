@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, TouchableOpacity, Text, ViewStyle, TextStyle, ColorValue, ActivityIndicator, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { CAREER_COLORS } from '../../constants/Colors';
 
 interface GradientButtonProps {
   title: string;
@@ -23,7 +24,7 @@ const GradientButton: React.FC<GradientButtonProps> = ({
   style,
   textStyle,
   small = false,
-  colors = ['#C29BB8', '#8089B4'] as readonly [ColorValue, ColorValue],
+  colors = [CAREER_COLORS.rose, CAREER_COLORS.sky] as readonly [ColorValue, ColorValue],
 }) => {
   // Apply opacity to button when disabled
   const buttonOpacity = disabled ? 0.6 : 1;

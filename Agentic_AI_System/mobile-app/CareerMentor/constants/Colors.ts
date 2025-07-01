@@ -11,7 +11,7 @@ export const CAREER_COLORS = {
   midnight: '#272727',
   white: '#FFFFFF',
   green: '#60D394',
-  red: '#D7263D',
+  red: '#F14156',
   yellow: '#F9CB40',
 };
 

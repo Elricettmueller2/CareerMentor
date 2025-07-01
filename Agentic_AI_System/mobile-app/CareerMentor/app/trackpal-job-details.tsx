@@ -20,6 +20,7 @@ import StatusPicker from '@/components/trackpal/StatusPicker';
 import InfoCard from '@/components/trackpal/InfoCard';
 import SmartActionCard from '@/components/trackpal/SmartActionCard';
 import CongratsCard from '@/components/trackpal/CongratsCard';
+import JobLinkButton from '@/components/trackpal/JobLinkButton';
 
 export default function TrackPalJobDetailsScreen() {
   const { id } = useLocalSearchParams();
@@ -308,17 +309,14 @@ export default function TrackPalJobDetailsScreen() {
     }
   };
 
-  // Brand color
-  const BRAND_PURPLE = '#5D5B8D';
-  
   const getStatusColor = (status: string): string => {
     // Use different colors for rejected and accepted statuses
     if (status.toLowerCase() === 'rejected') {
-      return '#dc3545'; // Red for rejected
+      return CAREER_COLORS.red; // Red for rejected
     } else if (status.toLowerCase() === 'accepted') {
-      return '#28a745'; // Green for accepted
+      return CAREER_COLORS.green; // Green for accepted
     } else {
-      return BRAND_PURPLE; // Brand purple for all other statuses
+      return CAREER_COLORS.nightSky; // Brand purple for all other statuses
     }
   };
 
@@ -640,8 +638,10 @@ export default function TrackPalJobDetailsScreen() {
               <Text style={styles.infoText}>{application.location}</Text>
             </View>
           )}
-          
           <StatusBadge status={application.status} style={styles.statusBadge} />
+          
+          {/* Job Link Button */}
+          <JobLinkButton url={application.jobUrl} />
         </View>
         
         {/* Smart Actions Section */}
@@ -1246,7 +1246,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#dc3545',
+    backgroundColor: CAREER_COLORS.red,
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,

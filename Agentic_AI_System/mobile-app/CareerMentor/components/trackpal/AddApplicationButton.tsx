@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { CAREER_COLORS } from '../../constants/Colors';
 
 interface AddApplicationButtonProps {
   onPress: () => void;
@@ -14,7 +15,7 @@ const AddApplicationButton: React.FC<AddApplicationButtonProps> = ({ onPress }) 
       onPress={onPress}
     >
       <LinearGradient
-        colors={['#C29BB8', '#8089B4']}
+        colors={[CAREER_COLORS.rose, CAREER_COLORS.sky]}
         style={styles.fabGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}

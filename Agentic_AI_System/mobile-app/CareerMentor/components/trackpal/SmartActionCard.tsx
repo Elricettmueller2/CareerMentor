@@ -3,6 +3,7 @@ import { StyleSheet, View, TouchableOpacity, ViewStyle } from 'react-native';
 import { Text } from '@/components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { CAREER_COLORS } from '../../constants/Colors';
 
 interface SmartActionCardProps {
   title: string;
@@ -23,7 +24,7 @@ const SmartActionCard: React.FC<SmartActionCardProps> = ({
     <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
       <View style={[styles.container, style]}>
         <LinearGradient
-          colors={['#C29BB8', '#8089B4']}
+          colors={[CAREER_COLORS.rose, CAREER_COLORS.sky]}
           style={styles.iconContainer}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
