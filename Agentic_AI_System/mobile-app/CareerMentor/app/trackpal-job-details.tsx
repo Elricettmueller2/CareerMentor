@@ -9,6 +9,17 @@ import { ApplicationService, JobApplication } from '@/services/ApplicationServic
 import NotificationService from '@/services/NotificationService';
 import { useState, useEffect } from 'react';
 
+// Import custom components
+import GradientButton from '@/components/trackpal/GradientButton';
+import StatusBadge, { formatStatusText, getStatusColor } from '@/components/trackpal/StatusBadge';
+import DatePickerField from '@/components/trackpal/DatePickerField';
+import ModalHeader from '@/components/trackpal/ModalHeader';
+import FormInput from '@/components/trackpal/FormInput';
+import StatusPicker from '@/components/trackpal/StatusPicker';
+import InfoCard from '@/components/trackpal/InfoCard';
+import SmartActionCard from '@/components/trackpal/SmartActionCard';
+import CongratsCard from '@/components/trackpal/CongratsCard';
+
 export default function TrackPalJobDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
@@ -348,50 +359,48 @@ export default function TrackPalJobDetailsScreen() {
         return (
           <>
             <Link href="/resume-refiner" asChild>
-              <TouchableOpacity style={styles.smartAction}>
-                <Ionicons name="document-text-outline" size={24} color="#5D5B8D" />
-                <Text style={styles.smartActionText}>Need help tailoring your resume?</Text>
-                <Ionicons name="chevron-forward" size={20} color="#5D5B8D" />
-              </TouchableOpacity>
+              <SmartActionCard
+                title="Resume Help"
+                description="Need help tailoring your resume?"
+                iconName="document-text-outline"
+                onPress={() => {}}
+              />
             </Link>
-            <TouchableOpacity 
-              style={styles.smartAction}
+            <SmartActionCard
+              title="Set Reminder"
+              description="Set a reminder to apply before deadline"
+              iconName="notifications-outline"
               onPress={() => {
                 setReminderType('application');
-                setReminderTitle('Set Application Deadline Reminder');
+                setReminderTitle('Set Reminder');
                 setReminderMessage(`You will receive a notification at the specified date and time to apply to ${application?.company} before the deadline.`);
                 setShowReminderModal(true);
               }}
-            >
-              <Ionicons name="notifications-outline" size={24} color="#5D5B8D" />
-              <Text style={styles.smartActionText}>Set a reminder to apply before deadline</Text>
-              <Ionicons name="chevron-forward" size={20} color="#5D5B8D" />
-            </TouchableOpacity>
+            />
           </>
         );
         
       case 'applied':
         return (
           <>
-            <TouchableOpacity 
-              style={styles.smartAction}
+            <SmartActionCard
+              title="Follow-up Reminder"
+              description="Set a follow-up reminder"
+              iconName="notifications-outline"
               onPress={() => {
                 setReminderType('follow-up');
                 setReminderTitle('Set Follow-up Reminder');
                 setReminderMessage(`You will receive a notification at the specified date and time to follow up on your application to ${application?.company}.`);
                 setShowReminderModal(true);
               }}
-            >
-              <Ionicons name="notifications-outline" size={24} color="#5D5B8D" />
-              <Text style={styles.smartActionText}>Set a follow-up reminder</Text>
-              <Ionicons name="chevron-forward" size={20} color="#5D5B8D" />
-            </TouchableOpacity>
+            />
             <Link href="/interview" asChild>
-              <TouchableOpacity style={styles.smartAction}>
-                <Ionicons name="people-outline" size={24} color="#5D5B8D" />
-                <Text style={styles.smartActionText}>Expecting an interview? Use MockMate</Text>
-                <Ionicons name="chevron-forward" size={20} color="#5D5B8D" />
-              </TouchableOpacity>
+              <SmartActionCard
+                title="Interview Prep"
+                description="Expecting an interview? Use MockMate"
+                iconName="people-outline"
+                onPress={() => {}}
+              />
             </Link>
           </>
         );
@@ -400,25 +409,24 @@ export default function TrackPalJobDetailsScreen() {
         return (
           <>
             <Link href="/interview" asChild>
-              <TouchableOpacity style={styles.smartAction}>
-                <Ionicons name="people-outline" size={24} color="#5D5B8D" />
-                <Text style={styles.smartActionText}>Expecting an interview? Use MockMate</Text>
-                <Ionicons name="chevron-forward" size={20} color="#5D5B8D" />
-              </TouchableOpacity>
+              <SmartActionCard
+                title="Interview Prep"
+                description="Expecting an interview? Use MockMate"
+                iconName="people-outline"
+                onPress={() => {}}
+              />
             </Link>
-            <TouchableOpacity 
-              style={styles.smartAction}
+            <SmartActionCard
+              title="Interview Reminder"
+              description="Interview in 24h — Review your notes?"
+              iconName="time-outline"
               onPress={() => {
                 setReminderType('interview');
                 setReminderTitle('Set Interview Reminder');
                 setReminderMessage(`You will receive a notification at the specified date and time to review your notes for the interview with ${application?.company}.`);
                 setShowReminderModal(true);
               }}
-            >
-              <Ionicons name="time-outline" size={24} color="#5D5B8D" />
-              <Text style={styles.smartActionText}>Interview in 24h — Review your notes?</Text>
-              <Ionicons name="chevron-forward" size={20} color="#5D5B8D" />
-            </TouchableOpacity>
+            />
           </>
         );
         
@@ -426,28 +434,30 @@ export default function TrackPalJobDetailsScreen() {
         return (
           <>
             <Link href="/resume-refiner" asChild>
-              <TouchableOpacity style={styles.smartAction}>
-                <Ionicons name="document-text-outline" size={24} color="#5D5B8D" />
-                <Text style={styles.smartActionText}>Want to improve your resume for next time?</Text>
-                <Ionicons name="chevron-forward" size={20} color="#5D5B8D" />
-              </TouchableOpacity>
+              <SmartActionCard
+                title="Resume Improvement"
+                description="Want to improve your resume for next time?"
+                iconName="document-text-outline"
+                onPress={() => {}}
+              />
             </Link>
             <Link href="/pathfinder" asChild>
-              <TouchableOpacity style={styles.smartAction}>
-                <Ionicons name="search-outline" size={24} color="#5D5B8D" />
-                <Text style={styles.smartActionText}>Find similar jobs</Text>
-                <Ionicons name="chevron-forward" size={20} color="#5D5B8D" />
-              </TouchableOpacity>
+              <SmartActionCard
+                title="Find Jobs"
+                description="Find similar jobs"
+                iconName="search-outline"
+                onPress={() => {}}
+              />
             </Link>
           </>
         );
         
       case 'accepted':
         return (
-          <View style={styles.congratsContainer}>
-            <Ionicons name="trophy" size={40} color="#FFD700" />
-            <Text style={styles.congratsText}>Congratulations on your new job!</Text>
-          </View>
+          <CongratsCard
+            message="Congratulations on your new job!"
+            style={styles.congratsContainer}
+          />
         );
         
       default:
@@ -492,9 +502,14 @@ export default function TrackPalJobDetailsScreen() {
             </TouchableOpacity>
           ),
           headerRight: () => (
-            <TouchableOpacity onPress={() => setShowEditModal(true)} style={{ marginRight: 16 }}>
-              <Ionicons name="pencil-outline" size={24} color="#5D5B8D" />
-            </TouchableOpacity>
+            <View style={styles.headerButtonContainer}>
+              <GradientButton
+                title="Edit Job"
+                onPress={() => setShowEditModal(true)}
+                small={true}
+                style={styles.headerEditButton}
+              />
+            </View>
           )
         }} 
       />
@@ -512,9 +527,7 @@ export default function TrackPalJobDetailsScreen() {
             </View>
           )}
           
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(application.status) }]}>
-            <Text style={styles.statusText}>{formatStatusText(application.status)}</Text>
-          </View>
+          <StatusBadge status={application.status} style={styles.statusBadge} />
         </View>
         
         {/* Smart Actions Section */}
@@ -648,76 +661,35 @@ export default function TrackPalJobDetailsScreen() {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{reminderTitle}</Text>
-              <TouchableOpacity style={styles.doneButton} onPress={saveReminder} disabled={settingReminder}>
-                <LinearGradient
-                  colors={['#C29BB8', '#8089B4']}
-                  style={styles.doneButtonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Text style={styles.doneButtonText}>{settingReminder ? 'Setting...' : 'Done'}</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
+            <ModalHeader
+              title={reminderTitle}
+              onDone={saveReminder}
+              loading={settingReminder}
+              loadingText="Setting..."
+            />
             
             <ScrollView style={styles.modalScrollContent}>
-              <Text style={styles.label}>Reminder Date</Text>
-              <TouchableOpacity 
-                style={styles.dateInput} 
-                onPress={() => {
-                  setShowReminderDatePicker(!showReminderDatePicker);
-                  setShowReminderTimePicker(false);
-                }}
-              >
-                <Text style={styles.dateText}>
-                  {reminderDate.toLocaleDateString()}
-                </Text>
-                <Ionicons name="calendar-outline" size={20} color="#5D5B8D" style={styles.calendarIcon} />
-              </TouchableOpacity>
+              <DatePickerField
+                label="Reminder Date"
+                value={reminderDate}
+                onChange={(date) => handleReminderDateChange({ type: 'set', nativeEvent: { timestamp: date.getTime() } }, date)}
+                minimumDate={new Date()}
+                mode="date"
+              />
               
-              {showReminderDatePicker && (
-                <DateTimePicker
-                  value={reminderDate}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={handleReminderDateChange}
-                  minimumDate={new Date()}
-                  style={Platform.OS === 'ios' ? styles.picker : undefined}
-                />
-              )}
+              <DatePickerField
+                label="Reminder Time"
+                value={reminderTime}
+                onChange={(date) => handleReminderTimeChange({ type: 'set', nativeEvent: { timestamp: date.getTime() } }, date)}
+                mode="time"
+              />
               
-              <Text style={styles.label}>Reminder Time</Text>
-              <TouchableOpacity 
-                style={styles.dateInput} 
-                onPress={() => {
-                  setShowReminderTimePicker(!showReminderTimePicker);
-                  setShowReminderDatePicker(false);
-                }}
-              >
-                <Text style={styles.dateText}>
-                  {reminderTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                </Text>
-                <Ionicons name="time-outline" size={20} color="#5D5B8D" style={styles.calendarIcon} />
-              </TouchableOpacity>
-              
-              {showReminderTimePicker && (
-                <DateTimePicker
-                  value={reminderTime}
-                  mode="time"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={handleReminderTimeChange}
-                  style={Platform.OS === 'ios' ? styles.picker : undefined}
-                />
-              )}
-              
-              <View style={styles.reminderInfoContainer}>
-                <Ionicons name="information-circle-outline" size={20} color="#5D5B8D" />
-                <Text style={styles.reminderInfoText}>
-                  {reminderMessage}
-                </Text>
-              </View>
+              <InfoCard
+                title="Reminder Info"
+                message={reminderMessage}
+                iconName="information-circle-outline"
+                style={styles.reminderInfoContainer}
+              />
             </ScrollView>
           </View>
         </View>
@@ -732,117 +704,73 @@ export default function TrackPalJobDetailsScreen() {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Job Application</Text>
-              <TouchableOpacity 
-                style={styles.doneButton}
-                onPress={saveChanges}
-              >
-                <LinearGradient
-                  colors={['#C29BB8', '#8089B4']}
-                  style={styles.doneButtonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Text style={styles.doneButtonText}>Done</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
+            <ModalHeader
+              title="Edit Job Application"
+              onDone={saveChanges}
+              loading={updating}
+              loadingText="Saving..."
+            />
 
             <ScrollView style={styles.modalScrollContent}>
               {editedApplication && (
                 <>
-                  <Text style={styles.label}>Job Title</Text>
-                  <TextInput
-                    style={styles.input}
+                  <FormInput
+                    label="Job Title"
                     value={editedApplication.jobTitle}
                     onChangeText={(text) => setEditedApplication({...editedApplication, jobTitle: text})}
                     placeholder="Enter job title"
+                    iconName="briefcase-outline"
+                    required
                   />
 
-                  <Text style={styles.label}>Company</Text>
-                  <TextInput
-                    style={styles.input}
+                  <FormInput
+                    label="Company"
                     value={editedApplication.company}
                     onChangeText={(text) => setEditedApplication({...editedApplication, company: text})}
                     placeholder="Enter company name"
+                    iconName="business-outline"
+                    required
                   />
 
-                  <Text style={styles.label}>Location</Text>
-                  <TextInput
-                    style={styles.input}
+                  <FormInput
+                    label="Location"
                     value={editedApplication.location}
                     onChangeText={(text) => setEditedApplication({...editedApplication, location: text})}
                     placeholder="Enter job location"
+                    iconName="location-outline"
                   />
 
-                  <Text style={styles.label}>
-                    {editedApplication.status === 'saved' ? 'Application Deadline' : 
-                     editedApplication.status === 'applied' ? 'Date Applied' : 
-                     editedApplication.status === 'interview' ? 'Interview Date' : 
-                     'Important Date'}
-                  </Text>
-                  <TouchableOpacity 
-                    style={styles.dateInput} 
-                    onPress={() => setShowDeadlinePicker(true)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={editedApplication.applicationDeadline ? styles.dateText : styles.placeholderText}>
-                      {editedApplication.applicationDeadline ? formatDate(new Date(editedApplication.applicationDeadline)) : 'mm/dd/yyyy'}
-                    </Text>
-                    <Ionicons name="calendar-outline" size={20} color="#5D5B8D" style={styles.calendarIcon} />
-                  </TouchableOpacity>
-
-                  {showDeadlinePicker && (
-                    <DateTimePicker
-                      value={editedApplication.applicationDeadline ? new Date(editedApplication.applicationDeadline) : new Date()}
-                      mode="date"
-                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                      onChange={handleDeadlineChange}
-                    />
-                  )}
+                  <DatePickerField
+                    label={editedApplication.status === 'saved' ? 'Application Deadline' : 
+                          editedApplication.status === 'applied' ? 'Date Applied' : 
+                          editedApplication.status === 'interview' ? 'Interview Date' : 
+                          'Important Date'}
+                    value={editedApplication.applicationDeadline ? new Date(editedApplication.applicationDeadline) : null}
+                    onChange={(date) => handleDeadlineChange({ type: 'set', nativeEvent: { timestamp: date.getTime() } }, date)}
+                    mode="date"
+                  />
 
                   <Text style={styles.label}>Status</Text>
-                  <TouchableOpacity 
-                    style={[styles.statusInput, { borderColor: getStatusColor(editedApplication.status) }]}
-                    onPress={showStatusActionSheet}
-                  >
-                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(editedApplication.status), marginRight: 10 }]}>
-                      <Text style={styles.statusText}>{formatStatusText(editedApplication.status)}</Text>
-                      {editedApplication.status === 'rejected' && <Ionicons name="close" size={14} color="#fff" style={{marginLeft: 4}} />}
-                      {editedApplication.status === 'accepted' && <Ionicons name="checkmark" size={14} color="#fff" style={{marginLeft: 4}} />}
-                    </View>
-                    <Ionicons name="chevron-down" size={20} color="#5D5B8D" />
-                  </TouchableOpacity>
+                  <StatusPicker
+                    status={editedApplication.status}
+                    onStatusChange={(status) => setEditedApplication({...editedApplication, status})}
+                  />
 
-                  <Text style={styles.label}>Follow-up Date</Text>
-                  <TouchableOpacity 
-                    style={styles.dateInput} 
-                    onPress={() => setShowFollowUpPicker(true)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={editedApplication.followUpDate ? styles.dateText : styles.placeholderText}>
-                      {editedApplication.followUpDate ? formatDate(new Date(editedApplication.followUpDate)) : 'mm/dd/yyyy'}
-                    </Text>
-                    <Ionicons name="calendar-outline" size={20} color="#5D5B8D" style={styles.calendarIcon} />
-                  </TouchableOpacity>
+                  <DatePickerField
+                    label="Follow-up Date"
+                    value={editedApplication.followUpDate ? new Date(editedApplication.followUpDate) : null}
+                    onChange={(date) => handleFollowUpChange({ type: 'set', nativeEvent: { timestamp: date.getTime() } }, date)}
+                    mode="date"
+                  />
 
-                  {showFollowUpPicker && (
-                    <DateTimePicker
-                      value={editedApplication.followUpDate ? new Date(editedApplication.followUpDate) : new Date()}
-                      mode="date"
-                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                      onChange={handleFollowUpChange}
-                    />
-                  )}
-
-                  <Text style={styles.label}>Notes</Text>
-                  <TextInput
-                    style={[styles.input, styles.notesInput]}
+                  <FormInput
+                    label="Notes"
                     value={editedApplication.notes}
                     onChangeText={(text) => setEditedApplication({...editedApplication, notes: text})}
                     placeholder="Add your notes here..."
                     multiline
+                    numberOfLines={4}
+                    iconName="document-text-outline"
                   />
                 </>
               )}
@@ -858,21 +786,17 @@ export default function TrackPalJobDetailsScreen() {
         animationType="slide"
         onRequestClose={() => setShowAndroidStatusPicker(false)}
       >
-        <View style={styles.androidStatusPickerContainer}>
+        <View style={styles.androidStatusPickerBackdrop}>
           <View style={styles.androidStatusPickerContent}>
             <Text style={styles.androidStatusPickerTitle}>Select Status</Text>
             
             {['saved', 'applied', 'interview', 'rejected', 'accepted'].map((status) => (
               <TouchableOpacity 
                 key={status}
-                style={[styles.androidStatusOption, { borderLeftColor: getStatusColor(status), borderLeftWidth: 4 }]}
+                style={styles.androidStatusOption}
                 onPress={() => handleAndroidStatusSelect(status)}
               >
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status), marginRight: 10 }]}>
-                  <Text style={styles.statusText}>{formatStatusText(status)}</Text>
-                  {status === 'rejected' && <Ionicons name="close" size={14} color="#fff" style={{marginLeft: 4}} />}
-                  {status === 'accepted' && <Ionicons name="checkmark" size={14} color="#fff" style={{marginLeft: 4}} />}
-                </View>
+                <StatusBadge status={status} />
               </TouchableOpacity>
             ))}
             
@@ -1027,7 +951,6 @@ const styles = StyleSheet.create({
     color: '#212529',
   },
   smartActionsContainer: {
-    backgroundColor: '#f8f9fa',
     borderRadius: 8,
   },
   smartAction: {
@@ -1086,10 +1009,12 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: '90%',
+    maxWidth: 500,
     maxHeight: '90%',
     backgroundColor: 'white',
     borderRadius: 10,
     padding: 20,
+    paddingHorizontal: Platform.OS === 'android' ? 15 : 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -1101,23 +1026,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
-  },
-  doneButton: {
-    overflow: 'hidden',
-    borderRadius: 20,
-    width: 75,
-    height: 36,
-  },
-  doneButtonGradient: {
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  doneButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
   },
   modalTitle: {
     fontSize: 20,
@@ -1213,9 +1121,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 8,
   },
-  androidStatusPickerContainer: {
+  androidStatusPickerBackdrop: {
     flex: 1,
+    flexDirection: 'column',
     justifyContent: 'flex-end',
+    alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   androidStatusPickerContent: {
@@ -1224,8 +1134,10 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     padding: 20,
     elevation: 5,
-    marginBottom: 0,
     paddingBottom: 30,
+    width: '100%',
+    position: 'absolute',
+    bottom: 0,
   },
   androidStatusPickerTitle: {
     fontSize: 18,
@@ -1242,6 +1154,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  androidStatusBadgeContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   androidStatusCancelButton: {
     marginTop: 10,
@@ -1275,5 +1193,15 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
     marginBottom: 15,
+  },
+  headerButtonContainer: {
+    marginRight: 10,
+  },
+  headerEditButton: {
+    height: 36,
+    minWidth: 100,
+    width: 100,
+    borderRadius: 18,
+    marginVertical: 0,
   }
 });
