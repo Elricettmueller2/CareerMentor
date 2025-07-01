@@ -8,7 +8,9 @@ const NOTIFICATION_PERMISSION_KEY = 'notification_permission_status';
 // Configure notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowAlert: true, // Keep for backward compatibility
+    shouldShowBanner: true, // New recommended property
+    shouldShowList: true,   // New recommended property
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),
