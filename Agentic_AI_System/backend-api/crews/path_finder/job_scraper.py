@@ -1,161 +1,171 @@
 import os
 import json
 import random
+import string
+import re
+import time
 import requests
 from bs4 import BeautifulSoup
-import time
 from typing import Dict, List, Any, Optional
 
-# Real implementation for scraping jobs from Google Jobs
-
-# Realistic job data for German tech companies
-GERMAN_COMPANIES = [
-    {"name": "SAP", "locations": ["Walldorf", "Berlin", "München", "Hamburg"], "domain": "sap.com"},
-    {"name": "Siemens", "locations": ["München", "Berlin", "Erlangen", "Nürnberg"], "domain": "siemens.com"},
-    {"name": "Deutsche Telekom", "locations": ["Bonn", "Berlin", "Darmstadt"], "domain": "telekom.de"},
-    {"name": "Bosch", "locations": ["Stuttgart", "Berlin", "München"], "domain": "bosch.com"},
-    {"name": "Volkswagen", "locations": ["Wolfsburg", "Berlin", "München"], "domain": "volkswagen.de"},
-    {"name": "BMW", "locations": ["München", "Berlin", "Leipzig"], "domain": "bmw.com"},
-    {"name": "Mercedes-Benz", "locations": ["Stuttgart", "Berlin", "Bremen"], "domain": "mercedes-benz.com"},
-    {"name": "Zalando", "locations": ["Berlin", "Dortmund", "Frankfurt"], "domain": "zalando.de"},
-    {"name": "HelloFresh", "locations": ["Berlin", "München", "Köln"], "domain": "hellofresh.de"},
-    {"name": "N26", "locations": ["Berlin", "Wien", "Barcelona"], "domain": "n26.com"},
-    {"name": "Celonis", "locations": ["München", "Berlin", "Frankfurt"], "domain": "celonis.com"},
-    {"name": "Personio", "locations": ["München", "Berlin", "Hamburg"], "domain": "personio.de"},
-    {"name": "SoundCloud", "locations": ["Berlin", "New York", "London"], "domain": "soundcloud.com"},
-    {"name": "FlixBus", "locations": ["München", "Berlin", "Hamburg"], "domain": "flixbus.de"},
-    {"name": "Auto1", "locations": ["Berlin", "München", "Hamburg"], "domain": "auto1-group.com"},
-    {"name": "Infineon", "locations": ["München", "Dresden", "Regensburg"], "domain": "infineon.com"},
-    {"name": "Delivery Hero", "locations": ["Berlin", "München", "Köln"], "domain": "deliveryhero.com"},
-    {"name": "Bayer", "locations": ["Leverkusen", "Berlin", "Köln"], "domain": "bayer.de"},
-    {"name": "Adidas", "locations": ["Herzogenaurach", "Berlin", "München"], "domain": "adidas.de"},
-    {"name": "BASF", "locations": ["Ludwigshafen", "Berlin", "München"], "domain": "basf.com"}
-]
-
-# Realistic job descriptions and requirements for software developers
-SOFTWARE_DEV_DESCRIPTIONS = [
-    "Wir suchen einen erfahrenen {0}, der unser agiles Entwicklungsteam verstärkt. Sie werden an innovativen Lösungen arbeiten, die unseren Kunden einen echten Mehrwert bieten.",
-    "Als {0} bei {1} werden Sie Teil eines dynamischen Teams, das an der Entwicklung skalierbarer und robuster Softwarelösungen arbeitet.",
-    "Wir suchen einen motivierten {0} mit Leidenschaft für Clean Code und moderne Entwicklungspraktiken. In dieser Rolle werden Sie maßgeblich an der Weiterentwicklung unserer Kernprodukte beteiligt sein.",
-    "Für unser wachsendes Technologieteam suchen wir einen {0}, der uns dabei hilft, unsere digitale Transformation voranzutreiben und innovative Lösungen zu entwickeln.",
-    "Als {0} bei {1} werden Sie an spannenden Projekten arbeiten und die Chance haben, mit den neuesten Technologien zu experimentieren und zu innovieren."
-]
-
-# Realistic skills and technologies for different job types
-TECH_SKILLS = {
-    "Software Entwickler": ["Java", "Spring Boot", "Microservices", "Docker", "Kubernetes", "REST APIs", "Git", "CI/CD", "Agile", "Scrum"],
-    "Frontend Entwickler": ["JavaScript", "TypeScript", "React", "Angular", "Vue.js", "HTML5", "CSS3", "SASS", "Webpack", "Jest"],
-    "Backend Entwickler": ["Java", "Spring Boot", "Python", "Django", "Node.js", "Express", "MongoDB", "PostgreSQL", "Redis", "RabbitMQ"],
-    "Full-Stack Entwickler": ["JavaScript", "TypeScript", "React", "Node.js", "MongoDB", "GraphQL", "Docker", "AWS", "Git", "CI/CD"],
-    "DevOps Engineer": ["Docker", "Kubernetes", "Terraform", "AWS", "Azure", "CI/CD", "Jenkins", "Ansible", "Prometheus", "Grafana"],
-    "Data Scientist": ["Python", "R", "SQL", "Machine Learning", "TensorFlow", "PyTorch", "Pandas", "NumPy", "Scikit-learn", "Jupyter"],
-    "Data Engineer": ["Python", "Spark", "Hadoop", "SQL", "NoSQL", "ETL", "Airflow", "Kafka", "AWS", "Databricks"],
-    "Cloud Engineer": ["AWS", "Azure", "GCP", "Terraform", "CloudFormation", "Kubernetes", "Docker", "CI/CD", "Python", "Bash"],
-    "Mobile Entwickler": ["Swift", "Kotlin", "Flutter", "React Native", "iOS", "Android", "Firebase", "REST APIs", "Git", "CI/CD"],
-    "QA Engineer": ["Selenium", "Cypress", "Jest", "JUnit", "TestNG", "Cucumber", "Postman", "JIRA", "Git", "CI/CD"]
-}
-
-# Helper functions for the mock implementation
-def generate_realistic_job(job_title: str, index: int, interest_points: List[str]) -> Dict[str, Any]:
-    """Generate a realistic job listing for German tech companies"""
-    # Bestimme den Job-Typ (Junior, Senior, etc.)
-    job_levels = ["", "Junior ", "Senior ", "Lead ", "Principal "]
-    job_level_weights = [0.4, 0.2, 0.3, 0.08, 0.02]  # Gewichtungen für realistische Verteilung
-    job_level = random.choices(job_levels, weights=job_level_weights)[0]
+# Helper functions for job scraping
+def calculate_match_score(job: Dict[str, Any], job_title: str, education_level: str, 
+                         years_experience: int, interest_points: List[str]) -> float:
+    """Calculate a match score for a job based on search criteria
     
-    # Wähle ein zufälliges Unternehmen
-    company = random.choice(GERMAN_COMPANIES)
-    company_name = company["name"]
-    location = random.choice(company["locations"]) + ", Deutschland"
-    domain = company["domain"]
-    
-    # Bestimme die erforderliche Erfahrung basierend auf dem Job-Level
-    if "Junior" in job_level:
-        experience_required = random.randint(0, 2)
-    elif "Senior" in job_level:
-        experience_required = random.randint(3, 7)
-    elif "Lead" in job_level or "Principal" in job_level:
-        experience_required = random.randint(5, 12)
-    else:
-        experience_required = random.randint(1, 5)
-    
-    # Bestimme den Bildungsabschluss
-    education_levels = ["Bachelor", "Master", "Diplom", "Ausbildung"]
-    education_weights = [0.5, 0.3, 0.15, 0.05]
-    education_required = random.choices(education_levels, weights=education_weights)[0]
-    
-    # Generiere ein realistisches Gehalt basierend auf Erfahrung und Position
-    base_salary = 45000
-    if "Junior" in job_level:
-        salary_min = base_salary + (experience_required * 3000)
-        salary_max = salary_min + random.randint(5000, 15000)
-    elif "Senior" in job_level:
-        salary_min = base_salary + 15000 + (experience_required * 4000)
-        salary_max = salary_min + random.randint(10000, 25000)
-    elif "Lead" in job_level or "Principal" in job_level:
-        salary_min = base_salary + 30000 + (experience_required * 5000)
-        salary_max = salary_min + random.randint(15000, 35000)
-    else:
-        salary_min = base_salary + (experience_required * 3500)
-        salary_max = salary_min + random.randint(8000, 20000)
-    
-    # Runde die Gehälter auf Tausender
-    salary_min = round(salary_min / 1000) * 1000
-    salary_max = round(salary_max / 1000) * 1000
-    
-    # Bestimme den Basis-Jobtitel ohne Präfixe wie "Junior", "Senior", etc.
-    base_job_title = job_title
-    
-    # Wähle passende Skills basierend auf dem Jobtitel und den Interessenpunkten
-    relevant_skills = []
-    if base_job_title in TECH_SKILLS:
-        # Nimm alle Skills für diesen Jobtitel
-        all_skills = TECH_SKILLS[base_job_title].copy()
+    Args:
+        job: Job listing dictionary
+        job_title: The job title from search criteria
+        education_level: Education level from search criteria
+        years_experience: Years of experience from search criteria
+        interest_points: List of interest points from search criteria
         
-        # Füge Interessenpunkte hinzu, wenn sie nicht bereits in den Skills enthalten sind
+    Returns:
+        A score between 0 and 100 indicating how well the job matches the criteria
+    """
+    score = 0.0
+    max_score = 100.0
+    
+    # Title match (max 30 points)
+    if job_title.lower() in job.get("title", "").lower():
+        score += 30.0
+    elif any(word.lower() in job.get("title", "").lower() for word in job_title.lower().split()):
+        score += 15.0
+    
+    # Experience match (max 20 points)
+    job_exp = job.get("experience_required", 0)
+    if isinstance(job_exp, (int, float)):
+        exp_diff = abs(job_exp - years_experience)
+        if exp_diff == 0:
+            score += 20.0
+        elif exp_diff <= 2:
+            score += 15.0
+        elif exp_diff <= 4:
+            score += 10.0
+        else:
+            score += 5.0
+    
+    # Education match (max 15 points)
+    job_edu = job.get("education_required", "").lower()
+    if education_level.lower() in job_edu:
+        score += 15.0
+    
+    # Interest points match (max 35 points)
+    if interest_points:
+        points_per_interest = 35.0 / len(interest_points)
         for point in interest_points:
-            if point not in all_skills and point.strip():
-                all_skills.append(point)
+            # Check if interest point is in job description or skills
+            if point.lower() in job.get("description", "").lower():
+                score += points_per_interest
+            elif any(point.lower() in skill.lower() for skill in job.get("skills", [])):
+                score += points_per_interest
+    
+    # Normalize score to be between 0 and 100
+    return min(score, max_score)
+
+def search_adzuna_jobs(query: str, location: str = "de", num_results: int = 100) -> List[Dict[str, Any]]:
+    """Search for jobs using the Adzuna API
+    
+    Args:
+        query: Search query (job title and keywords)
+        location: Location to search in (default: de for Germany)
+        num_results: Maximum number of results to return
         
-        # Wähle eine zufällige Teilmenge der Skills
-        num_skills = random.randint(4, 8)
-        relevant_skills = random.sample(all_skills, min(num_skills, len(all_skills)))
-    else:
-        # Fallback für unbekannte Jobtitel
-        generic_skills = ["Teamarbeit", "Kommunikation", "Problemlösung", "Analytisches Denken"]
-        relevant_skills = generic_skills + interest_points
-    
-    # Generiere eine realistische Beschreibung
-    description_template = random.choice(SOFTWARE_DEV_DESCRIPTIONS)
-    description = description_template.format(job_level + base_job_title, company_name)
-    
-    # Füge Details zu den erforderlichen Fähigkeiten hinzu
-    skills_text = "\n\nErforderliche Fähigkeiten:\n- " + "\n- ".join(relevant_skills)
-    
-    # Füge Details zu Erfahrung und Bildung hinzu
-    exp_edu_text = f"\n\nAnforderungen:\n- {experience_required}+ Jahre Erfahrung in der Softwareentwicklung\n- {education_required} in Informatik oder einem verwandten Bereich"
-    
-    full_description = description + skills_text + exp_edu_text
-    
-    # Generiere eine eindeutige Job-ID
-    job_id = f"job_{index}_{hash(company_name + job_level + base_job_title) % 10000}"
-    
-    # Erstelle das Job-Angebot
-    return {
-        "id": job_id,
-        "title": f"{job_level}{base_job_title}",
-        "company_name": company_name,
-        "location": location,
-        "description": full_description,
-        "requirements": f"{experience_required}+ Jahre Erfahrung, {education_required}",
-        "salary": f"€{salary_min // 1000}K - €{salary_max // 1000}K",
-        "application_link": f"https://karriere.{domain}/jobs/{job_id}",
-        "experience_required": experience_required,
-        "education_required": education_required,
-        "distance": random.randint(5, 50),
-        "source": "CareerMentor Database",
-        "skills": relevant_skills
-    }
+    Returns:
+        List of job listings
+    """
+    try:
+        # Get API credentials from environment variables or use defaults for development
+        app_id = os.environ.get("ADZUNA_APP_ID", "YOUR_APP_ID_HERE")
+        api_key = os.environ.get("ADZUNA_API_KEY", "YOUR_API_KEY_HERE")
+        
+        # Construct the Adzuna API URL
+        base_url = f"https://api.adzuna.com/v1/api/jobs/{location}/search/1"
+        
+        params = {
+            "app_id": app_id,
+            "app_key": api_key,
+            "results_per_page": min(num_results, 100),  # API limit is 100 per page
+            "what": query,
+            "content-type": "application/json"
+        }
+        
+        print(f"Searching Adzuna jobs for query: '{query}' in {location}")
+        response = requests.get(base_url, params=params)
+        
+        if response.status_code != 200:
+            print(f"Error: Adzuna API returned status code {response.status_code}")
+            print(f"Response: {response.text}")
+            return []
+        
+        data = response.json()
+        
+        if "results" not in data:
+            print("Error: No results found in Adzuna API response")
+            return []
+        
+        jobs = []
+        for job_data in data["results"]:
+            # Extract job details
+            job_id = job_data.get("id", "")
+            title = job_data.get("title", "")
+            company = job_data.get("company", {}).get("display_name", "Unbekanntes Unternehmen")
+            description = job_data.get("description", "")
+            location = job_data.get("location", {}).get("display_name", "")
+            
+            # Extract salary if available
+            salary_min = job_data.get("salary_min", 0)
+            salary_max = job_data.get("salary_max", 0)
+            salary = ""
+            if salary_min > 0 and salary_max > 0:
+                salary = f"€{int(salary_min // 1000)}K - €{int(salary_max // 1000)}K"
+            
+            # Extract application link
+            application_link = job_data.get("redirect_url", "")
+            
+            # Create standardized job object
+            job = {
+                "id": job_id,
+                "title": title,
+                "company_name": company,
+                "location": location,
+                "description": description,
+                "requirements": "",  # Adzuna doesn't provide structured requirements
+                "salary": salary,
+                "application_link": application_link,
+                "experience_required": 0,  # Not provided by Adzuna
+                "education_required": "",  # Not provided by Adzuna
+                "distance": 0,  # Not provided by Adzuna
+                "source": "Adzuna",
+                "skills": []  # Not provided by Adzuna
+            }
+            
+            # Try to extract experience and education from description
+            if "erfahrung" in description.lower():
+                # Look for patterns like "3 Jahre Erfahrung" or "3+ Jahre Erfahrung"
+                exp_match = re.search(r'(\d+)(?:\+)?\s*(?:jahre|jahr)\s*erfahrung', description.lower())
+                if exp_match:
+                    job["experience_required"] = int(exp_match.group(1))
+            
+            if any(edu in description.lower() for edu in ["bachelor", "master", "diplom", "ausbildung", "studium"]):
+                for edu in ["bachelor", "master", "diplom", "ausbildung", "studium"]:
+                    if edu in description.lower():
+                        job["education_required"] = edu.capitalize()
+                        break
+            
+            # Try to extract skills from description
+            common_skills = ["python", "java", "javascript", "react", "angular", "vue", "node", "sql", 
+                            "aws", "azure", "docker", "kubernetes", "git", "agile", "scrum"]
+            job["skills"] = [skill for skill in common_skills if skill in description.lower()]
+            
+            jobs.append(job)
+        
+        print(f"Found {len(jobs)} jobs from Adzuna")
+        return jobs
+        
+    except Exception as e:
+        print(f"Error in Adzuna job search: {e}")
+        return []
 
 def scrape_indeed_jobs(query: str, location: str = "Germany", num_results: int = 100) -> List[Dict[str, Any]]:
     """Scrape job listings from Indeed
@@ -375,6 +385,23 @@ def search_jobs_online(job_title: str, education_level: str, years_experience: i
     # Sammle alle Jobs von verschiedenen Quellen
     all_jobs = []
     
+    # Try to search jobs from Adzuna API
+    try:
+        # Build search query with job title and interest points
+        query = job_title
+        if interest_points:
+            # Add top 2 interest points to the query
+            query += " " + " ".join(interest_points[:2])
+        
+        # Search jobs from Adzuna
+        adzuna_jobs = search_adzuna_jobs(query, "de", limit)
+        
+        if adzuna_jobs:
+            print(f"Successfully found {len(adzuna_jobs)} jobs from Adzuna")
+            all_jobs.extend(adzuna_jobs)
+    except Exception as e:
+        print(f"Error in Adzuna job search: {e}")
+    
     # Try to scrape jobs from Indeed
     try:
         # Build search query with job title and interest points
@@ -409,11 +436,20 @@ def search_jobs_online(job_title: str, education_level: str, years_experience: i
     except Exception as e:
         print(f"Error in LinkedIn job scraping: {e}")
     
-    # Wenn wir genügend echte Jobs haben, verwende diese
-    # Deaktiviert für jetzt, um immer Mock-Jobs zu verwenden
-    use_real_jobs = False  # Ändern Sie dies auf True, um echte Jobs zu verwenden, wenn verfügbar
-    if use_real_jobs and all_jobs and len(all_jobs) >= 5:
+    # Wenn wir Jobs gefunden haben
+    if all_jobs:
         print(f"Using {len(all_jobs)} real job listings")
+        
+        # Füge Match-Score hinzu, basierend auf den Suchkriterien
+        for job in all_jobs:
+            match_score = calculate_match_score(job, job_title, education_level, years_experience, interest_points)
+            job["match_score"] = match_score
+        
+        # Sortiere nach Match-Score (absteigend)
+        all_jobs.sort(key=lambda x: x.get("match_score", 0), reverse=True)
+        
+        # Begrenze die Anzahl der zurückgegebenen Jobs
+        all_jobs = all_jobs[:limit]
         
         # Create the response with real jobs
         response = {
@@ -425,70 +461,20 @@ def search_jobs_online(job_title: str, education_level: str, years_experience: i
             "count": len(all_jobs),
             "jobs": all_jobs
         }
+    else:
+        # Keine Jobs gefunden - Fehlermeldung zurückgeben
+        print("No jobs found. Returning error message.")
         
-        return response
-    
-    # Fallback to realistic job data if scraping fails or returns too few results
-    print("Generating realistic job listings...")
-    
-    # Bestimme die Anzahl der zu generierenden Jobs basierend auf den Suchkriterien
-    # Mehr spezifische Kriterien = weniger Jobs (realistischer)
-    base_job_count = 25
-    specificity_factor = 1.0
-    
-    # Reduziere die Anzahl der Jobs, wenn spezifische Kriterien angegeben sind
-    if years_experience > 5:
-        specificity_factor *= 0.8  # Weniger Jobs für hohe Erfahrung
-    if education_level in ["Master", "PhD"]:
-        specificity_factor *= 0.9  # Weniger Jobs für höhere Bildungsabschlüsse
-    if len(interest_points) > 2:
-        specificity_factor *= 0.9  # Weniger Jobs bei sehr spezifischen Interessen
-    
-    # Berechne die finale Anzahl der Jobs
-    num_jobs = max(5, int(base_job_count * specificity_factor))
-    
-    # Generiere die realistischen Job-Angebote
-    mock_jobs = []
-    for i in range(num_jobs):
-        # Erstelle ein realistisches Job-Angebot
-        job = generate_realistic_job(job_title, i+1, interest_points)
-        mock_jobs.append(job)
-    
-    # Sortiere Jobs nach Relevanz (basierend auf Übereinstimmung mit Interessenpunkten)
-    def calculate_relevance(job):
-        relevance = 0
-        # Prüfe, ob die Interessenpunkte in den Skills oder der Beschreibung vorkommen
-        for point in interest_points:
-            if point in job.get("skills", []):
-                relevance += 3  # Hohe Relevanz für direkte Skill-Übereinstimmung
-            if point.lower() in job["description"].lower():
-                relevance += 1  # Niedrigere Relevanz für Erwähnung in der Beschreibung
-        
-        # Berücksichtige auch die Erfahrung
-        exp_diff = abs(job["experience_required"] - years_experience)
-        relevance -= min(exp_diff, 5)  # Reduziere Relevanz bei großer Erfahrungsdifferenz
-        
-        return relevance
-    
-    # Sortiere die Jobs nach Relevanz (absteigend)
-    if interest_points:
-        mock_jobs.sort(key=calculate_relevance, reverse=True)
-    
-    print(f"Generated {len(mock_jobs)} realistic job listings")
-    for i, job in enumerate(mock_jobs[:3]):
-        print(f"Sample job {i+1}: {job['title']} at {job['company_name']} in {job['location']}")
-    
-    
-    # Create the response with mock jobs
-    response = {
-        "job_title": job_title,
-        "education_level": education_level,
-        "years_experience": years_experience,
-        "location_radius": location_radius,
-        "interest_points": interest_points,
-        "count": len(mock_jobs),
-        "jobs": mock_jobs
-    }
+        response = {
+            "job_title": job_title,
+            "education_level": education_level,
+            "years_experience": years_experience,
+            "location_radius": location_radius,
+            "interest_points": interest_points,
+            "count": 0,
+            "jobs": [],
+            "error": "Leider konnten keine Jobs gefunden werden."
+        }
     
     return response
 

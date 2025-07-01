@@ -9,12 +9,18 @@ export const API_BASE_URLS = {
   // For Android emulator
   emulator: 'http://10.0.2.2:8000',
   
+  // For Docker container access
+  docker: 'http://host.docker.internal:8000',
+  
   // For physical devices (adjust IP to your computer's IP)
-  device: 'http://192.168.1.218:8000'
+  device: 'http://192.168.1.218:8000',
+  
+  // Fallback to localhost with standard port
+  fallback: 'http://127.0.0.1:8000'
 };
 
-// Default API base URL - use device URL for production
-export const DEFAULT_API_BASE_URL = API_BASE_URLS.device;
+// Default API base URL - use localhost for development
+export const DEFAULT_API_BASE_URL = API_BASE_URLS.localhost;
 
 // API endpoints for different services
 export const API_ENDPOINTS = {
@@ -69,4 +75,10 @@ export const getApiUrl = (endpoint: string, params?: Record<string, string>): st
   }
   
   return url;
+};
+
+// Helper function to get all possible API URLs for a specific endpoint
+// This is useful for the fallback mechanism in the app
+export const getAllApiUrls = (endpoint: string): string[] => {
+  return Object.values(API_BASE_URLS).map(baseUrl => `${baseUrl}${endpoint}`);
 };

@@ -5,7 +5,9 @@ from typing import List, Optional
 from pydantic import BaseModel
 from typing import Dict, Any
 import os
+from datetime import datetime
 from dotenv import load_dotenv
+from services.mongodb.client import mongo_client
 
 # Import crew functions
 from crews.mock_mate.run_mock_mate_crew import run_respond_to_answer, run_start_interview, run_review_interview
@@ -253,9 +255,38 @@ async def path_finder_search_jobs(request: AgentRequest):
             user_id=user_id,
             limit=limit
         )
+        
+        # Speichere die Suchergebnisse in der MongoDB
+        try:
+            # Hole die job_searches Collection
+            job_searches_collection = mongo_client.get_collection("job_searches")
+            
+            # Erstelle ein Dokument für die Suche
+            search_document = {
+                "user_id": user_id,
+                "search_criteria": {
+                    "job_title": job_title,
+                    "degree": degree,
+                    "hard_skills_rating": hard_skills_rating,
+                    "soft_skills_rating": soft_skills_rating,
+                    "interests": interests,
+                    "limit": limit
+                },
+                "results": result,
+                "timestamp": datetime.now()
+            }
+            
+            # Füge das Dokument in die Collection ein
+            job_searches_collection.insert_one(search_document)
+            print(f"Suchergebnisse für User {user_id} in MongoDB gespeichert")
+        except Exception as db_error:
+            print(f"Fehler beim Speichern der Suchergebnisse in MongoDB: {str(db_error)}")
+            # Wir werfen hier keine Exception, damit die API trotzdem funktioniert, auch wenn das Speichern fehlschlägt
+        
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+
 
 @app.get("/agents/path_finder/job/{job_id}", tags=["Agents", "PathFinder"])
 async def path_finder_get_job(job_id: str, user_id: str = "default_user"):

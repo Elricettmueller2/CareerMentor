@@ -28,3 +28,79 @@ docker logs career-mentor-backend-container
 
 
 npx expo start
+
+
+
+Azim v2:
+
+
+1. Überprüfen Sie, ob Docker läuft:
+
+docker --version
+
+
+2. Bestehende Container überprüfen und stoppen (falls vorhanden)
+bash
+# Überprüfen Sie laufende Container
+docker ps
+
+# Stoppen Sie den Backend-Container, falls er läuft
+docker stop career-mentor-backend-container
+
+# Entfernen Sie den alten Container
+docker rm career-mentor-backend-container
+
+
+
+3. Backend-Image bauen
+bash
+# Navigieren Sie zum Backend-Verzeichnis (falls nötig)
+cd /Users/azimalizada/Documents/Uni/Sem4/MA/CareerMentor/Agentic_AI_System/backend-api
+
+# Bauen Sie das Backend-Image
+docker build -t career-mentor-backend:latest .
+
+
+
+4. Backend-Container starten
+bash
+# Starten Sie den Backend-Container
+docker run -d -p 8000:8000 --name career-mentor-backend-container career-mentor-backend:latest
+
+
+
+5. Überprüfen Sie die Logs, um sicherzustellen, dass alles funktioniert
+bash
+docker logs career-mentor-backend-container
+
+
+
+6. MongoDB-Verbindung (falls benötigt)
+Wenn Sie auch MongoDB benötigen:
+
+bash
+# MongoDB-Container starten (falls noch nicht vorhanden)
+docker run -d --name career-mentor-mongodb -p 27017:27017 mongo:latest
+
+
+
+7. Fortgeschrittene Konfiguration (optional)
+Wenn Sie Umgebungsvariablen für die MongoDB-Verbindung anpassen möchten:
+
+bash
+docker run -d --name career-mentor-backend-container -p 8000:8000 \
+  -e MONGO_URI=mongodb://host.docker.internal:27017 \
+  -e MONGO_DB_NAME=career-mentor \
+  --add-host=host.docker.internal:host-gateway \
+  career-mentor-backend:latest
+
+
+
+8. Frontend starten (falls benötigt)
+Nachdem das Backend läuft, können Sie das Frontend starten:
+
+bash
+cd /Users/azimalizada/Documents/Uni/Sem4/MA/CareerMentor/Agentic_AI_System/mobile-app/CareerMentor
+npx expo start
+
+

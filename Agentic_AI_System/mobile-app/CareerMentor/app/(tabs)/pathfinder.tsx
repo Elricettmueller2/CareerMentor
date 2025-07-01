@@ -3,9 +3,50 @@ import { View, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndi
 import { Text } from '@/components/Themed';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import Slider from '@react-native-community/slider';
 import * as Location from 'expo-location';
-import { DEFAULT_API_BASE_URL, API_ENDPOINTS, getApiUrl } from '../../config/api';
+import { DEFAULT_API_BASE_URL, API_ENDPOINTS, getApiUrl, getAllApiUrls } from '../../config/api';
+
+// Typendefinition für die Slider-Props
+type CustomSliderProps = {
+  value: number;
+  minimumValue?: number;
+  maximumValue?: number;
+  step?: number;
+  onValueChange?: (value: number) => void;
+  style?: any;
+  minimumTrackTintColor?: string;
+  maximumTrackTintColor?: string;
+  thumbTintColor?: string;
+};
+
+// Web-kompatible Slider-Komponente
+const CustomSlider = (props: CustomSliderProps) => {
+  // Verwende Platform.OS um zu prüfen, ob wir auf Web sind
+  if (Platform.OS === 'web') {
+    return (
+      <input
+        type="range"
+        value={props.value}
+        min={props.minimumValue || 0}
+        max={props.maximumValue || 100}
+        step={props.step || 1}
+        onChange={(e) => props.onValueChange && props.onValueChange(parseFloat(e.target.value))}
+        style={{
+          width: '100%',
+          height: 40,
+          accentColor: '#2f95dc',
+          cursor: 'pointer',
+          ...props.style
+        }}
+      />
+    );
+  } else {
+    // Für native Plattformen importiere den nativen Slider dynamisch
+    // Dies verhindert Probleme beim Web-Build
+    const NativeSlider = require('@react-native-community/slider').default;
+    return <NativeSlider {...props} />;
+  }
+};
 
 export default function PathFinderScreen() {
   const router = useRouter();
@@ -171,40 +212,75 @@ export default function PathFinderScreen() {
 
     try {
       console.log('Searching for jobs with criteria:', searchCriteria);
-      console.log('API endpoint:', getApiUrl(API_ENDPOINTS.pathFinder.search));
-      console.log('Request body:', JSON.stringify({ data: searchCriteria }));
       
-      // Verwende die richtige API-Route für die Jobsuche
-    const response = await fetch(getApiUrl(API_ENDPOINTS.pathFinder.search), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: searchCriteria }), 
-      });
+      // Verwende die getAllApiUrls-Funktion, um alle möglichen API-URLs zu erhalten
+      const apiUrls = getAllApiUrls(API_ENDPOINTS.pathFinder.search);
       
-      console.log('Response status:', response.status);
-      console.log('Response headers:', JSON.stringify(Object.fromEntries([...response.headers])));
+      let lastError = null;
+      let successfulUrl = null;
       
-      if (!response.ok) {
-        console.error('Error response:', response.status, response.statusText);
-        const errorText = await response.text();
-        console.error('Error details:', errorText);
-        throw new Error(`API error: ${response.status} - ${errorText}`);
+      // Versuche nacheinander alle URLs
+      for (const url of apiUrls) {
+        try {
+          console.log(`Versuche API-URL: ${url}`);
+          
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: searchCriteria }),
+          });
+          
+          console.log(`URL ${url} gab Status ${response.status} zurück`);
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Fehler mit URL ${url}:`, errorText);
+            continue; // Versuche die nächste URL
+          }
+          
+          const responseText = await response.text();
+          console.log('Raw response text:', responseText);
+          
+          try {
+            const data = JSON.parse(responseText);
+            console.log('Parsed search results:', data);
+            
+            // Überprüfe verschiedene mögliche Antwortformate
+            if (data && data.top_jobs && Array.isArray(data.top_jobs)) {
+              console.log('Ergebnisse gefunden in data.top_jobs');
+              setResults(data.top_jobs);
+              successfulUrl = url;
+              break;
+            } else if (data && Array.isArray(data)) {
+              console.log('Ergebnisse gefunden als Array');
+              setResults(data);
+              successfulUrl = url;
+              break;
+            } else if (data && data.jobs && Array.isArray(data.jobs)) {
+              console.log('Ergebnisse gefunden in data.jobs');
+              setResults(data.jobs);
+              successfulUrl = url;
+              break;
+            } else {
+              console.warn('Unerwartetes Antwortformat:', data);
+              // Versuche die nächste URL
+            }
+          } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            // Versuche die nächste URL
+          }
+        } catch (error: any) {
+          console.error(`Fehler mit URL ${url}:`, error);
+          lastError = error;
+          // Versuche die nächste URL
+        }
       }
       
-      const responseText = await response.text();
-      console.log('Raw response text:', responseText);
-      
-      let data;
-      try {
-        data = JSON.parse(responseText);
-        console.log('Parsed search results:', data);
-        console.log('Jobs array:', data.top_jobs);
-        console.log('Jobs array type:', Array.isArray(data.top_jobs) ? 'Array' : typeof data.top_jobs);
-        console.log('Jobs array length:', data.top_jobs ? data.top_jobs.length : 'undefined');
-        setResults(Array.isArray(data.top_jobs) ? data.top_jobs : []);
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        throw new Error(`Failed to parse response: ${responseText}`);
+      if (successfulUrl) {
+        console.log(`Suche erfolgreich mit URL: ${successfulUrl}`);
+      } else {
+        // Wenn wir hier ankommen, haben alle URLs fehlgeschlagen
+        throw new Error(lastError ? lastError.message : 'Keine Verbindung zum Server möglich');
       }
     } catch (err: any) {
       console.error('Search error:', err);
@@ -317,7 +393,7 @@ export default function PathFinderScreen() {
         <View style={styles.sliderContainer}>
           <Text style={styles.inputLabel}>Job Erfahrung (Jahre)</Text>
           <View style={styles.sliderValueContainer}>
-            <Slider
+            <CustomSlider
               style={styles.slider}
               minimumValue={0}
               maximumValue={10}
@@ -335,7 +411,7 @@ export default function PathFinderScreen() {
         <View style={styles.sliderContainer}>
           <Text style={styles.inputLabel}>Entfernung (km)</Text>
           <View style={styles.sliderValueContainer}>
-            <Slider
+            <CustomSlider
               style={styles.slider}
               minimumValue={10}
               maximumValue={200}
