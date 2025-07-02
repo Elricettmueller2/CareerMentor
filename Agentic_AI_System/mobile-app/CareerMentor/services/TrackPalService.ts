@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const API_URLS = {
   emulator: 'http://10.0.2.2:8000/agents/track_pal', // Android emulator
   localhost: 'http://localhost:8000/agents/track_pal', // iOS simulator or web
-  device: 'http://192.168.1.100:8000/agents/track_pal' // Adjust this IP to your computer's IP when testing on physical device
+  device: 'http://192.168.1.218:8000/agents/track_pal' // Adjust this IP to your computer's IP when testing on physical device
 };
 
 // Default to localhost, but you can change this based on your environment
