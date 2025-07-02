@@ -1,37 +1,34 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL, API_FALLBACK_URLS } from '../constants/ApiEndpoints';
 
-// API base URLs - try different options based on environment
-const API_URLS = {
-  emulator: 'http://10.0.2.2:8000/agents/track_pal', // Android emulator
-  localhost: 'http://localhost:8000/agents/track_pal', // iOS simulator or web
-  device: 'http://192.168.1.218:8000/agents/track_pal' // Adjust this IP to your computer's IP when testing on physical device
-};
-
-// Default to localhost, but you can change this based on your environment
-let API_BASE_URL = API_URLS.localhost;
+// Using API_BASE_URL and API_FALLBACK_URLS from ApiEndpoints.ts
+// This ensures we're using the same URLs that are updated by the start_careermentor.sh script
+// We'll append the TrackPal endpoint path when making API calls
 
 // Helper function to try different API URLs if one fails
 const tryAPIUrls = async (apiCall: (url: string) => Promise<any>): Promise<any> => {
+  // Create the full URL with the TrackPal endpoint path
+  const baseUrl = `${API_BASE_URL}/agents/track_pal`;
+  
   // Try the current API URL first
   try {
-    return await apiCall(API_BASE_URL);
+    return await apiCall(baseUrl);
   } catch (error: any) {
-    console.log(`Failed with URL ${API_BASE_URL}: ${error.message}`);
+    console.log(`Failed with URL ${baseUrl}: ${error.message}`);
     
-    // If that fails, try other URLs
-    for (const [key, url] of Object.entries(API_URLS)) {
-      if (url === API_BASE_URL) continue; // Skip the one we already tried
+    // If that fails, try fallback URLs from ApiEndpoints.ts
+    for (const url of API_FALLBACK_URLS) {
+      const fallbackUrl = `${url}/agents/track_pal`;
+      if (fallbackUrl === baseUrl) continue; // Skip the one we already tried
       
       try {
-        console.log(`Trying alternative URL: ${url}`);
-        const result = await apiCall(url);
-        // If successful, update the default URL for future calls
-        API_BASE_URL = url;
-        console.log(`Success with URL ${url}, updating default`);
+        console.log(`Trying alternative URL: ${fallbackUrl}`);
+        const result = await apiCall(fallbackUrl);
+        console.log(`Success with URL ${fallbackUrl}`);
         return result;
       } catch (innerError: any) {
-        console.log(`Failed with URL ${url}: ${innerError.message}`);
+        console.log(`Failed with URL ${fallbackUrl}: ${innerError.message}`);
         // Continue to the next URL
       }
     }

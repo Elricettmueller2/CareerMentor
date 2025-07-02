@@ -27,7 +27,7 @@ import InterviewProgress from '@/components/interview/InterviewProgress';
 // Import types
 import { InterviewMessage, InterviewSetupData } from '@/types/interview';
 
-const API_BASE_URL = 'http://localhost:8000';
+import { API_BASE_URL } from '../../constants/ApiEndpoints';
 
 // Define interface for parsed interview responses
 interface ParsedInterviewResponse {

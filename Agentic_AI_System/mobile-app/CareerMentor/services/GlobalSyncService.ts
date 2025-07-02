@@ -1,5 +1,6 @@
 import axios from 'axios';
 import GlobalState, { GlobalState as GlobalStateType } from './GlobalStateService';
+import { API_BASE_URL, API_FALLBACK_URLS } from '../constants/ApiEndpoints';
 
 /**
  * GlobalSyncService - Service for syncing the global state between frontend and backend
@@ -8,17 +9,8 @@ import GlobalState, { GlobalState as GlobalStateType } from './GlobalStateServic
  * It uses the GlobalStateService to access the frontend state and the backend API to sync with the backend.
  */
 
-// API base URLs - try different options based on environment
-const API_URLS = {
-  emulator: 'http://10.0.2.2:8000', // Android emulator
-  localhost: 'http://localhost:8000', // iOS simulator or web
-  device: 'http://192.168.178.28:8000', // Your local network IP
-  dockerHost: 'http://host.docker.internal:8000', // Docker host internal address
-  containerName: 'http://career-mentor-backend-container:8000' // Docker container name
-};
-
-// Default to localhost, but you can change this based on your environment
-let API_BASE_URL = API_URLS.localhost;
+// Using API_BASE_URL and API_FALLBACK_URLS from ApiEndpoints.ts
+// This ensures we're using the same URLs that are updated by the start_careermentor.sh script
 
 // Helper function to try different API URLs if one fails
 const tryAPIUrls = async (apiCall: (url: string) => Promise<any>): Promise<any> => {
@@ -28,16 +20,14 @@ const tryAPIUrls = async (apiCall: (url: string) => Promise<any>): Promise<any> 
   } catch (error: any) {
     console.log(`Failed with URL ${API_BASE_URL}: ${error.message}`);
     
-    // If that fails, try other URLs
-    for (const [key, url] of Object.entries(API_URLS)) {
+    // If that fails, try fallback URLs from ApiEndpoints.ts
+    for (const url of API_FALLBACK_URLS) {
       if (url === API_BASE_URL) continue; // Skip the one we already tried
       
       try {
         console.log(`Trying alternative URL: ${url}`);
         const result = await apiCall(url);
-        // If successful, update the default URL for future calls
-        API_BASE_URL = url;
-        console.log(`Success with URL ${url}, updating default`);
+        console.log(`Success with URL ${url}`);
         return result;
       } catch (innerError: any) {
         console.log(`Failed with URL ${url}: ${innerError.message}`);

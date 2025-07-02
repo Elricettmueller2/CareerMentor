@@ -8,8 +8,7 @@ import ReviewCard from '@/components/interview/ReviewCard';
 import { Ionicons } from '@expo/vector-icons';
 import { shareInterviewReview, captureAndShareScreenshot, ViewShotRef } from '@/utils/shareUtils';
 import ViewShot from 'react-native-view-shot';
-
-const API_BASE_URL = 'http://localhost:8000';
+import { API_BASE_URL } from '@/constants/ApiEndpoints';
 
 const InterviewReviewScreen = () => {
   const { sessionId, interviewType } = useLocalSearchParams();

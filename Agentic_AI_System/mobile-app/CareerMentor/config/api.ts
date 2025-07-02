@@ -1,26 +1,23 @@
 // API configuration for the CareerMentor app
 // This file centralizes all API URLs and can be easily updated for different environments
 
-// Base URLs for different environments
+import { API_BASE_URL, API_FALLBACK_URLS } from '../constants/ApiEndpoints';
+
+// Base URLs for different environments - now using ngrok URL as primary
 export const API_BASE_URLS = {
-  // For iOS simulator or web
-  localhost: 'http://localhost:8000',
+  // Primary URL from ApiEndpoints.ts (ngrok)
+  primary: API_BASE_URL,
   
-  // For Android emulator
-  emulator: 'http://10.0.2.2:8000',
-  
-  // For Docker container access
-  docker: 'http://host.docker.internal:8000',
-  
-  // For physical devices (adjust IP to your computer's IP)
-  device: 'http://192.168.1.218:8000',
-  
-  // Fallback to localhost with standard port
-  fallback: 'http://127.0.0.1:8000'
+  // Legacy URLs kept for backward compatibility but redirected to ngrok
+  localhost: API_BASE_URL,
+  emulator: API_BASE_URL,
+  docker: API_BASE_URL,
+  device: API_BASE_URL,
+  fallback: API_BASE_URL
 };
 
-// Default API base URL - use localhost for development
-export const DEFAULT_API_BASE_URL = API_BASE_URLS.localhost;
+// Default API base URL - use the one from ApiEndpoints.ts
+export const DEFAULT_API_BASE_URL = API_BASE_URL;
 
 // API endpoints for different services
 export const API_ENDPOINTS = {
@@ -80,5 +77,6 @@ export const getApiUrl = (endpoint: string, params?: Record<string, string>): st
 // Helper function to get all possible API URLs for a specific endpoint
 // This is useful for the fallback mechanism in the app
 export const getAllApiUrls = (endpoint: string): string[] => {
-  return Object.values(API_BASE_URLS).map(baseUrl => `${baseUrl}${endpoint}`);
+  // Use the API_FALLBACK_URLS directly from ApiEndpoints.ts
+  return API_FALLBACK_URLS.map(baseUrl => `${baseUrl}${endpoint}`);
 };

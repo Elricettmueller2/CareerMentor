@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../constants/ApiEndpoints';
 // Define minimal RxJS types to avoid dependency
 interface Observer<T> {
   next: (value: T) => void;
@@ -203,11 +204,11 @@ const initialState: GlobalState = {
     isOnline: true,
     lastSyncTime: null,
     apiEndpoints: {
-      base: 'http://localhost:8000',
-      mockMate: 'http://localhost:8000/agents/mock_mate',
-      trackPal: 'http://localhost:8000/agents/track_pal',
-      pathFinder: 'http://localhost:8000/agents/path_finder',
-      resumeRefiner: 'http://localhost:8000/agents/resume_refiner',
+      base: API_BASE_URL,
+      mockMate: `${API_BASE_URL}/agents/mock_mate`,
+      trackPal: `${API_BASE_URL}/agents/track_pal`,
+      pathFinder: `${API_BASE_URL}/agents/path_finder`,
+      resumeRefiner: `${API_BASE_URL}/agents/resume_refiner`,
     },
   },
 };

@@ -2,9 +2,11 @@
 import os
 import sys
 import time
-import json
 import subprocess
+import json
+import signal
 import requests
+import threading
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -150,31 +152,94 @@ def start_ngrok():
 def start_fastapi_server():
     """Start the FastAPI server using uvicorn"""
     print("Starting FastAPI server...")
+    print(f"Binding to host: {API_HOST} and port: {API_PORT}")
     
     # Use the same host and port from environment variables
-    cmd = ["uvicorn", "main:app", "--host", API_HOST, "--port", str(API_PORT)]
+    # Add --reload flag to automatically reload on changes
+    cmd = ["uvicorn", "main:app", "--host", API_HOST, "--port", str(API_PORT), "--log-level", "debug"]
     
-    # Execute the command (this will block until the server exits)
-    os.execvp(cmd[0], cmd)
+    print(f"Running command: {' '.join(cmd)}")
+    
+    # Use subprocess instead of execvp to avoid replacing the current process
+    try:
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,  # Line buffered
+        )
+        
+        # Create threads to continuously read and print output from uvicorn
+        def read_output(stream, prefix):
+            for line in stream:
+                print(f"{prefix}: {line.strip()}")
+                
+        stdout_thread = threading.Thread(target=read_output, args=(process.stdout, "UVICORN"))
+        stderr_thread = threading.Thread(target=read_output, args=(process.stderr, "UVICORN ERROR"))
+        
+        stdout_thread.daemon = True
+        stderr_thread.daemon = True
+        
+        stdout_thread.start()
+        stderr_thread.start()
+        
+        # Wait a moment for the server to start
+        time.sleep(5)
+        
+        # Check if the process is still running
+        if process.poll() is None:
+            print("FastAPI server started successfully")
+            return process
+        else:
+            stdout, stderr = process.communicate()
+            print(f"ERROR: FastAPI server failed to start with code {process.returncode}")
+            print(f"stdout: {stdout}")
+            print(f"stderr: {stderr}")
+            return None
+    except Exception as e:
+        print(f"ERROR: Failed to start FastAPI server: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
 
 def main():
-    # Start ngrok and get the public URL
+    # Start FastAPI server first
+    fastapi_process = start_fastapi_server()
+    
+    if not fastapi_process:
+        print("ERROR: Failed to start FastAPI server. Exiting.")
+        return
+    
+    # Then start ngrok and get the public URL
     ngrok_url = start_ngrok()
     
     if ngrok_url:
-        print(f"\n\n=== IMPORTANT ===")
-        print(f"NGROK URL: {ngrok_url}")
-        print(f"Please manually update your mobile app's API endpoints with this URL")
-        print(f"File: mobile-app/CareerMentor/constants/ApiEndpoints.ts")
-        print(f"=================\n\n")
+        print(f"\n\n=== IMPORTANT ===\nNGROK URL: {ngrok_url}\nPlease manually update your mobile app's API endpoints with this URL\nFile: mobile-app/CareerMentor/constants/ApiEndpoints.ts\n=================\n\n")
     else:
-        print("\n\n=== WARNING ===")
-        print("Failed to get ngrok URL. The backend will still start, but")
-        print("it may not be accessible from outside your local network.")
-        print("===============\n\n")
+        print("\n\n=== WARNING ===\nFailed to get ngrok URL. The backend will still start, but\nit may not be accessible from outside your local network.\n===============\n\n")
     
-    # Start the FastAPI server
-    start_fastapi_server()
+    # Keep the script running and monitor the FastAPI process
+    try:
+        while True:
+            # Check if FastAPI is still running
+            if fastapi_process.poll() is not None:
+                stdout, stderr = fastapi_process.communicate()
+                print(f"ERROR: FastAPI server exited unexpectedly with code {fastapi_process.returncode}")
+                print(f"stdout: {stdout}")
+                print(f"stderr: {stderr}")
+                break
+            time.sleep(30)
+    except KeyboardInterrupt:
+        print("\nShutting down services...")
+        if fastapi_process and fastapi_process.poll() is None:
+            fastapi_process.terminate()
+            fastapi_process.wait(timeout=5)
+            print("FastAPI server stopped.")
+    except Exception as e:
+        print(f"Error in main loop: {e}")
+        if fastapi_process and fastapi_process.poll() is None:
+            fastapi_process.terminate()
 
 if __name__ == "__main__":
     main()
