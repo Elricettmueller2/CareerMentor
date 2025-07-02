@@ -10,6 +10,7 @@ import { API_BASE_URL, API_FALLBACK_URLS } from '@/constants/ApiEndpoints';
 import { ResumeService } from '@/services/ResumeService';
 import { loadJobs } from '@/utils/dataLoader';
 import { truncateText, formatPercentage } from '@/utils/formatters';
+import GradientButton from '@/components/trackpal/GradientButton';
 
 // Import resume-refiner components
 import UploadOptionsModal from '@/components/resume-refiner/UploadOptionsModal';
@@ -693,6 +694,10 @@ const styles = StyleSheet.create({
     color: COLORS.midnight,
     flex: 1,
   },
+  gradientUploadButton: {
+    width: '60%',
+    marginBottom: 20,
+  },
 });
 
 // Helper function to determine the color based on match percentage
@@ -1294,13 +1299,12 @@ export default function ResumeRefinerScreen() {
               </>
             ) : (
               <View style={styles.uploadContainer}>
-                <TouchableOpacity
-                  style={styles.uploadButton}
+                <GradientButton
+                  title="Upload Resume"
                   onPress={() => setShowUploadOptions(true)}
-                >
-                  <Ionicons name="cloud-upload-outline" size={24} color={COLORS.white} />
-                  <Text style={styles.uploadButtonText}>Upload Resume</Text>
-                </TouchableOpacity>
+                  style={styles.gradientUploadButton}
+                  icon={<Ionicons name="cloud-upload-outline" size={24} color={COLORS.white} />}
+                />
                 <Text style={styles.uploadDescription}>
                   Upload your resume to get feedback and to match it to job descriptions
                 </Text>
@@ -1316,13 +1320,12 @@ export default function ResumeRefinerScreen() {
             <View style={styles.matchContainer}>
               {!uploadId ? (
                 <View style={styles.uploadContainer}>
-                  <TouchableOpacity
-                    style={styles.uploadButton}
+                  <GradientButton
+                    title="Upload Resume"
                     onPress={() => setShowUploadOptions(true)}
-                  >
-                    <Ionicons name="cloud-upload-outline" size={24} color={COLORS.white} />
-                    <Text style={styles.uploadButtonText}>Upload Resume</Text>
-                  </TouchableOpacity>
+                    style={styles.gradientUploadButton}
+                    icon={<Ionicons name="cloud-upload-outline" size={24} color={COLORS.white} />}
+                  />
                   <Text style={styles.uploadDescription}>
                     Upload your resume to match it with job descriptions
                   </Text>
