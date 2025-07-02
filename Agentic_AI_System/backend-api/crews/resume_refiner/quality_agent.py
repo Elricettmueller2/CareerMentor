@@ -1,4 +1,5 @@
 import re
+import os
 from typing import Dict, List, Any
 from litellm import completion
 
@@ -254,7 +255,7 @@ Feedback:
         """
         resp = completion(
             model="ollama/llama3.2",
-            api_base="http://ollama:11434",
+            api_base=os.getenv("OLLAMA_BASE_URL"),
             messages=[{"role": "user", "content": prompt}]
         )
         return resp.choices[0].message.content.strip()

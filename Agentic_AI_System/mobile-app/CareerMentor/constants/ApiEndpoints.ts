@@ -13,16 +13,16 @@ const getBaseApiUrl = (): string => {
   } else {
     // Development on physical device or emulator
     // Using ngrok tunnel for cross-network access
-    return 'https://0716-2001-a61-1117-e601-a90c-9022-3de0-e991.ngrok-free.app';
+    return 'https://47a9-2001-a61-1117-e601-256b-16bc-10d2-1d40.ngrok-free.app';
   }
 };
 
 // API Base URL - Update this to your backend server URL
-export const API_BASE_URL = 'https://0716-2001-a61-1117-e601-a90c-9022-3de0-e991.ngrok-free.app'; // Using ngrok for physical device access
+export const API_BASE_URL = 'https://47a9-2001-a61-1117-e601-256b-16bc-10d2-1d40.ngrok-free.app'; // Using ngrok for physical device access
 
 // Simplified fallback URLs
 export const API_FALLBACK_URLS = [
-  'https://0716-2001-a61-1117-e601-a90c-9022-3de0-e991.ngrok-free.app',
+  'https://47a9-2001-a61-1117-e601-256b-16bc-10d2-1d40.ngrok-free.app',
   'http://localhost:8000',
   'http://127.0.0.1:8000',
   'http://192.168.178.24:8000', // Your actual IP address
