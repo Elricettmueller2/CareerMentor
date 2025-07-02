@@ -40,17 +40,16 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: COLORS.nightSky,
-    paddingTop: 50,
-    paddingBottom: 0,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    overflow: 'hidden',
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
   headerTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     color: COLORS.white,
-    marginBottom: 10,
+    marginBottom: 20,
     marginTop: 10,
     marginLeft: 20,
     textAlign: 'left',
@@ -59,18 +58,29 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 12,
-    paddingTop: 16,
+    paddingTop: 30,
   },
   tabContainer: {
     flexDirection: 'row',
-    overflow: 'hidden',
     width: '100%',
-    marginTop: 5,
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 103 : 82,
+    borderRadius: 25,
+    backgroundColor: COLORS.salt,
+    padding: 3,
+    zIndex: 10,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignItems: 'center',
+    borderRadius: 25,
+    marginHorizontal: 0,
   },
   activeTab: {
     backgroundColor: COLORS.nightSky,
@@ -1194,21 +1204,21 @@ export default function ResumeRefinerScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Resume Refiner</Text>
-        <View style={styles.tabContainer}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'analyse' ? styles.activeTab : {backgroundColor: COLORS.salt}]}
-            onPress={() => setActiveTab('analyse')}
-          >
-            <Text style={[styles.tabText, activeTab === 'analyse' ? styles.activeTabText : null]}>Analyse</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'match' ? styles.activeTab : {backgroundColor: COLORS.salt}]}
-            onPress={() => setActiveTab('match')}
-          >
-            <Text style={[styles.tabText, activeTab === 'match' ? styles.activeTabText : null]}>Match</Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.headerTitle}>Career Daddy</Text>
+      </View>
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'analyse' ? styles.activeTab : {}]}
+          onPress={() => setActiveTab('analyse')}
+        >
+          <Text style={[styles.tabText, activeTab === 'analyse' ? styles.activeTabText : null]}>Analyse</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'match' ? styles.activeTab : {}]}
+          onPress={() => setActiveTab('match')}
+        >
+          <Text style={[styles.tabText, activeTab === 'match' ? styles.activeTabText : null]}>Match</Text>
+        </TouchableOpacity>
       </View>
       <View style={styles.content}>
         {activeTab === 'analyse' && (
