@@ -23,7 +23,8 @@ def get_session(session_id: str) -> Dict[str, Any]:
         sessions[session_id] = {
             "created_at": time.time(),
             "last_accessed": time.time(),
-            "conversation_history": []
+            "conversation_history": [],
+            "metadata": {}
         }
     else:
         # Update last accessed time
@@ -56,6 +57,28 @@ def add_message_to_history(session_id: str, role: str, content: str) -> None:
     history = get_conversation_history(session_id)
     history.append({"role": role, "content": content})
     save_conversation_history(session_id, history)
+
+
+def set_session_metadata(session_id: str, key: str, value: Any) -> None:
+    """
+    Store metadata in the session.
+    """
+    session = get_session(session_id)
+    if "metadata" not in session:
+        session["metadata"] = {}
+    session["metadata"][key] = value
+    session["last_accessed"] = time.time()
+
+
+def get_session_metadata(session_id: str, key: str = None, default: Any = None) -> Any:
+    """
+    Retrieve metadata from the session.
+    If key is None, returns all metadata.
+    """
+    session = get_session(session_id)
+    if key is None:
+        return session.get("metadata", {})
+    return session.get("metadata", {}).get(key, default)
 
 
 def cleanup_expired_sessions() -> None:
