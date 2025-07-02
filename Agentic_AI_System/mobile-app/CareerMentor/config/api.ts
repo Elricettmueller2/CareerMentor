@@ -13,14 +13,14 @@ export const API_BASE_URLS = {
   docker: 'http://host.docker.internal:8000',
   
   // For physical devices (adjust IP to your computer's IP)
-  device: 'http://192.168.1.218:8000',
+  device: 'http://192.168.178.29:8000',
   
   // Fallback to localhost with standard port
   fallback: 'http://127.0.0.1:8000'
 };
 
-// Default API base URL - use localhost for development
-export const DEFAULT_API_BASE_URL = API_BASE_URLS.localhost;
+// Default API base URL - use device IP for development with physical devices
+export const DEFAULT_API_BASE_URL = API_BASE_URLS.device;
 
 // API endpoints for different services
 export const API_ENDPOINTS = {

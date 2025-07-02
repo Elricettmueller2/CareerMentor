@@ -104,3 +104,35 @@ cd /Users/azimalizada/Documents/Uni/Sem4/MA/CareerMentor/Agentic_AI_System/mobil
 npx expo start
 
 
+
+AZIM FINAL:
+
+# Stoppe und entferne die vorhandenen Container:
+# Baue das Backend-Image neu und starte die Container:
+# Überprüfe, ob beide Container laufen:
+# Überprüfe die Logs des Backend-Containers:
+
+
+
+docker stop career-mentor-backend-container career-mentor-mongodb
+docker rm career-mentor-backend-container career-mentor-mongodb
+
+docker build -t career-mentor-backend:latest .
+docker run -d --name career-mentor-mongodb -p 27017:27017 mongo:latest
+docker run -d --name career-mentor-backend-container -p 8000:8000 --add-host=host.docker.internal:host-gateway career-mentor-backend:latest
+
+docker ps
+
+docker logs career-mentor-backend-container
+
+
+
+
+
+Frontend:
+
+ngrok http http://localhost:8080
+
++  
+
+npx expo start

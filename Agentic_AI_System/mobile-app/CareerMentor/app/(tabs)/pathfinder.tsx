@@ -34,7 +34,7 @@ const CustomSlider = (props: CustomSliderProps) => {
         style={{
           width: '100%',
           height: 40,
-          accentColor: '#2f95dc',
+          accentColor: '#5D5B8D',
           cursor: 'pointer',
           ...props.style
         }}
@@ -168,126 +168,83 @@ export default function PathFinderScreen() {
   };
 
   const handleSearch = async () => {
-    if (!jobTitle) {
-      setError('Bitte geben Sie einen Job-Titel ein.');
+    if (!jobTitle || jobTitle.trim().length < 2) {
+      setError('Bitte geben Sie einen Jobtitel ein (mindestens 2 Zeichen).');
       return;
     }
-    
-    if (!degree) {
-      setError('Bitte geben Sie Ihren höchsten Abschluss ein.');
-      return;
-    }
-    
-    if (!interests) {
-      setError('Bitte geben Sie Interessenpunkte ein.');
-      return;
-    }
-    
-    // Request location permission if not already granted
-    if (!locationPermission) {
-      const granted = await requestLocationPermission();
-      if (!granted) {
-        setError('Standortberechtigung wird für die Entfernungssuche benötigt.');
-        return;
-      }
-    }
-    
+
+    Keyboard.dismiss();
     setLoading(true);
     setError(null);
     setResults([]);
-    Keyboard.dismiss();
-    
-    const searchCriteria = {
-      user_id: userId,
-      job_title: jobTitle.trim(),
-      education_level: degree.trim(),
-      years_experience: yearsExperience,
-      location_radius: locationRadius,
-      interest_points: interests.trim().split(',').map(item => item.trim()),
-      location: userLocation ? {
-        latitude: userLocation.latitude,
-        longitude: userLocation.longitude
-      } : undefined
-    };
 
     try {
-      console.log('Searching for jobs with criteria:', searchCriteria);
-      
-      // Verwende die getAllApiUrls-Funktion, um alle möglichen API-URLs zu erhalten
-      const apiUrls = getAllApiUrls(API_ENDPOINTS.pathFinder.search);
-      
-      let lastError = null;
-      let successfulUrl = null;
-      
-      // Versuche nacheinander alle URLs
-      for (const url of apiUrls) {
-        try {
-          console.log(`Versuche API-URL: ${url}`);
-          
-          const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ data: searchCriteria }),
-          });
-          
-          console.log(`URL ${url} gab Status ${response.status} zurück`);
-          
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`Fehler mit URL ${url}:`, errorText);
-            continue; // Versuche die nächste URL
-          }
-          
-          const responseText = await response.text();
-          console.log('Raw response text:', responseText);
-          
-          try {
-            const data = JSON.parse(responseText);
-            console.log('Parsed search results:', data);
-            
-            // Überprüfe verschiedene mögliche Antwortformate
-            if (data && data.top_jobs && Array.isArray(data.top_jobs)) {
-              console.log('Ergebnisse gefunden in data.top_jobs');
-              setResults(data.top_jobs);
-              successfulUrl = url;
-              break;
-            } else if (data && Array.isArray(data)) {
-              console.log('Ergebnisse gefunden als Array');
-              setResults(data);
-              successfulUrl = url;
-              break;
-            } else if (data && data.jobs && Array.isArray(data.jobs)) {
-              console.log('Ergebnisse gefunden in data.jobs');
-              setResults(data.jobs);
-              successfulUrl = url;
-              break;
-            } else {
-              console.warn('Unerwartetes Antwortformat:', data);
-              // Versuche die nächste URL
-            }
-          } catch (parseError) {
-            console.error('JSON parse error:', parseError);
-            // Versuche die nächste URL
-          }
-        } catch (error: any) {
-          console.error(`Fehler mit URL ${url}:`, error);
-          lastError = error;
-          // Versuche die nächste URL
-        }
+      // Bereite die Daten für die API-Anfrage vor
+      const interestsList = interests
+        .split(',')
+        .map(item => item.trim())
+        .filter(item => item.length > 0);
+
+      // Vereinfache den Jobtitel für bessere Ergebnisse (wie im test_path_finder.py)
+      const simplifiedJobTitle = jobTitle.includes(' ') ? 
+        jobTitle.split(' ')[0] : // Nimm nur das erste Wort, wenn es Leerzeichen gibt
+        jobTitle;
+
+      const requestData = {
+        job_title: simplifiedJobTitle, // Vereinfachter Jobtitel für bessere Ergebnisse
+        education_level: degree || "Bachelor", // Standardwert, falls leer
+        years_experience: yearsExperience || 3, // Standardwert von 3 wie im Test-Script
+        location_radius: locationRadius,
+        interest_points: interestsList.length > 0 ? interestsList : ["Python", "JavaScript"], // Standardwerte, falls leer
+        user_id: userId,
+        top_n: 10
+      };
+
+      // Füge Standortdaten hinzu, wenn verfügbar
+      if (userLocation) {
+        requestData['latitude'] = userLocation.latitude;
+        requestData['longitude'] = userLocation.longitude;
       }
-      
-      if (successfulUrl) {
-        console.log(`Suche erfolgreich mit URL: ${successfulUrl}`);
+
+      console.log('Sending search request:', requestData);
+      console.log('API URL:', getApiUrl(API_ENDPOINTS.pathFinder.search));
+
+      // Sende die Anfrage an das Backend
+      const response = await fetch(getApiUrl(API_ENDPOINTS.pathFinder.search), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ data: requestData }), // Nest request data under "data" field
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API error response:', errorText);
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Search results:', data);
+
+      // Prüfe verschiedene mögliche Antwortformate
+      if (data && data.jobs && Array.isArray(data.jobs)) {
+        setResults(data.jobs);
+      } else if (data && data.top_jobs && Array.isArray(data.top_jobs)) {
+        setResults(data.top_jobs);
+      } else if (Array.isArray(data)) {
+        setResults(data);
       } else {
-        // Wenn wir hier ankommen, haben alle URLs fehlgeschlagen
-        throw new Error(lastError ? lastError.message : 'Keine Verbindung zum Server möglich');
+        console.warn('Unerwartetes Antwortformat:', data);
+        setResults([]);
+        setError('Die API-Antwort hat ein unerwartetes Format. Bitte versuchen Sie es später erneut.');
       }
-    } catch (err: any) {
-      console.error('Search error:', err);
-      setError(`Fehler beim Laden der Jobs: ${err.message}. Stellen Sie sicher, dass das Backend läuft und die API-Route die neuen Kriterien verarbeiten kann.`);
+    } catch (err) {
+      console.error('Error searching jobs:', err);
+      setError(`Bei der Suche ist ein Fehler aufgetreten: ${err.message}`);
+      setResults([]);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
@@ -342,7 +299,7 @@ export default function PathFinderScreen() {
         <Ionicons 
           name={job.is_saved ? "bookmark" : "bookmark-outline"} 
           size={24} 
-          color={job.is_saved ? "#2f95dc" : "#888"} 
+          color={job.is_saved ? "#5D5B8D" : "#888"} 
         />
       </TouchableOpacity>
       
@@ -370,10 +327,6 @@ export default function PathFinderScreen() {
       </TouchableOpacity>
     </View>
   );
-
-  const navigateToAdvancedSearch = () => {
-    router.push('/job-search');
-  };
 
   const renderSearchContent = () => (
     <ScrollView 
@@ -408,9 +361,9 @@ export default function PathFinderScreen() {
             step={1}
             value={yearsExperience}
             onValueChange={setYearsExperience}
-            minimumTrackTintColor="#2f95dc"
+            minimumTrackTintColor="#5D5B8D"
             maximumTrackTintColor="#d3d3d3"
-            thumbTintColor="#2f95dc"
+            thumbTintColor="#5D5B8D"
           />
           <Text style={styles.sliderValue}>{yearsExperience}</Text>
         </View>
@@ -424,9 +377,9 @@ export default function PathFinderScreen() {
             step={5}
             value={locationRadius}
             onValueChange={setLocationRadius}
-            minimumTrackTintColor="#2f95dc"
+            minimumTrackTintColor="#5D5B8D"
             maximumTrackTintColor="#d3d3d3"
-            thumbTintColor="#2f95dc"
+            thumbTintColor="#5D5B8D"
           />
           <Text style={styles.sliderValue}>{locationRadius}</Text>
         </View>
@@ -470,15 +423,8 @@ export default function PathFinderScreen() {
           onPress={handleSearch}
           disabled={!jobTitle || jobTitle.trim().length < 2}
         >
-          <Text style={styles.searchButtonText}>Suchen</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.advancedSearchButton}
-          onPress={navigateToAdvancedSearch}
-        >
           <Ionicons name="search" size={20} color="#fff" />
-          <Text style={styles.advancedSearchButtonText}>Erweiterte Suche</Text>
+          <Text style={styles.searchButtonText}>Suchen</Text>
         </TouchableOpacity>
       </View>
       
@@ -486,7 +432,7 @@ export default function PathFinderScreen() {
       
       {loading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2f95dc" />
+          <ActivityIndicator size="large" color="#5D5B8D" />
           <Text style={styles.loadingText}>Jobs werden gesucht...</Text>
         </View>
       )}
@@ -514,7 +460,7 @@ export default function PathFinderScreen() {
     <>
       {loading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2f95dc" />
+          <ActivityIndicator size="large" color="#5D5B8D" />
           <Text style={styles.loadingText}>Loading saved jobs...</Text>
         </View>
       )}
@@ -594,54 +540,78 @@ export default function PathFinderScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8f8f8',
   },
   sliderContainer: {
-    marginBottom: 15,
-  },
-  sliderValueContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  slider: {
+    flex: 1,
+    height: 40, 
   },
   sliderValue: {
-    width: 60,
+    width: 30,
     textAlign: 'right',
-    fontSize: 14,
-    color: '#555',
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#5D5B8D',
   },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 15,
-    padding: 10,
+    marginBottom: 16,
     backgroundColor: '#f0f0f0',
-    borderRadius: 5,
+    padding: 12,
+    borderRadius: 8,
   },
   locationStatus: {
+    flex: 1,
     fontSize: 14,
-    color: '#555',
+    color: '#666',
   },
   locationButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 12,
+    backgroundColor: '#5D5B8D',
     paddingVertical: 6,
-    borderRadius: 4,
+    paddingHorizontal: 12,
+    borderRadius: 6,
   },
   locationButtonText: {
-    color: 'white',
+    color: '#fff',
     fontSize: 14,
     fontWeight: '500',
   },
   inputHint: {
     fontSize: 12,
-    color: '#777',
-    marginTop: 5,
+    color: '#888',
+    marginTop: -8,
     marginBottom: 15,
+  },
+  searchButton: {
+    backgroundColor: '#5D5B8D',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    marginTop: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
   },
   searchButtonDisabled: {
     backgroundColor: '#cccccc',
+  },
+  searchButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginLeft: 8,
   },
   title: {
     fontSize: 24,
@@ -666,7 +636,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 2, 
   },
   activeTab: {
-    backgroundColor: '#2f95dc',
+    backgroundColor: '#5D5B8D',
   },
   tabButtonText: {
     fontSize: 15, 
@@ -681,21 +651,22 @@ const styles = StyleSheet.create({
   },
   detailedSearchContainer: {
     marginBottom: 20,
-    paddingHorizontal: 8, 
+    paddingHorizontal: 16, 
+    paddingTop: 16,
   },
   inputLabel: {
     fontSize: 16,
     fontWeight: '500',
     color: '#333',
-    marginBottom: 6,
-    marginTop: 12, 
+    marginBottom: 8,
+    marginTop: 16, 
   },
   textInput: {
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 8,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 12,
     fontSize: 15,
     backgroundColor: '#f9f9f9',
     marginBottom: 10, 
@@ -704,30 +675,12 @@ const styles = StyleSheet.create({
     height: 80, 
     textAlignVertical: 'top', 
   },
-  slider: {
-    width: '100%',
-    height: 40, 
-    marginBottom: 10, 
-  },
-  searchButton: {
-    marginTop: 20, 
-    backgroundColor: '#2f95dc',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  searchButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
     marginBottom: 12,
-    marginTop: 16, 
+    marginTop: 16,
+    paddingHorizontal: 16,
   },
   loadingContainer: {
     alignItems: 'center',
@@ -743,7 +696,7 @@ const styles = StyleSheet.create({
     color: '#ff3b30',
     marginVertical: 16,
     textAlign: 'center',
-    paddingHorizontal: 10, 
+    paddingHorizontal: 16, 
   },
   emptyContainer: {
     alignItems: 'center',
@@ -765,7 +718,7 @@ const styles = StyleSheet.create({
   },
   browseButton: {
     marginTop: 20,
-    backgroundColor: '#2f95dc',
+    backgroundColor: '#5D5B8D',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
@@ -782,60 +735,48 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   resultCard: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
+    backgroundColor: '#5D5B8D',
+    borderRadius: 12,
+    marginHorizontal: 16,
     marginBottom: 16,
-    backgroundColor: '#fafafa',
-    overflow: 'hidden',
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    position: 'relative',
   },
   saveButton: {
-    width: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRightWidth: 1,
-    borderRightColor: '#eee',
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    zIndex: 10,
   },
   jobCardContent: {
     flex: 1,
-    padding: 16,
+    paddingRight: 30,
   },
   resultTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 4,
-    color: '#222',
+    color: '#fff',
+    marginBottom: 6,
   },
   resultCompany: {
-    fontSize: 15,
-    color: '#666',
+    fontSize: 14,
+    color: '#e0e0e0',
     marginBottom: 8,
   },
   resultDescription: {
-    fontSize: 15,
-    color: '#444',
-    marginBottom: 6,
+    fontSize: 14,
+    color: '#e0e0e0',
+    marginBottom: 8,
+    lineHeight: 20,
   },
   resultSkills: {
-    fontSize: 14,
-    color: '#2f95dc',
-  },
-  advancedSearchButton: {
-    marginTop: 16,
-    backgroundColor: '#5A5D80',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  advancedSearchButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginLeft: 8,
+    fontSize: 13,
+    color: '#d0d0d0',
+    fontStyle: 'italic',
   },
 });
