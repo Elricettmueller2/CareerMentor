@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, View, Platform, TextInput, KeyboardAvoidingView, Alert } from 'react-native';
+import { StyleSheet, ScrollView, TouchableOpacity, View, Platform, TextInput, KeyboardAvoidingView, Alert, Image } from 'react-native';
 import { Text } from '@/components/Themed';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -45,15 +45,27 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
   },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 15,
+  },
+  logo: {
+    width: 30,
+    height: 36, 
+    marginRight: 10,
+  },
   headerTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     color: COLORS.white,
-    marginBottom: 20,
-    marginTop: 10,
-    marginLeft: 20,
+    marginBottom: 0, 
+    marginTop: 0, 
+    marginLeft: 0,
     textAlign: 'left',
-    alignSelf: 'stretch',
+    alignSelf: 'center', 
   },
   content: {
     flex: 1,
@@ -64,7 +76,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     width: '100%',
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 103 : 82,
+    top: Platform.OS === 'ios' ? 108 : 87,
     borderRadius: 25,
     backgroundColor: COLORS.salt,
     padding: 3,
@@ -1204,7 +1216,14 @@ export default function ResumeRefinerScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Career Daddy</Text>
+        <View style={styles.headerContent}>
+          <Image 
+            source={require('@/assets/images/logo.png')} 
+            style={styles.logo}
+            resizeMode="contain" 
+          />
+          <Text style={styles.headerTitle}>Career Daddy</Text>
+        </View>
       </View>
       <View style={styles.tabContainer}>
         <TouchableOpacity
