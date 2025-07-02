@@ -287,6 +287,7 @@ export default function InterviewScreen() {
 
   // End interview and go to review
   const handleEndInterview = () => {
+    // Navigate to the interview-review screen outside the tab navigation
     router.push({ 
       pathname: '/interview-review', 
       params: { 
@@ -414,6 +415,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.white,
+    // Ensure consistent background color on iOS
+    paddingBottom: Platform.OS === 'ios' ? 20 : 0,
   },
   loadingContainer: {
     flex: 1,
@@ -426,7 +429,8 @@ const styles = StyleSheet.create({
   },
   setupContainer: {
     flex: 1,
-    padding: 20,
+    padding: Platform.OS === 'ios' ? 16 : 20,
+    backgroundColor: COLORS.white,
   },
   chatContainer: {
     flex: 1,

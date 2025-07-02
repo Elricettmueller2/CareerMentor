@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ActivityIndicator, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, StyleSheet, ActivityIndicator, TouchableOpacity, SafeAreaView, Platform, Modal, Alert } from 'react-native';
 import { Text } from '@/components/Themed';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { CAREER_COLORS as COLORS } from '@/constants/Colors';
 import { InterviewSummaryData } from '@/types/interview';
 import ReviewCard from '@/components/interview/ReviewCard';
 import { Ionicons } from '@expo/vector-icons';
+import { shareInterviewReview, captureAndShareScreenshot, ViewShotRef } from '@/utils/shareUtils';
+import ViewShot from 'react-native-view-shot';
 
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -15,6 +17,10 @@ const InterviewReviewScreen = () => {
   const [reviewData, setReviewData] = useState<InterviewSummaryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showShareOptions, setShowShareOptions] = useState(false);
+  
+  // Reference to the ViewShot component for screenshot capture
+  const viewShotRef = useRef<ViewShot>(null);
 
   useEffect(() => {
     if (!sessionId) {
@@ -182,11 +188,13 @@ const InterviewReviewScreen = () => {
   }, [sessionId]);
 
   const handleStartNewInterview = () => {
-    router.replace('/(tabs)/interview');
+    // Use push instead of replace to avoid tab bar issues
+    router.push('/(tabs)/interview');
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      <Stack.Screen options={{ headerShown: false, presentation: 'card' }} />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color={COLORS.midnight} />
@@ -194,7 +202,16 @@ const InterviewReviewScreen = () => {
         <Text style={styles.title}>
           {interviewType ? `${interviewType} Interview` : 'Interview'} Feedback
         </Text>
-        <View style={styles.placeholder} />
+        {reviewData ? (
+          <TouchableOpacity 
+            style={styles.shareButton} 
+            onPress={() => setShowShareOptions(true)}
+          >
+            <Ionicons name="share-outline" size={24} color={COLORS.sky} />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.placeholder} />
+        )}
       </View>
       
       {loading ? (
@@ -209,7 +226,9 @@ const InterviewReviewScreen = () => {
         </View>
       ) : reviewData ? (
         <View style={styles.reviewWrapper}>
-          <ReviewCard data={reviewData} />
+          <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 0.9 }}>
+            <ReviewCard data={reviewData} />
+          </ViewShot>
         </View>
       ) : (
         <View style={styles.errorContainer}>
@@ -221,6 +240,49 @@ const InterviewReviewScreen = () => {
       <TouchableOpacity style={styles.button} onPress={handleStartNewInterview}>
         <Text style={styles.buttonText}>Start New Interview</Text>
       </TouchableOpacity>
+      
+      {/* Share options modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showShareOptions}
+        onRequestClose={() => setShowShareOptions(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Share Interview Feedback</Text>
+            
+            <TouchableOpacity 
+              style={styles.shareOption} 
+              onPress={() => {
+                shareInterviewReview(reviewData!);
+                setShowShareOptions(false);
+              }}
+            >
+              <Ionicons name="text-outline" size={24} color={COLORS.sky} />
+              <Text style={styles.shareOptionText}>Share as Text</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.shareOption} 
+              onPress={() => {
+                captureAndShareScreenshot(viewShotRef as ViewShotRef);
+                setShowShareOptions(false);
+              }}
+            >
+              <Ionicons name="image-outline" size={24} color={COLORS.sky} />
+              <Text style={styles.shareOptionText}>Share as Screenshot</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.shareOption, styles.cancelOption]} 
+              onPress={() => setShowShareOptions(false)}
+            >
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -244,6 +306,12 @@ const styles = StyleSheet.create({
     },
     placeholder: {
       width: 40,
+    },
+    shareButton: {
+      padding: 8,
+      width: 40,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     title: {
       fontSize: 20,
@@ -295,6 +363,49 @@ const styles = StyleSheet.create({
     buttonText: {
       color: 'white',
       fontSize: 16,
+      fontWeight: 'bold',
+    },
+    // Modal styles
+    modalOverlay: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContent: {
+      backgroundColor: '#fff',
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      padding: 20,
+      paddingBottom: Platform.OS === 'ios' ? 40 : 20, // Extra padding for iOS home indicator
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: COLORS.midnight,
+      textAlign: 'center',
+      marginBottom: 20,
+    },
+    shareOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 15,
+      borderBottomWidth: 1,
+      borderBottomColor: '#f0f0f0',
+    },
+    shareOptionText: {
+      fontSize: 16,
+      marginLeft: 15,
+      color: COLORS.midnight,
+    },
+    cancelOption: {
+      justifyContent: 'center',
+      marginTop: 10,
+      borderBottomWidth: 0,
+    },
+    cancelText: {
+      fontSize: 16,
+      color: COLORS.rose,
+      textAlign: 'center',
       fontWeight: 'bold',
     },
 });
