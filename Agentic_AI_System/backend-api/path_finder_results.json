@@ -1,0 +1,90 @@
+{
+  "job_title": "Developer",
+  "education_level": "Bachelor",
+  "years_experience": 3,
+  "location_radius": 50,
+  "interest_points": [
+    "Python",
+    "JavaScript"
+  ],
+  "total_jobs_found": 4,
+  "filtered_jobs_count": 4,
+  "jobs": [
+    {
+      "id": "5170006509",
+      "title": "Full-stack Developer Python (m/f/d), AI-Based Cancer Diagnostics",
+      "company_name": "Mindpeak GmbH",
+      "location": "Altona-Altstadt, Hamburg",
+      "description": "Company Overview Mindpeak is a Hamburg-based scale-up at the forefront of AI-driven cancer diagnostics. Their software assists pathologists in analyzing medical images more efficiently and accurately, especially in histopathology, where they\u2019ve already achieved clinical deployment in the U.S. The company seeks to solve a key healthcare issue: the increasing demand for diagnostics with a limited number of expert pathologists. Position Summary Role : Full-stack Developer (Python, JavaScript/TypeS\u2026",
+      "requirements": "",
+      "salary": "",
+      "application_link": "https://www.adzuna.de/details/5170006509?utm_medium=api&utm_source=ac7d329d",
+      "experience_required": 0,
+      "education_required": "",
+      "distance": 0,
+      "source": "Adzuna",
+      "skills": [
+        "python",
+        "java",
+        "javascript"
+      ],
+      "match_score": 75.0,
+      "resume_match_score": 75.0
+    },
+    {
+      "id": "5179419772",
+      "title": "Full-stack Developer Python (m/f/d), AI-Based Cancer Diagnostics",
+      "company_name": "Mindpeak",
+      "location": "Altona-Altstadt, Hamburg",
+      "description": "Company Overview Mindpeak is a Hamburg-based scale-up at the forefront of AI-driven cancer diagnostics. Their software assists pathologists in analyzing medical images more efficiently and accurately, especially in histopathology, where they\u2019ve already achieved clinical deployment in the U.S. The company seeks to solve a key healthcare issue: the increasing demand for diagnostics with a limited number of expert pathologists. Position Summary Role : Full-stack Developer (Python, JavaScript/TypeS\u2026",
+      "requirements": "",
+      "salary": "",
+      "application_link": "https://www.adzuna.de/details/5179419772?utm_medium=api&utm_source=ac7d329d",
+      "experience_required": 0,
+      "education_required": "",
+      "distance": 0,
+      "source": "Adzuna",
+      "skills": [
+        "python",
+        "java",
+        "javascript"
+      ],
+      "match_score": 75.0,
+      "resume_match_score": 60.0
+    },
+    {
+      "id": "5091035201",
+      "title": "Senior Full Stack Developer for AI Models (all genders)",
+      "company_name": "Synagen GmbH",
+      "location": "Berlin, Deutschland",
+      "description": "Synagen is a research-driven startup dedicated to transforming cutting-edge AI into real-world solutions that benefit physicians, researchers, and ultimately, patients . Healthcare is at the heart of what we do . We are developing an AI copilot, powered by generative and agentic AI, designed to support healthcare professionals across numerous clinical tasks - automating medical documentation, aiding clinical decision-making, optimizing access to clinical trials, and overall enhancing workflows \u2026",
+      "requirements": "",
+      "salary": "",
+      "application_link": "https://www.adzuna.de/details/5091035201?utm_medium=api&utm_source=ac7d329d",
+      "experience_required": 0,
+      "education_required": "",
+      "distance": 0,
+      "source": "Adzuna",
+      "skills": [],
+      "match_score": 40.0,
+      "resume_match_score": 40.0
+    },
+    {
+      "id": "5223372721",
+      "title": "Software Engineer (Backend) - Developer Enablement",
+      "company_name": "GetYourGuide",
+      "location": "Berlin, Deutschland",
+      "description": "About GetYourGuide GetYourGuide is the globally leading marketplace for unforgettable travel experiences. Travelers use GetYourGuide to discover the best things to do in a destination. Since its founding in 2009, people from all over the world have booked more than 150 million tours, activities, and attraction tickets through GetYourGuide. Powered by a global team of over 800 travel experts and technologists, we are headquartered in Berlin and have 17 local offices around the world. About the r\u2026",
+      "requirements": "",
+      "salary": "",
+      "application_link": "https://www.adzuna.de/details/5223372721?utm_medium=api&utm_source=ac7d329d",
+      "experience_required": 0,
+      "education_required": "",
+      "distance": 0,
+      "source": "Adzuna",
+      "skills": [],
+      "match_score": 40.0,
+      "resume_match_score": 40.0
+    }
+  ]
+}

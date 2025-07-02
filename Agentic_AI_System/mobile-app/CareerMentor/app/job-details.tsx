@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, View } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Linking } from 'react-native';
 import { Text } from '@/components/Themed';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { DEFAULT_API_BASE_URL, API_ENDPOINTS, getApiUrl } from '../config/api';
 
 export default function JobDetailsScreen() {
   const { jobId } = useLocalSearchParams();
@@ -14,7 +15,7 @@ export default function JobDetailsScreen() {
   const [savingJob, setSavingJob] = useState(false);
 
   // Verwende die IP-Adresse statt localhost für den Zugriff von mobilen Geräten
-  const API_BASE_URL = 'http://192.168.1.218:8000';
+  // API-URLs werden jetzt zentral in config/api.ts verwaltet
   const userId = 'default_user'; // In a real app, this would come from authentication
 
   useEffect(() => {
@@ -28,7 +29,7 @@ export default function JobDetailsScreen() {
     setError(null);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/agents/path_finder/job/${jobId}?user_id=${userId}`);
+      const response = await fetch(getApiUrl(`${API_ENDPOINTS.pathFinder.jobDetails}/${jobId}`, { user_id: userId }));
       if (!response.ok) throw new Error(`API error: ${response.status}`);
       
       const data = await response.json();
@@ -47,9 +48,9 @@ export default function JobDetailsScreen() {
     
     setSavingJob(true);
     try {
-      const endpoint = isSaved 
-        ? `${API_BASE_URL}/agents/path_finder/unsave_job`
-        : `${API_BASE_URL}/agents/path_finder/save_job`;
+      const endpoint = isSaved
+        ? getApiUrl(API_ENDPOINTS.pathFinder.unsaveJob)
+        : getApiUrl(API_ENDPOINTS.pathFinder.saveJob);
       
       const payload = isSaved
         ? { data: { user_id: userId, job_id: job.id } }

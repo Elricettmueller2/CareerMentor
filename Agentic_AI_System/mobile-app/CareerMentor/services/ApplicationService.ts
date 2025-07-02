@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NotificationService from './NotificationService';
 
 export interface JobApplication {
   id: string;
@@ -6,12 +7,14 @@ export interface JobApplication {
   company: string;
   location: string;
   applicationDeadline: string | null;
+  applicationDeadlineReminder: string | null;
   status: string;
   followUpDate: string | null;
   followUpTime: string;
   notes: string;
   jobUrl?: string;
   appliedDate: string;
+  interviewReminder: string | null;
 }
 
 const APPLICATIONS_STORAGE_KEY = 'trackpal_applications';
@@ -38,11 +41,13 @@ export const ApplicationService = {
           company: 'Acme Corp',
           location: 'San Francisco, CA',
           applicationDeadline: null,
+          applicationDeadlineReminder: null,
           status: 'applied',
           followUpDate: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
           followUpTime: '10:00',
           notes: 'Applied through company website',
-          appliedDate: new Date(now.getTime() - 12 * 24 * 60 * 60 * 1000).toISOString() // 12 days ago
+          appliedDate: new Date(now.getTime() - 12 * 24 * 60 * 60 * 1000).toISOString(), // 12 days ago
+          interviewReminder: null
         },
         {
           id: '2',
@@ -50,11 +55,13 @@ export const ApplicationService = {
           company: 'TechStart',
           location: 'Remote',
           applicationDeadline: null,
+          applicationDeadlineReminder: null,
           status: 'interview',
           followUpDate: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day from now
           followUpTime: '14:00',
           notes: 'First interview scheduled',
-          appliedDate: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString() // 5 days ago
+          appliedDate: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
+          interviewReminder: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString() // 3 days from now
         },
         {
           id: '3',
@@ -62,11 +69,13 @@ export const ApplicationService = {
           company: 'BigCorp',
           location: 'New York, NY',
           applicationDeadline: null,
+          applicationDeadlineReminder: null,
           status: 'rejected',
           followUpDate: null,
           followUpTime: '',
-          notes: 'Rejected after initial screening',
-          appliedDate: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000).toISOString() // 20 days ago
+          notes: 'Position was filled internally',
+          appliedDate: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000).toISOString(), // 20 days ago
+          interviewReminder: null
         }
       ];
       
@@ -100,6 +109,26 @@ export const ApplicationService = {
       const updatedApplications = [...applications, newApplication];
       await AsyncStorage.setItem(APPLICATIONS_STORAGE_KEY, JSON.stringify(updatedApplications));
       
+      // Schedule follow-up notification if a follow-up date is set
+      if (newApplication.followUpDate) {
+        try {
+          const followUpDate = new Date(newApplication.followUpDate);
+          const notificationId = await NotificationService.scheduleFollowUpReminder(
+            newApplication.id,
+            newApplication.company,
+            newApplication.jobTitle,
+            followUpDate
+          );
+          
+          if (notificationId) {
+            console.log(`Scheduled follow-up notification ${notificationId} for new application ${newApplication.id}`);
+          }
+        } catch (notificationError) {
+          // Log but don't throw - we don't want to prevent application creation if notification fails
+          console.error('Error scheduling follow-up notification:', notificationError);
+        }
+      }
+      
       return newApplication;
     } catch (error) {
       console.error('Error adding application:', error);
@@ -115,13 +144,44 @@ export const ApplicationService = {
       
       if (index === -1) return null;
       
+      const originalApplication = applications[index];
       const updatedApplication = {
-        ...applications[index],
+        ...originalApplication,
         ...updatedData
       };
       
       applications[index] = updatedApplication;
       await AsyncStorage.setItem(APPLICATIONS_STORAGE_KEY, JSON.stringify(applications));
+      
+      // Handle notification updates if follow-up date changed
+      if (updatedData.followUpDate !== undefined && 
+          updatedData.followUpDate !== originalApplication.followUpDate) {
+        try {
+          // Get existing notifications for this application
+          const notifications = await NotificationService.getApplicationNotifications(id);
+          
+          // Cancel existing notifications
+          for (const notification of notifications) {
+            if (notification.notificationId) {
+              await NotificationService.cancelNotification(notification.notificationId);
+            }
+          }
+          
+          // Schedule new notification if follow-up date is set
+          if (updatedData.followUpDate) {
+            const followUpDate = new Date(updatedData.followUpDate);
+            await NotificationService.scheduleFollowUpReminder(
+              id,
+              updatedApplication.company,
+              updatedApplication.jobTitle,
+              followUpDate
+            );
+          }
+        } catch (notificationError) {
+          console.error('Error updating notification:', notificationError);
+          // Continue with application update even if notification update fails
+        }
+      }
       
       return updatedApplication;
     } catch (error) {
@@ -141,6 +201,20 @@ export const ApplicationService = {
       }
       
       await AsyncStorage.setItem(APPLICATIONS_STORAGE_KEY, JSON.stringify(updatedApplications));
+      
+      // Cancel any notifications associated with this application
+      try {
+        const notifications = await NotificationService.getApplicationNotifications(id);
+        for (const notification of notifications) {
+          if (notification.notificationId) {
+            await NotificationService.cancelNotification(notification.notificationId);
+          }
+        }
+      } catch (notificationError) {
+        console.error('Error canceling notifications:', notificationError);
+        // Continue with application deletion even if notification cancellation fails
+      }
+      
       return true;
     } catch (error) {
       console.error('Error deleting application:', error);

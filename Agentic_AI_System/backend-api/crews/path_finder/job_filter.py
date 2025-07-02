@@ -1,150 +1,160 @@
+"""
+Job Filter Agent for PathFinder
+
+This module provides functionality to filter job listings based on resume data
+using Ollama for semantic matching.
+"""
+
+import os
 import json
-from typing import Dict, List, Any, Optional
+import requests
+from typing import Dict, List, Any
+import logging
 
-def calculate_job_match_score(job: Dict[str, Any], 
-                             user_years_experience: int,
-                             user_education_level: str,
-                             user_interest_points: List[str]) -> float:
-    """
-    Calculate a match score for a job based on user criteria.
-    
-    Args:
-        job: Job listing dictionary
-        user_years_experience: User's years of experience
-        user_education_level: User's education level
-        user_interest_points: User's interest points/skills
-        
-    Returns:
-        A score between 0 and 100 indicating how well the job matches the user criteria
-    """
-    score = 0.0
-    max_score = 100.0
-    
-    # Experience match (30% of total score)
-    experience_weight = 0.3
-    if 'experience_required' in job:
-        # If user has more experience than required, give full points
-        if user_years_experience >= job['experience_required']:
-            score += 30.0
-        else:
-            # Calculate partial score based on how close user is to required experience
-            experience_ratio = user_years_experience / job['experience_required'] if job['experience_required'] > 0 else 1.0
-            score += 30.0 * min(1.0, experience_ratio)
-    
-    # Education match (20% of total score)
-    education_weight = 0.2
-    education_levels = {
-        "High School": 1,
-        "Associate": 2,
-        "Bachelor": 3,
-        "Master": 4,
-        "PhD": 5
-    }
-    
-    user_edu_level = education_levels.get(user_education_level, 0)
-    required_edu_level = education_levels.get(job.get('education_required', ''), 0)
-    
-    if user_edu_level >= required_edu_level:
-        score += 20.0
-    else:
-        # Partial points if close
-        score += 10.0
-    
-    # Interest points/skills match (40% of total score)
-    interest_weight = 0.4
-    if 'description' in job:
-        interest_matches = 0
-        for interest in user_interest_points:
-            if interest.lower() in job['description'].lower():
-                interest_matches += 1
-        
-        if len(user_interest_points) > 0:
-            interest_ratio = interest_matches / len(user_interest_points)
-            score += 40.0 * interest_ratio
-    
-    # Location/distance (10% of total score)
-    distance_weight = 0.1
-    if 'distance' in job:
-        # Closer is better
-        distance_score = max(0, 1 - (job['distance'] / 100))  # Normalize to 0-1
-        score += 10.0 * distance_score
-    
-    return score
+from services.mongodb.global_state_service import global_state
 
-def filter_and_rank_jobs(jobs: List[Dict[str, Any]], user_years_experience: int = 0, 
-                     user_education_level: str = '', user_interest_points: List[str] = None,
-                     location_radius: int = 50, top_n: int = 10) -> Dict[str, Any]:
-    """
-    Filter and rank jobs based on user criteria.
-    
-    Args:
-        jobs: List of job dictionaries to filter and rank
-        user_years_experience: User's years of experience
-        user_education_level: User's education level
-        user_interest_points: User's interest points/skills
-        location_radius: Search radius in km
-        top_n: Number of top jobs to return
-        
-    Returns:
-        Dictionary containing top N job listings ranked by match score
-    """
-    if not jobs:
-        print("No jobs provided")
-        return {"top_jobs": [], "total_jobs_found": 0}
-    
-    # Ensure user_interest_points is a list
-    if user_interest_points is None:
-        user_interest_points = []
-    
-    # Calculate match score for each job
-    for job in jobs:
-        job['match_score'] = calculate_job_match_score(
-            job, 
-            user_years_experience,
-            user_education_level,
-            user_interest_points
-        )
-    
-    # Sort jobs by match score (descending)
-    ranked_jobs = sorted(jobs, key=lambda x: x.get('match_score', 0), reverse=True)
-    
-    # Return top N jobs
-    top_jobs = ranked_jobs[:top_n]
-    
-    # Create result with metadata
-    result = {
-        "total_jobs_found": len(jobs),
-        "top_jobs_count": len(top_jobs),
-        "top_jobs": top_jobs,
-        "interest_points": user_interest_points,
-    }
-    
-    return result
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# For testing
-if __name__ == "__main__":
-    # Example call with mock data
-    from job_scraper import search_jobs_online
+class JobFilterAgent:
+    """
+    Agent responsible for filtering job listings based on resume data.
+    Uses Ollama for semantic matching between resume and job descriptions.
+    """
     
-    # Get mock job data
-    mock_data = search_jobs_online(
-        job_title="Software Developer",
-        education_level="Bachelor",
-        years_experience=2,
-        location_radius=50,
-        interest_points=["AI", "Machine Learning", "Python"]
-    )
+    def __init__(self):
+        """Initialize the JobFilterAgent"""
+        self.ollama_url = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
+        self.model = os.getenv("OLLAMA_MODEL", "llama3.2")
+        logger.info(f"JobFilterAgent initialized with Ollama URL: {self.ollama_url}, Model: {self.model}")
     
-    # Filter and rank jobs
-    result = filter_and_rank_jobs(mock_data)
+    def get_resume_data(self, user_id: str = "default_user") -> Dict[str, Any]:
+        """
+        Get resume data from the database
+        
+        Args:
+            user_id: The user ID to get resume data for
+            
+        Returns:
+            The resume data or None if not found
+        """
+        state = global_state.get_state(user_id)
+        resume_id = state.get("agent_knowledge", {}).get("resume", {}).get("current_resume_id")
+        
+        if not resume_id:
+            logger.warning(f"No resume found for user {user_id}")
+            return None
+            
+        resume_data = state.get("agent_knowledge", {}).get("resume", {}).get("resumes", {}).get(resume_id)
+        
+        if not resume_data:
+            logger.warning(f"Resume data not found for ID {resume_id}")
+            return None
+            
+        return resume_data
     
-    # Print results
-    print(f"Found {result['total_jobs_found']} jobs, showing top {result['top_jobs_count']}")
-    print(f"Top jobs for {result['job_title']} position:")
-    
-    for i, job in enumerate(result['top_jobs']):
-        print(f"\n{i+1}. {job['title']} at {job['company_name']}")
-        print(f"   Location: {job['location']}")
-        print(f"   Match Score: {job['match_score']:.1f}/100")
-        print(f"   Requirements: {job['requirements']}")
-        print(f"   Salary: {job['salary']}")
+    def filter_jobs(self, jobs: List[Dict[str, Any]], user_id: str = "default_user", top_n: int = 10) -> List[Dict[str, Any]]:
+        """
+        Filter job listings based on resume data using Ollama
+        
+        Args:
+            jobs: List of job listings to filter
+            user_id: The user ID to get resume data for
+            top_n: Number of top jobs to return
+            
+        Returns:
+            List of top N job listings filtered by relevance to resume
+        """
+        if not jobs:
+            logger.warning("No jobs provided to filter")
+            return []
+            
+        # Get resume data
+        resume_data = self.get_resume_data(user_id)
+        
+        if not resume_data:
+            logger.warning("No resume data found, returning unfiltered jobs")
+            return jobs[:top_n]
+            
+        # Extract key information from resume
+        skills = resume_data.get("sections", {}).get("skills", "")
+        experience = resume_data.get("sections", {}).get("experience", "")
+        profile = resume_data.get("sections", {}).get("profile", "")
+        
+        # Create a prompt for Ollama to evaluate each job
+        base_prompt = f"""
+        I have a resume with the following information:
+        
+        Skills: {skills}
+        
+        Experience: {experience}
+        
+        Profile: {profile}
+        
+        I need to evaluate how well the following job matches my resume.
+        Rate the match on a scale from 0 to 100, where 100 is a perfect match.
+        Only return the numeric score, nothing else.
+        
+        Job: 
+        """
+        
+        filtered_jobs = []
+        
+        for job in jobs:
+            # Create job description
+            job_desc = f"""
+            Title: {job.get('title', '')}
+            Company: {job.get('company_name', '')}
+            Description: {job.get('description', '')}
+            Requirements: {job.get('requirements', '')}
+            """
+            
+            # Create full prompt
+            prompt = base_prompt + job_desc
+            
+            try:
+                # Call Ollama API
+                response = requests.post(
+                    f"{self.ollama_url}/api/generate",
+                    json={
+                        "model": self.model,
+                        "prompt": prompt,
+                        "stream": False
+                    },
+                    timeout=30
+                )
+                
+                if response.status_code != 200:
+                    logger.error(f"Ollama API error: {response.status_code}, {response.text}")
+                    # Add default score if API call fails
+                    job["resume_match_score"] = job.get("match_score", 0)
+                else:
+                    # Extract score from response
+                    result = response.json()
+                    response_text = result.get("response", "0").strip()
+                    
+                    # Try to parse the score
+                    try:
+                        # Extract just the number from the response
+                        score_text = ''.join(c for c in response_text if c.isdigit() or c == '.')
+                        score = float(score_text) if score_text else 0
+                        job["resume_match_score"] = min(max(score, 0), 100)  # Clamp between 0-100
+                    except ValueError:
+                        logger.warning(f"Failed to parse score from Ollama response: {response_text}")
+                        job["resume_match_score"] = job.get("match_score", 0)
+            
+            except Exception as e:
+                logger.error(f"Error calling Ollama API: {str(e)}")
+                job["resume_match_score"] = job.get("match_score", 0)
+            
+            filtered_jobs.append(job)
+        
+        # Sort by resume match score (descending)
+        filtered_jobs.sort(key=lambda x: x.get("resume_match_score", 0), reverse=True)
+        
+        # Return top N jobs
+        return filtered_jobs[:top_n]
+
+# Create a singleton instance
+job_filter = JobFilterAgent()

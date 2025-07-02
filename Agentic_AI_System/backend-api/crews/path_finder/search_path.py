@@ -95,6 +95,7 @@ def filter_and_select_jobs_with_ai(user_criteria: Dict[str, Any],
                                    limit: int = 10) -> List[Dict[str, Any]]:
     """
     Use Ollama to filter a list of scraped jobs based on user criteria and select the top N.
+    Falls Ollama nicht verfügbar ist, wird ein einfacher Fallback-Mechanismus verwendet.
     
     Args:
         user_criteria: Dictionary of user's search preferences.
@@ -114,6 +115,43 @@ def filter_and_select_jobs_with_ai(user_criteria: Dict[str, Any],
             "location": job.get("location", "N/A"),
             "description_snippet": job.get("description", "N/A")[:200] 
         })
+    
+    def fallback_filter_jobs():
+        print("Using fallback job filtering mechanism without Ollama")
+        # Einfache Filterung basierend auf Übereinstimmung mit Jobtitel und Interessen
+        job_title = user_criteria.get('job_title', '').lower()
+        interests = user_criteria.get('interests', '').lower()
+        
+        # Bewertungsfunktion für Jobs
+        def score_job(job):
+            score = 0
+            # Titel-Übereinstimmung
+            if job_title and job_title in job.get('title', '').lower():
+                score += 40
+            
+            # Interessen-Übereinstimmung
+            job_description = job.get('description', '').lower()
+            if interests:
+                interest_terms = [i.strip().lower() for i in interests.split(',')]
+                for term in interest_terms:
+                    if term and term in job_description:
+                        score += 15
+            
+            return score
+        
+        # Bewerte alle Jobs und sortiere sie
+        scored_jobs = [(job, score_job(job)) for job in scraped_jobs]
+        scored_jobs.sort(key=lambda x: x[1], reverse=True)
+        
+        # Füge Bewertungen zu den Top-Jobs hinzu
+        top_jobs = []
+        for job, score in scored_jobs[:limit]:
+            job_copy = job.copy()
+            job_copy['match_score'] = min(100, score)
+            job_copy['match_explanation'] = f"Job matches your search criteria with a score of {score}/100"
+            top_jobs.append(job_copy)
+        
+        return top_jobs
     
     prompt = f"""
     Als erfahrener Karriereberater, analysiere bitte das folgende Benutzerprofil und die bereitgestellte Liste von Jobs.
@@ -208,7 +246,7 @@ def filter_and_select_jobs_with_ai(user_criteria: Dict[str, Any],
             
     except Exception as e:
         print(f"Error calling Ollama API for filtering: {e}")
-        return scraped_jobs[:limit]
+        return fallback_filter_jobs()
 
 def get_job_details(job_id: str, user_id: str = None) -> Dict[str, Any]:
     """

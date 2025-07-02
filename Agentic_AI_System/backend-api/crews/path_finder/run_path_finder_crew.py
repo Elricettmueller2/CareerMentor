@@ -11,7 +11,7 @@ sys.path.insert(0, current_dir)
 
 # Import the modules we need for direct testing
 from job_scraper import search_jobs_online
-from job_filter import filter_and_rank_jobs
+from job_filter import job_filter
 
 # Flag to indicate if we're running in direct mode (without Crew AI)
 DIRECT_MODE = True
@@ -20,7 +20,9 @@ DIRECT_MODE = True
 try:
     from crewai import Agent, Task, Crew, LLM
     from crew import PathFinderCrew
-    DIRECT_MODE = False
+    # Wir verwenden immer den direkten Modus, um Probleme mit Ollama zu vermeiden
+    # DIRECT_MODE = False
+    print("Crew AI module found, but using direct mode for reliability.")
 except ImportError:
     print("Note: crewai module not found. Running in direct mode without Crew AI framework.")
     DIRECT_MODE = True
@@ -126,12 +128,9 @@ def run_path_finder_direct(job_title: str, education_level: str = None, years_ex
     )
     
     # Step 2: Filter and rank jobs
-    filtered_results = filter_and_rank_jobs(
+    filtered_results = job_filter.filter_jobs(
         jobs=search_results["jobs"],
-        user_years_experience=years_experience,
-        user_education_level=education_level,
-        user_interest_points=interest_points,
-        location_radius=location_radius,
+        user_id=user_id,
         top_n=limit
     )
     
@@ -143,8 +142,8 @@ def run_path_finder_direct(job_title: str, education_level: str = None, years_ex
         "location_radius": location_radius,
         "interest_points": interest_points,
         "total_jobs_found": search_results["count"],
-        "top_jobs_count": len(filtered_results["top_jobs"]),
-        "top_jobs": filtered_results["top_jobs"]
+        "top_jobs_count": len(filtered_results),
+        "top_jobs": filtered_results
     }
     
     return result

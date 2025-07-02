@@ -273,4 +273,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Elric Ettmüller](https://github.com/Elricettmueller2)
 - [Azim Alizada](https://github.com/Azim-Alizada)
 - [Maximilian Weicht](https://github.com/MaximilianWeicht)
-- [Alessandro Fisslinger](https://github.com/AlessandroFisslinger)
+- [Alessandro Fisslinger](https://github.com/1BobFTW1)

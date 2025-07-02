@@ -1,35 +1,99 @@
-start_interview: 
+start_interview:
   description: >
     Start a job interview for the specified position and experience level.
-    Begin with a brief introduction and ask an appropriate opening question.
+    Consider the following parameters:
+    - job_title: The position the candidate is interviewing for
+    - experience_level: Junior, Mid-level, or Senior
+    - interview_type: Technical or Behavioral
+    - company_culture: Formal, Casual, or Balanced
+    Begin with a professional introduction that sets the context and ask an
+    appropriate opening question based on the interview type.
   expected_output: >
-    A professional introduction and first interview question
-  agent: interview_agent
+    A JSON object with the following structure:
+    {
+      "introduction": "Professional introduction text",
+      "opening_question": "First interview question",
+      "interview_context": {
+        "job_title": "Software Engineer",
+        "experience_level": "Mid-level",
+        "interview_type": "Technical",
+        "company_culture": "Balanced"
+      }
+    }
+  agent: technical_interviewer
 
 respond_to_answer:
   description: >
-    You are an experienced technical interviewer continuing a job interview.
-    Based on the interview history and the candidate's last answer, first Respond to the answer in one sentence, then ask the NEXT follow-up question.
-
-    **Interview History:** You have written the first question and the candidate has answered it. This flow is repeated until the interview is over.
-    {{interview_history}}
-
-    **Candidate's Last Answer:** The candidate has answered the last question. This is the last answer. You are to ask a new question.
-    {{user_response}}
-
-    Your task is to generate ONLY the next question. Do NOT add any preamble or repeat the history.
+    Based on the interview history and the candidate's last answer, evaluate the response
+    and ask an appropriate follow-up question. Consider:
+    - The quality and completeness of the candidate's answer
+    - Areas that need further exploration
+    - The natural progression of the interview
+    - Time management (typical interviews have 5-7 questions)
+    
+    **Interview History:** {{interview_history}}
+    **Candidate's Last Answer:** {{user_response}}
+    **Current Interview Phase:** {{current_phase}}
   expected_output: >
-    A single, concise follow-up question for the candidate. For example: 'That's interesting. Could you elaborate on a specific project where you applied that problem-solving approach?'
-  agent: interview_agent
+    A JSON object with the following structure:
+    {
+      "evaluation": "Brief assessment of the previous answer",
+      "follow_up": "The next question to ask",
+      "notes": "Internal notes on candidate performance (not shown to candidate)"
+    }
+  agent: technical_interviewer
 
 review_interview:
-  description: Review the interview
+  description: >
+    Conduct a comprehensive review of the complete interview, evaluating the candidate's
+    performance across multiple dimensions. Consider:
+    - Technical/domain knowledge
+    - Problem-solving approach
+    - Communication skills
+    - Cultural fit
+    - Overall impression
+    
+    **Complete Interview Transcript:** {{interview_transcript}}
+    **Job Requirements:** {{job_requirements}}
   expected_output: >
-    A detailed review of the interview with feedback
-  agent: interview_agent
+    A JSON object with the following structure:
+    {
+      "scores": {
+        "technical_knowledge": 85,
+        "problem_solving": 75,
+        "communication": 90,
+        "cultural_fit": 80,
+        "overall": 82
+      },
+      "strengths": ["Strength 1", "Strength 2", "Strength 3"],
+      "improvement_areas": ["Area 1", "Area 2", "Area 3"],
+      "specific_feedback": "Detailed feedback with examples from the interview",
+      "recommendation": "Hire/No Hire/Consider for different role"
+    }
+  agent: feedback_coach
 
-refine_answer:
-  description: Refine the text to only include speaking text and remove all other content
+prepare_custom_interview:
+  description: >
+    Create a customized interview plan based on the job description, required skills,
+    and candidate background. Design a sequence of questions that will effectively
+    evaluate the candidate's fit for the specific role.
+    
+    **Job Description:** {{job_description}}
+    **Required Skills:** {{required_skills}}
+    **Candidate Background:** {{candidate_background}}
   expected_output: >
-    A refined answer in at most 3 sentences
-  agent: interview_agent
+    A JSON object with the following structure:
+    {
+      "interview_plan": {
+        "introduction": "Planned introduction text",
+        "technical_questions": ["Question 1", "Question 2", "Question 3"],
+        "behavioral_questions": ["Question 1", "Question 2", "Question 3"],
+        "role_specific_questions": ["Question 1", "Question 2", "Question 3"],
+        "closing_questions": ["Question 1"]
+      },
+      "evaluation_criteria": {
+        "key_skills_to_assess": ["Skill 1", "Skill 2", "Skill 3"],
+        "behavioral_traits_to_observe": ["Trait 1", "Trait 2", "Trait 3"]
+      }
+    }
+  agent: technical_interviewer

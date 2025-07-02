@@ -166,7 +166,11 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSubmit, onCancel })
       </Text>
       <TouchableOpacity 
         style={styles.dateInput} 
-        onPress={() => setShowDeadlinePicker(true)}
+        onPress={() => {
+          setShowDeadlinePicker(prev => !prev);
+          setShowFollowUpPicker(false);
+          setShowTimePicker(false);
+        }}
         activeOpacity={0.7}
       >
         <Text style={applicationDeadline ? styles.dateText : styles.placeholderText}>
@@ -176,13 +180,16 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSubmit, onCancel })
       </TouchableOpacity>
       
       {showDeadlinePicker && (
-        <DateTimePicker
-          value={applicationDeadline || new Date()}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={handleDeadlineChange}
-          minimumDate={new Date()}
-        />
+        <View style={styles.dateTimePickerContainer}>
+          <DateTimePicker
+            value={applicationDeadline || new Date()}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={handleDeadlineChange}
+            minimumDate={new Date()}
+            style={styles.dateTimePicker}
+          />
+        </View>
       )}
 
       <Text style={styles.label}>Status</Text>
@@ -215,7 +222,11 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSubmit, onCancel })
       <View style={styles.reminderContainer}>
         <TouchableOpacity 
           style={[styles.dateInput, { flex: 2 }]} 
-          onPress={() => setShowFollowUpPicker(true)}
+          onPress={() => {
+            setShowFollowUpPicker(prev => !prev);
+            setShowDeadlinePicker(false);
+            setShowTimePicker(false);
+          }}
           activeOpacity={0.7}
         >
           <Text style={followUpDate ? styles.dateText : styles.placeholderText}>
@@ -226,37 +237,47 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({ onSubmit, onCancel })
         
         <TouchableOpacity 
           style={[styles.dateInput, { flex: 1, marginLeft: 10 }]}
-          onPress={() => setShowTimePicker(true)}
+          onPress={() => {
+            setShowTimePicker(prev => !prev);
+            setShowDeadlinePicker(false);
+            setShowFollowUpPicker(false);
+          }}
           activeOpacity={0.7}
         >
           <Text style={styles.dateText}>{followUpTime}</Text>
           <Ionicons name="time-outline" size={20} color="#5D5B8D" style={styles.calendarIcon} />
         </TouchableOpacity>
-        
-      {showTimePicker && (
-        <DateTimePicker
-          value={(() => {
-            const [hours, minutes] = followUpTime.split(':').map(Number);
-            const date = new Date();
-            date.setHours(hours);
-            date.setMinutes(minutes);
-            return date;
-          })()}
-          mode="time"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={handleTimeChange}
-        />
-      )}
       </View>
+      
+      {showTimePicker && (
+        <View style={styles.dateTimePickerContainer}>
+          <DateTimePicker
+            value={(() => {
+              const [hours, minutes] = followUpTime.split(':').map(Number);
+              const date = new Date();
+              date.setHours(hours);
+              date.setMinutes(minutes);
+              return date;
+            })()}
+            mode="time"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={handleTimeChange}
+            style={styles.dateTimePicker}
+          />
+        </View>
+      )}
 
       {showFollowUpPicker && (
-        <DateTimePicker
-          value={followUpDate || new Date()}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={handleFollowUpChange}
-          minimumDate={new Date()}
-        />
+        <View style={styles.dateTimePickerContainer}>
+          <DateTimePicker
+            value={followUpDate || new Date()}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={handleFollowUpChange}
+            minimumDate={new Date()}
+            style={styles.dateTimePicker}
+          />
+        </View>
       )}
 
       <Text style={styles.label}>Notes</Text>
@@ -335,6 +356,15 @@ const styles = StyleSheet.create({
   },
   picker: {
     height: 50,
+  },
+  dateTimePickerContainer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  dateTimePicker: {
+    width: '100%',
   },
   statusInput: {
     height: 50,

@@ -5,29 +5,24 @@ from typing import List, Optional
 from pydantic import BaseModel
 from typing import Dict, Any
 import os
+from datetime import datetime
 from dotenv import load_dotenv
+from services.mongodb.client import mongo_client
 
 # Import crew functions
-from crews.mock_mate.run_mock_mate_crew import run_respond_to_answer, run_start_interview, run_review_interview
+from crews.mock_mate.run_mock_mate_crew import run_respond_to_answer, run_start_interview, run_review_interview, run_prepare_custom_interview
 from crews.track_pal.run_track_pal_crew import run_check_reminders, run_analyze_patterns, get_applications, save_application, update_application
 from crews.track_pal.crew import respond
 from crews.test.run_test_crew import run_test_crew
-from services.session_manager import add_message_to_history, get_conversation_history
+from services.session_manager import add_message_to_history, get_conversation_history, set_session_metadata, get_session_metadata
 from crews.path_finder.run_path_finder_crew import run_path_finder_crew, run_path_finder_direct
 from crews.path_finder.search_path import get_job_details, get_job_recommendations, save_job, unsave_job, get_saved_jobs
 from crews.resume_refiner.run_resume_refiner_crew import (
     run_upload, run_parse, run_analyze_layout, run_evaluate, run_match
 )
 
-# Import database initialization
-from database.init_db import init_database
-
-
 # Load environment variables
 load_dotenv()
-
-# Initialize the database
-init_database()
 
 app = FastAPI(
     title="CareerMentor API",
@@ -91,10 +86,7 @@ async def track_pal_endpoint(action: str, request: AgentRequest):
                 return {"application": updated}
             else:
                 raise HTTPException(status_code=404, detail=f"Application not found: {data.get('app_id')}")
-        elif action == "direct_test":
-            message = data.get("message", "Hello, how are you?")
-            response = respond(message)
-            return {"response": response}
+        # Note: The direct_test endpoint has been removed from the frontend
         else:
             raise HTTPException(status_code=400, detail=f"Unknown action: {action}")
     except Exception as e:
@@ -103,7 +95,6 @@ async def track_pal_endpoint(action: str, request: AgentRequest):
         print(error_msg)
         raise HTTPException(status_code=500, detail=error_msg)
 
-# Agent endpoints
 @app.post("/agents/mock_mate/{action}", tags=["Agents", "MockMate"])
 async def mock_mate_endpoint(action: str, request: AgentRequest):
     """Route requests to the MockMate agent based on the action"""
@@ -114,7 +105,7 @@ async def mock_mate_endpoint(action: str, request: AgentRequest):
     try:
         if action == "respond":
             session_id = data.get("session_id")
-            user_response = data.get("user_response")
+            user_response = data.get("user_response")  # Changed from user_respond to user_response
             print(f"DEBUG: Running respond_to_answer with user_response={user_response}, session_id={session_id}")
             
             # Add user message to history
@@ -122,7 +113,7 @@ async def mock_mate_endpoint(action: str, request: AgentRequest):
                 add_message_to_history(session_id, "user", user_response)
             
             result = run_respond_to_answer(
-                user_respond=user_response,
+                user_response=user_response,  # Changed parameter name
                 session_id=session_id
             )
             
@@ -132,20 +123,31 @@ async def mock_mate_endpoint(action: str, request: AgentRequest):
                 
             return {"response": result}
         elif action == "start_interview":
-            job_role = data.get("job_role")
+            job_title = data.get("job_title", data.get("job_role"))
             experience_level = data.get("experience_level")
+            interview_type = data.get("interview_type", "Technical")
+            company_culture = data.get("company_culture", "Balanced")
             session_id = data.get("session_id")
-            print(f"DEBUG: Running start_interview with job_role={job_role}, experience_level={experience_level}, session_id={session_id}")
+            
+            print(f"DEBUG: Running start_interview with job_title={job_title}, experience_level={experience_level}, interview_type={interview_type}, session_id={session_id}")
             
             # Initialize session if provided
             if session_id:
+                # Store metadata in session
+                set_session_metadata(session_id, "job_title", job_title)
+                set_session_metadata(session_id, "experience_level", experience_level)
+                set_session_metadata(session_id, "interview_type", interview_type)
+                set_session_metadata(session_id, "company_culture", company_culture)
+                
                 # Add system message to conversation history
                 add_message_to_history(session_id, "system", 
-                    f"This is a mock interview for a {job_role} position at {experience_level} experience level.")
+                    f"This is a mock {interview_type.lower()} interview for a {job_title} position at {experience_level} experience level.")
             
             result = run_start_interview(
-                job_role=job_role,
-                experience_level=experience_level
+                job_title=job_title,
+                experience_level=experience_level,
+                interview_type=interview_type,
+                company_culture=company_culture
             )
             
             # Add agent response to history
@@ -159,11 +161,34 @@ async def mock_mate_endpoint(action: str, request: AgentRequest):
                 raise HTTPException(status_code=400, detail="'session_id' is required.")
 
             # Get conversation history from session
-            interview_history = get_conversation_history(session_id)
+            interview_transcript = get_conversation_history(session_id)
+            
+            # Get job requirements if available
+            metadata = get_session_metadata(session_id)
+            job_title = metadata.get("job_title")
+            job_requirements = data.get("job_requirements", {"job_title": job_title})
+            
             print(f"DEBUG: Running review_interview for session_id={session_id}")
 
             result = run_review_interview(
-                interview_history=interview_history
+                interview_transcript=interview_transcript,
+                job_requirements=job_requirements
+            )
+            return {"response": result}
+        elif action == "prepare_custom_interview":
+            job_description = data.get("job_description")
+            required_skills = data.get("required_skills", [])
+            candidate_background = data.get("candidate_background")
+            
+            if not job_description:
+                raise HTTPException(status_code=400, detail="'job_description' is required.")
+            
+            print(f"DEBUG: Running prepare_custom_interview")
+            
+            result = run_prepare_custom_interview(
+                job_description=job_description,
+                required_skills=required_skills,
+                candidate_background=candidate_background
             )
             return {"response": result}
         else:
@@ -189,17 +214,7 @@ async def test_agent(request: AgentRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
 
-@app.post("/agents/track_pal/direct_test", tags=["Agents", "TrackPal"])
-async def test_ollama_direct(request: AgentRequest):
-    """Test endpoint for direct communication with Ollama"""
-    try:
-        # Extract request data
-        data = request.data
-        message = data.get("message", "Hello, how are you?")
-        response = respond(message)
-        return {"response": response}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+# Note: The direct_test endpoint has been removed as part of the chat feature removal
 
 # Path Finder endpoints
 @app.post("/agents/path_finder/suggest_roles", tags=["Agents", "PathFinder"])
@@ -242,9 +257,38 @@ async def path_finder_search_jobs(request: AgentRequest):
             user_id=user_id,
             limit=limit
         )
+        
+        # Speichere die Suchergebnisse in der MongoDB
+        try:
+            # Hole die job_searches Collection
+            job_searches_collection = mongo_client.get_collection("job_searches")
+            
+            # Erstelle ein Dokument für die Suche
+            search_document = {
+                "user_id": user_id,
+                "search_criteria": {
+                    "job_title": job_title,
+                    "degree": degree,
+                    "hard_skills_rating": hard_skills_rating,
+                    "soft_skills_rating": soft_skills_rating,
+                    "interests": interests,
+                    "limit": limit
+                },
+                "results": result,
+                "timestamp": datetime.now()
+            }
+            
+            # Füge das Dokument in die Collection ein
+            job_searches_collection.insert_one(search_document)
+            print(f"Suchergebnisse für User {user_id} in MongoDB gespeichert")
+        except Exception as db_error:
+            print(f"Fehler beim Speichern der Suchergebnisse in MongoDB: {str(db_error)}")
+            # Wir werfen hier keine Exception, damit die API trotzdem funktioniert, auch wenn das Speichern fehlschlägt
+        
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+
 
 @app.get("/agents/path_finder/job/{job_id}", tags=["Agents", "PathFinder"])
 async def path_finder_get_job(job_id: str, user_id: str = "default_user"):
@@ -342,10 +386,20 @@ async def path_finder_get_saved_jobs(user_id: str = "default_user"):
 #Resume Refiner Agent Endpoints
 @app.post("/resumes/upload", tags=["ResumeRefiner"])
 async def upload_resume(file: UploadFile = File(...)):
-    """Upload a resume PDF and get an upload_id"""
+    """Upload a resume PDF or image (JPEG, PNG, HEIC) and get an upload_id"""
     print("🖨️ upload_resume called")
-    if file.content_type != "application/pdf":
-        raise HTTPException(400, "Only PDF files are supported")
+    
+    # Check if the file is a supported type (PDF, JPEG, PNG, HEIC)
+    content_type = file.content_type.lower() if file.content_type else ""
+    filename = file.filename.lower() if file.filename else ""
+    
+    is_pdf = "pdf" in content_type or filename.endswith(".pdf")
+    is_jpeg = any(img_type in content_type for img_type in ["jpeg", "jpg"]) or filename.endswith((".jpg", ".jpeg"))
+    is_png = "png" in content_type or filename.endswith(".png")
+    is_heic = "heic" in content_type or filename.endswith(".heic")
+    
+    if not (is_pdf or is_jpeg or is_png or is_heic):
+        raise HTTPException(400, "Only PDF, JPEG, PNG, and HEIC files are supported")
     
     try:
         # Debug logging to inspect the file
@@ -460,3 +514,42 @@ async def legacy_match_resume(upload_id: str, request: dict):
         return {"response": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+
+# Global State endpoints
+@app.get("/global-state", tags=["GlobalState"])
+async def get_global_state():
+    """Get the global state"""
+    from services.mongodb.sync_service import sync_service
+    result = sync_service.get_backend_state()
+    if result["success"]:
+        return result
+    else:
+        raise HTTPException(status_code=500, detail=result["message"])
+
+# Pydantic models for global state requests
+class GlobalStateRequest(BaseModel):
+    state: Dict[str, Any]
+
+class KnowledgeUpdateRequest(BaseModel):
+    key: str
+    value: Any
+
+@app.post("/global-state/sync", tags=["GlobalState"])
+async def sync_global_state(request: GlobalStateRequest):
+    """Sync the global state between frontend and backend"""
+    from services.mongodb.sync_service import sync_service
+    result = sync_service.sync_from_frontend(request.state)
+    if result["success"]:
+        return result
+    else:
+        raise HTTPException(status_code=500, detail=result["message"])
+
+@app.post("/global-state/knowledge", tags=["GlobalState"])
+async def update_knowledge(request: KnowledgeUpdateRequest):
+    """Update a specific knowledge item in the global state"""
+    from services.mongodb.sync_service import sync_service
+    result = sync_service.update_knowledge(request.key, request.value)
+    if result["success"]:
+        return result
+    else:
+        raise HTTPException(status_code=500, detail=result["message"])
