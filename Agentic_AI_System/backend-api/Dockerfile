@@ -9,7 +9,7 @@ COPY pyproject.toml poetry.lock* ./
 # Install poetry & dependencies
 RUN pip install --no-cache-dir poetry \
  && poetry config virtualenvs.create false \
- && poetry lock \
+ && rm -f poetry.lock \
  && poetry install --no-interaction --no-ansi --no-root
 
 # Install additional packages needed for web scraping, AI, and MongoDB
