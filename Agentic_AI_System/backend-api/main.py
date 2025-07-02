@@ -21,15 +21,8 @@ from crews.resume_refiner.run_resume_refiner_crew import (
     run_upload, run_parse, run_analyze_layout, run_evaluate, run_match
 )
 
-# Import database initialization
-from database.init_db import init_database
-
-
 # Load environment variables
 load_dotenv()
-
-# Initialize the database
-init_database()
 
 app = FastAPI(
     title="CareerMentor API",
