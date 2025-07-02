@@ -13,6 +13,7 @@ interface GradientButtonProps {
   textStyle?: TextStyle;
   small?: boolean;
   colors?: readonly [ColorValue, ColorValue, ...ColorValue[]];
+  icon?: React.ReactNode;
 }
 
 const GradientButton: React.FC<GradientButtonProps> = ({
@@ -25,6 +26,7 @@ const GradientButton: React.FC<GradientButtonProps> = ({
   textStyle,
   small = false,
   colors = [CAREER_COLORS.rose, CAREER_COLORS.sky] as readonly [ColorValue, ColorValue],
+  icon,
 }) => {
   // Apply opacity to button when disabled
   const buttonOpacity = disabled ? 0.6 : 1;
@@ -52,9 +54,12 @@ const GradientButton: React.FC<GradientButtonProps> = ({
             )}
           </View>
         ) : (
-          <Text style={[styles.text, small ? styles.smallText : {}, textStyle]}>
-            {title}
-          </Text>
+          <View style={styles.contentContainer}>
+            {icon && <View style={styles.iconContainer}>{icon}</View>}
+            <Text style={[styles.text, small ? styles.smallText : {}, textStyle]}>
+              {title}
+            </Text>
+          </View>
         )}
       </LinearGradient>
     </TouchableOpacity>
@@ -101,6 +106,14 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginLeft: 8,
+  },
+  contentContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconContainer: {
+    marginRight: 8,
   }
 });
 

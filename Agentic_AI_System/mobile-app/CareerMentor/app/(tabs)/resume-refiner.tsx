@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, View, Platform, TextInput, KeyboardAvoidingView, Alert } from 'react-native';
+import { StyleSheet, ScrollView, TouchableOpacity, View, Platform, TextInput, KeyboardAvoidingView, Alert, Image } from 'react-native';
 import { Text } from '@/components/Themed';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -10,6 +10,7 @@ import { API_BASE_URL, API_FALLBACK_URLS } from '@/constants/ApiEndpoints';
 import { ResumeService } from '@/services/ResumeService';
 import { loadJobs } from '@/utils/dataLoader';
 import { truncateText, formatPercentage } from '@/utils/formatters';
+import GradientButton from '@/components/trackpal/GradientButton';
 
 // Import resume-refiner components
 import UploadOptionsModal from '@/components/resume-refiner/UploadOptionsModal';
@@ -40,37 +41,59 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: COLORS.nightSky,
-    paddingTop: 50,
-    paddingBottom: 0,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    overflow: 'hidden',
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 15,
+  },
+  logo: {
+    width: 30,
+    height: 36, 
+    marginRight: 10,
   },
   headerTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     color: COLORS.white,
-    marginBottom: 10,
-    marginTop: 10,
-    marginLeft: 20,
+    marginBottom: 0, 
+    marginTop: 0, 
+    marginLeft: 0,
     textAlign: 'left',
-    alignSelf: 'stretch',
+    alignSelf: 'center', 
   },
   content: {
     flex: 1,
     padding: 12,
-    paddingTop: 16,
+    paddingTop: 30,
   },
   tabContainer: {
     flexDirection: 'row',
-    overflow: 'hidden',
     width: '100%',
-    marginTop: 5,
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 108 : 87,
+    borderRadius: 25,
+    backgroundColor: COLORS.salt,
+    padding: 3,
+    zIndex: 10,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignItems: 'center',
+    borderRadius: 25,
+    marginHorizontal: 0,
   },
   activeTab: {
     backgroundColor: COLORS.nightSky,
@@ -671,6 +694,10 @@ const styles = StyleSheet.create({
     color: COLORS.midnight,
     flex: 1,
   },
+  gradientUploadButton: {
+    width: '60%',
+    marginBottom: 20,
+  },
 });
 
 // Helper function to determine the color based on match percentage
@@ -1194,21 +1221,28 @@ export default function ResumeRefinerScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Resume Refiner</Text>
-        <View style={styles.tabContainer}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'analyse' ? styles.activeTab : {backgroundColor: COLORS.salt}]}
-            onPress={() => setActiveTab('analyse')}
-          >
-            <Text style={[styles.tabText, activeTab === 'analyse' ? styles.activeTabText : null]}>Analyse</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'match' ? styles.activeTab : {backgroundColor: COLORS.salt}]}
-            onPress={() => setActiveTab('match')}
-          >
-            <Text style={[styles.tabText, activeTab === 'match' ? styles.activeTabText : null]}>Match</Text>
-          </TouchableOpacity>
+        <View style={styles.headerContent}>
+          <Image 
+            source={require('@/assets/images/logo.png')} 
+            style={styles.logo}
+            resizeMode="contain" 
+          />
+          <Text style={styles.headerTitle}>Career Daddy</Text>
         </View>
+      </View>
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'analyse' ? styles.activeTab : {}]}
+          onPress={() => setActiveTab('analyse')}
+        >
+          <Text style={[styles.tabText, activeTab === 'analyse' ? styles.activeTabText : null]}>Analyse</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'match' ? styles.activeTab : {}]}
+          onPress={() => setActiveTab('match')}
+        >
+          <Text style={[styles.tabText, activeTab === 'match' ? styles.activeTabText : null]}>Match</Text>
+        </TouchableOpacity>
       </View>
       <View style={styles.content}>
         {activeTab === 'analyse' && (
@@ -1265,13 +1299,12 @@ export default function ResumeRefinerScreen() {
               </>
             ) : (
               <View style={styles.uploadContainer}>
-                <TouchableOpacity
-                  style={styles.uploadButton}
+                <GradientButton
+                  title="Upload Resume"
                   onPress={() => setShowUploadOptions(true)}
-                >
-                  <Ionicons name="cloud-upload-outline" size={24} color={COLORS.white} />
-                  <Text style={styles.uploadButtonText}>Upload Resume</Text>
-                </TouchableOpacity>
+                  style={styles.gradientUploadButton}
+                  icon={<Ionicons name="cloud-upload-outline" size={24} color={COLORS.white} />}
+                />
                 <Text style={styles.uploadDescription}>
                   Upload your resume to get feedback and to match it to job descriptions
                 </Text>
@@ -1287,13 +1320,12 @@ export default function ResumeRefinerScreen() {
             <View style={styles.matchContainer}>
               {!uploadId ? (
                 <View style={styles.uploadContainer}>
-                  <TouchableOpacity
-                    style={styles.uploadButton}
+                  <GradientButton
+                    title="Upload Resume"
                     onPress={() => setShowUploadOptions(true)}
-                  >
-                    <Ionicons name="cloud-upload-outline" size={24} color={COLORS.white} />
-                    <Text style={styles.uploadButtonText}>Upload Resume</Text>
-                  </TouchableOpacity>
+                    style={styles.gradientUploadButton}
+                    icon={<Ionicons name="cloud-upload-outline" size={24} color={COLORS.white} />}
+                  />
                   <Text style={styles.uploadDescription}>
                     Upload your resume to match it with job descriptions
                   </Text>

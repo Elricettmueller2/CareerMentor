@@ -16,7 +16,7 @@ litellm._turn_on_debug()
 
 llm = LLM(
     model="ollama/llama3.2",
-    base_url=os.getenv("OLLAMA_BASE_URL", "http://ollama:11434"),
+    base_url=os.getenv("OLLAMA_BASE_URL"),
 )
 
 @CrewBase
