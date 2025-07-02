@@ -75,9 +75,17 @@ function RootLayoutNav() {
 
   return (
     <ThemeProvider value={DefaultTheme}>
-      <Stack>
+      <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        <Stack.Screen 
+          name="interview-review" 
+          options={{ 
+            headerShown: false,
+            // Ensure the tab bar doesn't show on this screen
+            presentation: 'card',
+          }} 
+        />
       </Stack>
     </ThemeProvider>
   );

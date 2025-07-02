@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator, TouchableOpacity, SafeAreaView } from 'react-native';
 import { Text } from '@/components/Themed';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { CAREER_COLORS as COLORS } from '@/constants/Colors';
 import { InterviewSummaryData } from '@/types/interview';
 import ReviewCard from '@/components/interview/ReviewCard';
@@ -182,11 +182,13 @@ const InterviewReviewScreen = () => {
   }, [sessionId]);
 
   const handleStartNewInterview = () => {
-    router.replace('/(tabs)/interview');
+    // Use push instead of replace to avoid tab bar issues
+    router.push('/(tabs)/interview');
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      <Stack.Screen options={{ headerShown: false, presentation: 'card' }} />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color={COLORS.midnight} />
