@@ -18,17 +18,27 @@ import { Ionicons } from '@expo/vector-icons';
 
 // Import custom components
 import InterviewHeader from '@/components/interview/InterviewHeader';
-import InterviewSetupForm, { InterviewSetupData } from '@/components/interview/InterviewSetupForm';
+import InterviewSetupForm from '@/components/interview/InterviewSetupForm';
 import MessageBubble from '@/components/interview/MessageBubble';
+import EnhancedMessageBubble from '@/components/interview/EnhancedMessageBubble';
 import ChatInput from '@/components/interview/ChatInput';
 import InterviewProgress from '@/components/interview/InterviewProgress';
 
+// Import types
+import { InterviewMessage, InterviewSetupData } from '@/types/interview';
+
 const API_BASE_URL = 'http://localhost:8000';
 
-interface Message {
-  text: string;
-  sender: 'user' | 'agent';
-  timestamp?: string;
+// Define interface for parsed interview responses
+interface ParsedInterviewResponse {
+  introduction?: string;
+  response?: string;
+  total_questions?: number;
+  estimated_duration_minutes?: number;
+  evaluation?: string;
+  follow_up?: string;
+  notes?: string;
+  question_number?: number;
 }
 
 export default function InterviewScreen() {
@@ -38,7 +48,7 @@ export default function InterviewScreen() {
   // State variables
   const [interviewStarted, setInterviewStarted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<InterviewMessage[]>([]);
   const [sessionId, setSessionId] = useState(`session_${Date.now()}`);
   const [interviewType, setInterviewType] = useState<'Technical' | 'Behavioral'>('Technical');
   const [currentQuestion, setCurrentQuestion] = useState(1);
@@ -101,9 +111,11 @@ export default function InterviewScreen() {
       const data = await response.json();
       
       // Try to parse the JSON response if it's a string
-      let parsedResponse;
+      let parsedResponse: ParsedInterviewResponse;
       try {
-        parsedResponse = typeof data.response === 'string' ? JSON.parse(data.response) : data.response;
+        parsedResponse = typeof data.response === 'string'
+          ? JSON.parse(data.response)
+          : data.response;
         
         // If we have metadata about the interview, update our state
         if (parsedResponse.total_questions) {
@@ -114,18 +126,45 @@ export default function InterviewScreen() {
           setEstimatedTimeRemaining(parsedResponse.estimated_duration_minutes);
         }
         
+        // Check if we have a structured response with evaluation fields
+        if (parsedResponse.evaluation) {
+          // First add the evaluation message
+          setMessages([{ 
+            evaluation: parsedResponse.evaluation,
+            notes: parsedResponse.notes,
+            sender: 'agent',
+            timestamp: new Date().toLocaleTimeString() 
+          }]);
+          
+          // Then, if there's a follow-up question, add it as a separate message
+          if (parsedResponse.follow_up) {
+            setTimeout(() => {
+              setMessages(prev => [...prev, { 
+                text: parsedResponse.follow_up,
+                sender: 'agent',
+                isFollowUp: true,
+                timestamp: new Date().toLocaleTimeString() 
+              }]);
+            }, 500); // Small delay for better UX
+          }
+        } else {
+          // Extract the introduction text
+          const introText = parsedResponse.introduction || parsedResponse.response || data.response;
+          
+          setMessages([{ 
+            text: introText, 
+            sender: 'agent',
+            timestamp: new Date().toLocaleTimeString() 
+          }]);
+        }
       } catch (e) {
-        parsedResponse = { introduction: data.response };
+        // If parsing fails, just use the raw response
+        setMessages([{ 
+          text: data.response, 
+          sender: 'agent',
+          timestamp: new Date().toLocaleTimeString() 
+        }]);
       }
-      
-      // Extract the introduction text
-      const introText = parsedResponse.introduction || data.response;
-      
-      setMessages([{ 
-        text: introText, 
-        sender: 'agent',
-        timestamp: new Date().toLocaleTimeString() 
-      }]);
       
       setInterviewStarted(true);
     } catch (error: any) {
@@ -171,9 +210,12 @@ export default function InterviewScreen() {
       const data = await response.json();
       
       // Try to parse the JSON response if it's a string
-      let parsedResponse;
+      let parsedResponse: ParsedInterviewResponse;
       try {
-        parsedResponse = typeof data.response === 'string' ? JSON.parse(data.response) : data.response;
+        parsedResponse = 
+          typeof data.response === 'string' 
+            ? JSON.parse(data.response) 
+            : data.response;
         
         // If we have question number information, update our state
         if (parsedResponse.question_number) {
@@ -183,14 +225,37 @@ export default function InterviewScreen() {
           setCurrentQuestion(prev => Math.min(prev + 1, totalQuestions));
         }
         
-        // Extract the agent response text
-        const responseText = parsedResponse.response || data.response;
-        
-        setMessages(prev => [...prev, { 
-          text: responseText, 
-          sender: 'agent',
-          timestamp: new Date().toLocaleTimeString() 
-        }]);
+        // Check if we have a structured response with evaluation fields
+        if (parsedResponse.evaluation) {
+          // First add the evaluation message
+          setMessages(prev => [...prev, { 
+            evaluation: parsedResponse.evaluation,
+            notes: parsedResponse.notes,
+            sender: 'agent',
+            timestamp: new Date().toLocaleTimeString() 
+          }]);
+          
+          // Then, if there's a follow-up question, add it as a separate message
+          if (parsedResponse.follow_up) {
+            setTimeout(() => {
+              setMessages(prev => [...prev, { 
+                text: parsedResponse.follow_up,
+                sender: 'agent',
+                isFollowUp: true,
+                timestamp: new Date().toLocaleTimeString() 
+              }]);
+            }, 500); // Small delay for better UX
+          }
+        } else {
+          // Extract the agent response text
+          const responseText = parsedResponse.response || data.response;
+          
+          setMessages(prev => [...prev, { 
+            text: responseText, 
+            sender: 'agent',
+            timestamp: new Date().toLocaleTimeString() 
+          }]);
+        }
       } catch (e) {
         // If parsing fails, just use the raw response
         setMessages(prev => [...prev, { 
@@ -272,14 +337,43 @@ export default function InterviewScreen() {
               contentContainerStyle={styles.messagesContent}
               showsVerticalScrollIndicator={false}
             >
-              {messages.map((message, index) => (
-                <MessageBubble
-                  key={index}
-                  message={message.text}
-                  isUser={message.sender === 'user'}
-                  timestamp={message.timestamp}
-                />
-              ))}
+              {messages.map((message, index) => {
+                if (message.sender === 'user') {
+                  // User message
+                  return (
+                    <MessageBubble
+                      key={index}
+                      message={message.text || ''}
+                      isUser={true}
+                      timestamp={message.timestamp}
+                    />
+                  );
+                } else if (message.evaluation) {
+                  // Structured evaluation message
+                  return (
+                    <EnhancedMessageBubble
+                      key={index}
+                      message={{
+                        evaluation: message.evaluation,
+                        notes: message.notes
+                      }}
+                      isUser={false}
+                      timestamp={message.timestamp}
+                    />
+                  );
+                } else {
+                  // Regular agent message or follow-up question
+                  return (
+                    <MessageBubble
+                      key={index}
+                      message={message.text || ''}
+                      isUser={false}
+                      isFollowUp={message.isFollowUp}
+                      timestamp={message.timestamp}
+                    />
+                  );
+                }
+              })}
               
               {loading && (
                 <View style={styles.loadingIndicator}>

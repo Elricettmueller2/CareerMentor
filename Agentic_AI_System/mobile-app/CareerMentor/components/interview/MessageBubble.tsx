@@ -6,12 +6,14 @@ interface MessageBubbleProps {
   message: string;
   isUser: boolean;
   timestamp?: string;
+  isFollowUp?: boolean; // New prop for follow-up questions
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ 
   message, 
   isUser,
-  timestamp 
+  timestamp,
+  isFollowUp = false
 }) => {
   return (
     <View style={[
@@ -20,7 +22,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     ]}>
       <View style={[
         styles.bubble,
-        isUser ? styles.userBubble : styles.agentBubble
+        isUser ? styles.userBubble : 
+          isFollowUp ? {...styles.agentBubble, ...styles.followUpBubble} : styles.agentBubble
       ]}>
         <Text style={[
           styles.messageText,
@@ -71,6 +74,10 @@ const styles = StyleSheet.create({
   agentBubble: {
     backgroundColor: colors.neutral.white,
     borderBottomLeftRadius: borderRadius.xs,
+  },
+  followUpBubble: {
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary.main,
   },
   messageText: {
     fontSize: typography.fontSize.md,
