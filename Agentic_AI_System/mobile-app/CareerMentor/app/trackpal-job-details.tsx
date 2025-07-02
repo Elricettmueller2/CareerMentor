@@ -568,7 +568,6 @@ export default function TrackPalJobDetailsScreen() {
         return (
           <CongratsCard
             message="Congratulations on your new job!"
-            style={styles.congratsContainer}
           />
         );
         
