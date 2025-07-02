@@ -7,12 +7,14 @@ export interface JobApplication {
   company: string;
   location: string;
   applicationDeadline: string | null;
+  applicationDeadlineReminder: string | null;
   status: string;
   followUpDate: string | null;
   followUpTime: string;
   notes: string;
   jobUrl?: string;
   appliedDate: string;
+  interviewReminder: string | null;
 }
 
 const APPLICATIONS_STORAGE_KEY = 'trackpal_applications';
@@ -39,11 +41,13 @@ export const ApplicationService = {
           company: 'Acme Corp',
           location: 'San Francisco, CA',
           applicationDeadline: null,
+          applicationDeadlineReminder: null,
           status: 'applied',
           followUpDate: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days from now
           followUpTime: '10:00',
           notes: 'Applied through company website',
-          appliedDate: new Date(now.getTime() - 12 * 24 * 60 * 60 * 1000).toISOString() // 12 days ago
+          appliedDate: new Date(now.getTime() - 12 * 24 * 60 * 60 * 1000).toISOString(), // 12 days ago
+          interviewReminder: null
         },
         {
           id: '2',
@@ -51,11 +55,13 @@ export const ApplicationService = {
           company: 'TechStart',
           location: 'Remote',
           applicationDeadline: null,
+          applicationDeadlineReminder: null,
           status: 'interview',
           followUpDate: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day from now
           followUpTime: '14:00',
           notes: 'First interview scheduled',
-          appliedDate: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString() // 5 days ago
+          appliedDate: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
+          interviewReminder: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString() // 3 days from now
         },
         {
           id: '3',
@@ -63,11 +69,13 @@ export const ApplicationService = {
           company: 'BigCorp',
           location: 'New York, NY',
           applicationDeadline: null,
+          applicationDeadlineReminder: null,
           status: 'rejected',
           followUpDate: null,
           followUpTime: '',
-          notes: 'Rejected after initial screening',
-          appliedDate: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000).toISOString() // 20 days ago
+          notes: 'Position was filled internally',
+          appliedDate: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000).toISOString(), // 20 days ago
+          interviewReminder: null
         }
       ];
       

@@ -104,10 +104,7 @@ async def track_pal_endpoint(action: str, request: AgentRequest):
                 return {"application": updated}
             else:
                 raise HTTPException(status_code=404, detail=f"Application not found: {data.get('app_id')}")
-        elif action == "direct_test":
-            message = data.get("message", "Hello, how are you?")
-            response = respond(message)
-            return {"response": response}
+        # Note: The direct_test endpoint has been removed from the frontend
         else:
             raise HTTPException(status_code=400, detail=f"Unknown action: {action}")
     except Exception as e:
@@ -202,17 +199,7 @@ async def test_agent(request: AgentRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
 
-@app.post("/agents/track_pal/direct_test", tags=["Agents", "TrackPal"])
-async def test_ollama_direct(request: AgentRequest):
-    """Test endpoint for direct communication with Ollama"""
-    try:
-        # Extract request data
-        data = request.data
-        message = data.get("message", "Hello, how are you?")
-        response = respond(message)
-        return {"response": response}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+# Note: The direct_test endpoint has been removed as part of the chat feature removal
 
 # Path Finder endpoints
 @app.post("/agents/path_finder/suggest_roles", tags=["Agents", "PathFinder"])
