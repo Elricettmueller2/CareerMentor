@@ -12,7 +12,9 @@ export const initializeNotifications = async () => {
   // Configure how notifications appear when the app is in the foreground
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
-      shouldShowAlert: true,
+      shouldShowAlert: true, // Keep for backward compatibility
+      shouldShowBanner: true, // New recommended property
+      shouldShowList: true,   // New recommended property
       shouldPlaySound: true,
       shouldSetBadge: true,
     }),

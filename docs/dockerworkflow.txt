@@ -1,11 +1,13 @@
+#Infogathering
+
 docker ps
+docker logs career-mentor-backend-container
+
+#Pasteready instant setup
 
 docker stop career-mentor-backend-container
-
 docker rm career-mentor-backend-container
-
 docker build -t career-mentor-backend:latest /Users/elricettmuller/Programming/CareerMentor/Agentic_AI_System/backend-api
-
 docker run -d -p 8000:8000 --name career-mentor-backend-container career-mentor-backend:latest
 
 docker logs career-mentor-backend-container
@@ -103,6 +105,148 @@ bash
 cd /Users/azimalizada/Documents/Uni/Sem4/MA/CareerMentor/Agentic_AI_System/mobile-app/CareerMentor
 npx expo start
 
+
+
+===== Alessandro: Docker Setup and Workflow =====
+
+===== Initial Setup =====
+
+# 1. Make sure MongoDB container is running
+docker stop careermentor-mongodb || true
+docker rm careermentor-mongodb || true
+docker run -d --name careermentor-mongodb -p 27017:27017 mongo:latest
+
+# 2. Build and start the backend container
+docker stop careermentor-backend
+docker rm careermentor-backend
+docker build -t careermentor-backend:latest ./Agentic_AI_System/backend-api
+docker run -d --name careermentor-backend -p 8000:8000 --add-host=host.docker.internal:host-gateway careermentor-backend:latest
+
+===== Recurring Setup (Stop/Remove/Restart) =====
+
+# 1. Stop and remove existing containers
+docker stop careermentor-backend careermentor-mongodb
+docker rm careermentor-backend careermentor-mongodb
+
+# 2. Start MongoDB container
+docker run -d --name careermentor-mongodb -p 27017:27017 mongo:latest
+
+# 3. Rebuild backend if code changes were made
+docker build -t careermentor-backend:latest ./Agentic_AI_System/backend-api
+
+# 4. Start backend container with host.docker.internal for Ollama access
+docker run -d --name careermentor-backend -p 8000:8000 --add-host=host.docker.internal:host-gateway careermentor-backend:latest
+
+# 5. Verify containers are running
+docker ps
+
+# 6. Test backend API
+curl http://localhost:8000/healthcheck
+
+# 7. Test job search endpoint (requires Ollama running on host)
+curl -X POST -H "Content-Type: application/json" -d '{"data": {"job_title": "Software Developer", "location_radius": 50}}' http://localhost:8000/agents/path_finder/search_jobs_online
+
+===== MongoDB Docker Container =====
+
+docker stop careermentor-mongodb
+docker rm careermentor-mongodb
+docker run -d --name careermentor-mongodb -p 27017:27017 mongo:latest
+cd /Users/sandro/STUDIUM/4-Semester/mobile-anwendungen/CareerMentor/Agentic_AI_System/backend-api
+docker build -t careermentor-backend:latest .
+docker run -d --name careermentor-backend -p 8000:8000 --add-host=host.docker.internal:host-gateway careermentor-backend:latest
+# Create docker-compose.yml in the project root with MongoDB and backend services
+docker-compose up -d
+
+
+Maintenance Commands:
+# Check container status
+docker ps
+
+# View container logs
+docker logs careermentor-backend
+
+# Stop containers
+docker stop careermentor-backend careermentor-mongodb
+
+# Remove containers
+docker rm careermentor-backend careermentor-mongodb
+
+# Remove everything (containers, images, volumes)
+docker stop $(docker ps -aq)
+docker rm $(docker ps -aq)
+docker rmi $(docker images -aq)
+docker volume rm $(docker volume ls -q)
+
+
+===== Alessandro: Docker Setup and Workflow =====
+
+===== Initial Setup =====
+
+# 1. Make sure MongoDB container is running
+docker stop careermentor-mongodb || true
+docker rm careermentor-mongodb || true
+docker run -d --name careermentor-mongodb -p 27017:27017 mongo:latest
+
+# 2. Build and start the backend container
+docker stop careermentor-backend
+docker rm careermentor-backend
+docker build -t careermentor-backend:latest ./Agentic_AI_System/backend-api
+docker run -d --name careermentor-backend -p 8000:8000 --add-host=host.docker.internal:host-gateway careermentor-backend:latest
+
+===== Recurring Setup (Stop/Remove/Restart) =====
+
+# 1. Stop and remove existing containers
+docker stop careermentor-backend careermentor-mongodb
+docker rm careermentor-backend careermentor-mongodb
+
+# 2. Start MongoDB container
+docker run -d --name careermentor-mongodb -p 27017:27017 mongo:latest
+
+# 3. Rebuild backend if code changes were made
+docker build -t careermentor-backend:latest ./Agentic_AI_System/backend-api
+
+# 4. Start backend container with host.docker.internal for Ollama access
+docker run -d --name careermentor-backend -p 8000:8000 --add-host=host.docker.internal:host-gateway careermentor-backend:latest
+
+# 5. Verify containers are running
+docker ps
+
+# 6. Test backend API
+curl http://localhost:8000/healthcheck
+
+# 7. Test job search endpoint (requires Ollama running on host)
+curl -X POST -H "Content-Type: application/json" -d '{"data": {"job_title": "Software Developer", "location_radius": 50}}' http://localhost:8000/agents/path_finder/search_jobs_online
+
+===== MongoDB Docker Container =====
+
+docker stop careermentor-mongodb
+docker rm careermentor-mongodb
+docker run -d --name careermentor-mongodb -p 27017:27017 mongo:latest
+cd /Users/sandro/STUDIUM/4-Semester/mobile-anwendungen/CareerMentor/Agentic_AI_System/backend-api
+docker build -t careermentor-backend:latest .
+docker run -d --name careermentor-backend -p 8000:8000 --add-host=host.docker.internal:host-gateway careermentor-backend:latest
+# Create docker-compose.yml in the project root with MongoDB and backend services
+docker-compose up -d
+
+
+Maintenance Commands:
+# Check container status
+docker ps
+
+# View container logs
+docker logs careermentor-backend
+
+# Stop containers
+docker stop careermentor-backend careermentor-mongodb
+
+# Remove containers
+docker rm careermentor-backend careermentor-mongodb
+
+# Remove everything (containers, images, volumes)
+docker stop $(docker ps -aq)
+docker rm $(docker ps -aq)
+docker rmi $(docker images -aq)
+docker volume rm $(docker volume ls -q)
 
 
 AZIM FINAL:
