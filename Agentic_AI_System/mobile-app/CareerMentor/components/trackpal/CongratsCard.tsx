@@ -3,6 +3,7 @@ import { StyleSheet, View, ViewStyle } from 'react-native';
 import { Text } from '@/components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { CAREER_COLORS } from '../../constants/Colors';
 
 interface CongratsCardProps {
   message: string;
@@ -14,41 +15,62 @@ const CongratsCard: React.FC<CongratsCardProps> = ({
   style
 }) => {
   return (
-    <LinearGradient
-      colors={['#FFD700', '#FFC107']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 0 }}
-      style={[styles.container, style]}
-    >
-      <View style={styles.iconContainer}>
-        <Ionicons name="trophy" size={40} color="#FFFFFF" />
-      </View>
-      <Text style={styles.message}>{message}</Text>
-    </LinearGradient>
+      <LinearGradient
+        colors={[CAREER_COLORS.green, '#4CAF50']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.container, style]}
+      >
+        <View style={styles.content}>
+          <View style={styles.iconContainer}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.1)']}
+              style={styles.iconBackground}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Ionicons name="trophy" size={48} color="#FFFFFF" />
+            </LinearGradient>
+          </View>
+          <Text style={styles.message}>{message}</Text>
+        </View>
+      </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 12,
-    padding: 20,
+    padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
+    width: '100%',
+    borderRadius: 8,
+  },
+  content: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
   },
   iconContainer: {
-    marginBottom: 12,
+    marginBottom: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconBackground: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   message: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#FFFFFF',
     textAlign: 'center',
-  }
+    marginBottom: 16,
+    letterSpacing: 0.5,
+  },
 });
 
 export default CongratsCard;

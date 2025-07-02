@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { JobApplication } from '../../services/ApplicationService';
 import EmptyState from './EmptyState';
+import { CAREER_COLORS } from '../../constants/Colors';
 
 interface ApplicationsListProps {
   applications: JobApplication[];
@@ -63,7 +64,7 @@ const ApplicationsList = ({
           
           {item.followUpDate && (
             <View style={styles.reminderBadge}>
-              <Ionicons name="notifications" size={14} color="#fff" />
+              <Ionicons name="notifications" size={14} color={CAREER_COLORS.white} />
               <Text style={styles.reminderText}>
                 {new Date(item.followUpDate).toLocaleDateString()}
               </Text>
@@ -77,7 +78,7 @@ const ApplicationsList = ({
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color={CAREER_COLORS.sky} />
       </View>
     );
   }
@@ -119,7 +120,7 @@ const styles = StyleSheet.create({
   },
 
   applicationItem: {
-    backgroundColor: '#5D5B8D',
+    backgroundColor: CAREER_COLORS.nightSky,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     flex: 1,
-    color: '#fff',
+    color: CAREER_COLORS.white,
   },
 
   statusBadge: {
@@ -153,12 +154,12 @@ const styles = StyleSheet.create({
 
   statusText: {
     fontSize: 12,
-    color: '#fff',
+    color: CAREER_COLORS.white,
   },
 
   companyText: {
     fontSize: 16,
-    color: '#fff',
+    color: CAREER_COLORS.white,
     marginBottom: 4,
   },
 
@@ -191,7 +192,7 @@ const styles = StyleSheet.create({
 
   reminderText: {
     fontSize: 12,
-    color: '#fff',
+    color: CAREER_COLORS.white,
     marginLeft: 4,
   },
 });

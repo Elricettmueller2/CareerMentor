@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { CAREER_COLORS } from '../../constants/Colors';
 import { useFocusEffect } from '@react-navigation/native';
 import ApplicationForm from '../../components/ApplicationForm';
 import ApplicationService, { JobApplication } from '../../services/ApplicationService';
@@ -507,7 +508,7 @@ const styles = StyleSheet.create({
 
   // Existing styles
   addButton: {
-    backgroundColor: '#000',
+    backgroundColor: CAREER_COLORS.nightSky,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -516,7 +517,7 @@ const styles = StyleSheet.create({
   },
 
   addButtonWithText: {
-    backgroundColor: '#000',
+    backgroundColor: CAREER_COLORS.nightSky,
     height: 50,
     borderRadius: 25,
     paddingHorizontal: 20,
@@ -526,7 +527,7 @@ const styles = StyleSheet.create({
   },
 
   addButtonText: {
-    color: '#fff',
+    color: CAREER_COLORS.white,
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,

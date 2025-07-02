@@ -1,6 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { CAREER_COLORS } from '../../constants/Colors';
 
 interface InsightCardProps {
   id: string;
@@ -11,9 +13,14 @@ interface InsightCardProps {
 const InsightCard: React.FC<InsightCardProps> = ({ id, icon, content }) => {
   return (
     <View key={id} style={styles.insightCard}>
-      <View style={styles.insightIconCircle}>
+      <LinearGradient
+        colors={[CAREER_COLORS.rose, CAREER_COLORS.sky]}
+        style={styles.insightIconCircle}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+      >
         <Ionicons name={icon as any} size={24} color="#fff" />
-      </View>
+      </LinearGradient>
       <Text style={styles.insightText}>{content}</Text>
     </View>
   );
@@ -26,18 +33,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-    backgroundColor: '#5D5B8D',
+    backgroundColor: CAREER_COLORS.nightSky,
   },
   insightIconCircle: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,

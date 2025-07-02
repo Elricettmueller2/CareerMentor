@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { CAREER_COLORS } from '../../constants/Colors';
 
 interface StatsCardProps {
   label: string;
@@ -33,7 +34,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
           {value}
           {suffix}
         </Text>
-        {showArrow && <Ionicons name="chevron-forward" size={16} color="#fff" />}
+        {showArrow && <Ionicons name="chevron-forward" size={16} color={CAREER_COLORS.white} />}
       </View>
     </CardComponent>
   );
@@ -41,7 +42,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
 
 const styles = StyleSheet.create({
   statCard: {
-    backgroundColor: '#5D5B8D',
+    backgroundColor: CAREER_COLORS.nightSky,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -53,9 +54,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   clickableCard: {
-    borderColor: '#5D5B8D',
+    borderColor: CAREER_COLORS.nightSky,
     borderWidth: 1,
-    shadowColor: '#5D5B8D',
+    shadowColor: CAREER_COLORS.nightSky,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
@@ -63,14 +64,14 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 14,
-    color: '#fff',
+    color: CAREER_COLORS.white,
     opacity: 0.8,
     marginBottom: 8,
   },
   statValue: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
+    color: CAREER_COLORS.white,
   },
   statValueContainer: {
     flexDirection: 'row',

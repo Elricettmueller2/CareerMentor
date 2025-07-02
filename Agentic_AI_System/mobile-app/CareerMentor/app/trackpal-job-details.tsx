@@ -1106,21 +1106,6 @@ const styles = StyleSheet.create({
     color: '#212529',
     marginLeft: 12,
   },
-  congratsContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#5D5B8D',
-  },
-  congratsText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#212529',
-    marginTop: 12,
-  },
   resumePlaceholder: {
     alignItems: 'center',
     justifyContent: 'center',
