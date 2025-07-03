@@ -12,7 +12,8 @@ import {
   RefreshControl, 
   ScrollView,
   SafeAreaView,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,8 +31,6 @@ import StatsDashboard from '../../components/trackpal/StatsDashboard';
 import InsightCard from '../../components/trackpal/InsightCard';
 import AIInsightsSection from '../../components/trackpal/AIInsightsSection';
 import AddJobButton from '../../components/trackpal/AddApplicationButton';
-
-import TabNavigation from '../../components/trackpal/TabNavigation';
 import EmptyState from '../../components/trackpal/EmptyState';
 import ApplicationsList from '../../components/trackpal/ApplicationsList';
 
@@ -360,30 +359,56 @@ export default function TrackPalScreen() {
   );
   
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>CareerMentor</Text>
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.headerBar}>
+        <View style={styles.headerContent}>
+          <Image 
+            source={require('../../assets/images/logo.png')} 
+            style={styles.logo}
+            resizeMode="contain" 
+          />
+          <Text style={styles.headerTitle}>Career Daddy</Text>
+        </View>
       </View>
-
-      <TabNavigation 
-        activeTab={activeTab}
-        onTabChange={(tab: 'dashboard' | 'ai') => setActiveTab(tab)}
-      />
       
-      {activeTab === 'dashboard' ? renderDashboardTab() : renderAIAssistantTab()}
-
-      {/* Floating Action Buttons */}
+      {/* Tab Switcher */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'dashboard' ? styles.activeTab : {}]}
+          onPress={() => setActiveTab('dashboard')}
+        >
+          <Text style={[styles.tabText, activeTab === 'dashboard' ? styles.activeTabText : {}]}>Dashboard</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'ai' ? styles.activeTab : {}]}
+          onPress={() => setActiveTab('ai')}
+        >
+          <Text style={[styles.tabText, activeTab === 'ai' ? styles.activeTabText : {}]}>AI Assistant</Text>
+        </TouchableOpacity>
+      </View>
+      
+      <View style={styles.contentContainer}>
+        {activeTab === 'dashboard' ? renderDashboardTab() : renderAIAssistantTab()}
+      </View>
+      
       {activeTab === 'dashboard' && (
-        <>
-
-          
-          {/* Add Job Button */}
-          <AddJobButton onPress={() => router.push('/trackpal-add-application')} />
-        </>
+        <AddJobButton onPress={() => router.push('/trackpal-add-application')} />
       )}
 
-      {/* Add Application functionality moved to fullscreen page */}
-    </SafeAreaView>
+      {/* Application Form Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <ApplicationForm 
+          onCancel={() => setModalVisible(false)}
+          onSubmit={handleAddJob}
+        />
+      </Modal>
+    </View>
   );
 }
 
@@ -402,7 +427,7 @@ const styles = StyleSheet.create({
 
   scrollContainer: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    paddingTop: 16,
   },
 
   applicationSectionTitle: {
@@ -413,7 +438,71 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     color: '#333',
   },
-
+  
+  // New header styles based on resume-refiner
+  headerBar: {
+    backgroundColor: CAREER_COLORS.nightSky,
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 15,
+  },
+  logo: {
+    width: 30,
+    height: 36, 
+    marginRight: 10,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: CAREER_COLORS.white,
+  },
+  
+  // Tab switcher styles
+  tabContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginTop: -20,
+    borderRadius: 25,
+    backgroundColor: CAREER_COLORS.salt,
+    padding: 3,
+    zIndex: 10,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 25,
+    marginHorizontal: 0,
+  },
+  activeTab: {
+    backgroundColor: CAREER_COLORS.nightSky,
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: CAREER_COLORS.nightSky,
+  },
+  activeTabText: {
+    color: CAREER_COLORS.white,
+  },
+  contentContainer: {
+    flex: 1,
+  },
+  
+  // Original header style kept for reference
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
