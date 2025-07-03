@@ -18,7 +18,7 @@ import UploadOptionsModal from '@/components/resume-refiner/UploadOptionsModal';
 import ResumeAnalysisResults from '@/components/resume-refiner/ResumeAnalysisResults';
 import FileUploadStatus from '@/components/resume-refiner/FileUploadStatus';
 import CircularProgress from '@/components/resume-refiner/CircularProgress';
-import JobCard from '@/components/resume-refiner/JobCard';
+import TrackpalStyleJobCard from '@/components/resume-refiner/TrackpalStyleJobCard';
 import HeaderWithToggle from '@/components/common/HeaderWithToggle';
 
 // Import services
@@ -1475,12 +1475,12 @@ export default function ResumeRefinerScreen() {
                   <ScrollView style={styles.jobListScrollView}>
                     <View style={styles.jobListSection}>
                       {jobs.map((job) => (
-                        <JobCard
+                        <TrackpalStyleJobCard
                           key={job.id}
                           job={job}
                           onPress={handleJobSelect}
                           isSelected={selectedJob?.id === job.id}
-                          showMatchScore={false}
+                          showMatchScore={job.match ? true : false}
                         />
                       ))}
                     </View>
