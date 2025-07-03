@@ -1,15 +1,16 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, Linking, Alert } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Alert, Linking, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CAREER_COLORS } from '../../constants/Colors';
+import GradientButton from './GradientButton';
 
 interface JobLinkButtonProps {
   url?: string;
   onPress?: () => void;
+  style?: ViewStyle;
 }
 
-const JobLinkButton: React.FC<JobLinkButtonProps> = ({ url, onPress }) => {
+const JobLinkButton: React.FC<JobLinkButtonProps> = ({ url, onPress, style }) => {
   const handlePress = () => {
     if (onPress) {
       onPress();
@@ -21,42 +22,14 @@ const JobLinkButton: React.FC<JobLinkButtonProps> = ({ url, onPress }) => {
   };
 
   return (
-    <TouchableOpacity
-      style={styles.button}
+    <GradientButton
+      title="View Job Posting"
       onPress={handlePress}
-    >
-      <LinearGradient
-        colors={[CAREER_COLORS.rose, CAREER_COLORS.sky]}
-        style={styles.buttonGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-      >
-        <Text style={styles.buttonText}>View Job Posting</Text>
-        <Ionicons name="open-outline" size={20} color="#fff" />
-      </LinearGradient>
-    </TouchableOpacity>
+      style={[{ width: 200, marginVertical: 20 }, style]}
+      icon={<Ionicons name="open-outline" size={20} color={CAREER_COLORS.white} />}
+      colors={[CAREER_COLORS.rose, CAREER_COLORS.sky]}
+    />
   );
 };
-
-const styles = StyleSheet.create({
-  button: {
-    marginVertical: 50,
-    borderRadius: 10,
-  },
-  buttonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 50,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginRight: 10,
-  },
-});
 
 export default JobLinkButton;

@@ -73,10 +73,18 @@ async def track_pal_endpoint(action: str, request: AgentRequest):
     data = request.data
     try:
         if action == "check_reminders":
-            result = run_check_reminders(user_id=data.get("user_id"))
+            # Pass applications data if provided in the request
+            result = run_check_reminders(
+                user_id=data.get("user_id"),
+                applications=data.get("applications")
+            )
             return {"response": result}
         elif action == "analyze_patterns":
-            result = run_analyze_patterns(user_id=data.get("user_id"))
+            # Pass applications data if provided in the request
+            result = run_analyze_patterns(
+                user_id=data.get("user_id"),
+                applications=data.get("applications")
+            )
             return {"response": result}
         elif action == "get_applications":
             applications = get_applications(user_id=data.get("user_id"))

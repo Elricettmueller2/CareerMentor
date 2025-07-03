@@ -21,7 +21,7 @@ const StatsDashboard: React.FC<StatsDashboardProps> = ({
 }) => {
   return (
     <View style={styles.statsSection}>
-      <Text style={styles.statsTitle}>Stats</Text>
+      <Text style={styles.statsTitle}>Statistics</Text>
       <View style={styles.statsGrid}>
         {/* Total Applications */}
         <StatsCard 
