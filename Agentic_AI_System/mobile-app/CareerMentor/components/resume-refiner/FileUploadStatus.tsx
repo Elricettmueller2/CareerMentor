@@ -35,7 +35,7 @@ const FileUploadStatus: React.FC<FileUploadStatusProps> = ({
             </View>
             {fileName && (
               <Text style={styles.fileInfo}>
-                {fileName} {fileSize ? `(${formatFileSize(fileSize)})` : ''}
+                {fileName}
               </Text>
             )}
           </>

@@ -141,13 +141,14 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   loadingContainer: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 20,
   },
   loadingProgressContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 30,
   },
   loadingText: {
     fontSize: 16,
@@ -733,10 +734,9 @@ export default function ResumeRefinerScreen() {
   const [uploadStarted, setUploadStarted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const [loadingStage, setLoadingStage] = useState<'parsing' | 'analyzing' | 'matching'>('parsing');
+  const [loadingStage, setLoadingStage] = useState<'uploading' | 'parsing' | 'analyzing' | 'feedback'>('uploading');
   const [loadingDots, setLoadingDots] = useState('');
   const [currentFileName, setCurrentFileName] = useState<string>('');
-  const [fileSize, setFileSize] = useState<string>('');
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'processing' | 'success' | 'error'>('idle');
   const [uploadError, setUploadError] = useState<string | undefined>(undefined);
   const [uploadId, setUploadId] = useState<string>('');
@@ -874,12 +874,10 @@ export default function ResumeRefinerScreen() {
       console.log('Selected document:', { fileName, uri });
       
       setCurrentFileName(fileName);
-      const fileSizeInKB = (asset.size / 1024).toFixed(1);
-      setFileSize(`${fileSizeInKB} KB`);
       
       // Start upload process
       setLoading(true);
-      setLoadingStage('parsing');
+      setLoadingStage('uploading');
       setUploadStatus('uploading');
       startLoadingAnimation();
       
@@ -963,12 +961,10 @@ export default function ResumeRefinerScreen() {
       console.log('Captured photo:', { fileName, uri });
       
       setCurrentFileName(fileName);
-      const fileSizeInKB = (asset.fileSize / 1024).toFixed(1);
-      setFileSize(`${fileSizeInKB} KB`);
       
       // Start upload process
       setLoading(true);
-      setLoadingStage('parsing');
+      setLoadingStage('uploading');
       setUploadStatus('uploading');
       startLoadingAnimation();
       
@@ -1053,12 +1049,10 @@ export default function ResumeRefinerScreen() {
       
       // Set file metadata like in camera capture
       setCurrentFileName(fileName);
-      const fileSizeInKB = (result.assets[0].fileSize / 1024).toFixed(1);
-      setFileSize(`${fileSizeInKB} KB`);
       
       // Start loading animation
       setLoading(true);
-      setLoadingStage('parsing');
+      setLoadingStage('uploading');
       setUploadStatus('uploading');
       startLoadingAnimation();
       
@@ -1104,10 +1098,17 @@ export default function ResumeRefinerScreen() {
 
   // Function to analyze resume
   const analyzeResume = async (uploadId: string) => {
-    setLoadingStage('analyzing');
+    setLoadingStage('parsing');
     
     try {
+      console.log('Starting resume analysis with upload ID:', uploadId);
+      
+      // Simulate analysis delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       console.log('Requesting resume feedback for upload ID:', uploadId);
+      
+      // Make API call to analyze resume
       const response = await ResumeService.getResumeFeedback(uploadId);
       console.log('Resume feedback response from service:', JSON.stringify(response, null, 2));
       
@@ -1146,6 +1147,16 @@ export default function ResumeRefinerScreen() {
         setFeedbackMessages(feedbackArray);
       }
       
+      setLoadingStage('analyzing');
+      
+      // Simulate analysis delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setLoadingStage('feedback');
+      
+      // Simulate feedback delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       setLoading(false);
       setUploadStatus('success');
       
@@ -1176,7 +1187,7 @@ export default function ResumeRefinerScreen() {
     }
     
     setLoading(true);
-    setLoadingStage('matching');
+    setLoadingStage('uploading');
     startLoadingAnimation();
     
     try {
@@ -1280,24 +1291,18 @@ export default function ResumeRefinerScreen() {
           <View style={styles.analysisContainer}>
             {loading ? (
               <View style={styles.loadingContainer}>
-                <FileUploadStatus
-                  fileName={currentFileName}
-                  fileSize={fileSize}
-                  status={uploadStatus}
-                  progress={loadingProgress}
-                  errorMessage={uploadError}
+                <CircularProgress 
+                  percentage={loadingProgress} 
+                  size={100} 
+                  strokeWidth={10} 
+                  progressColor={COLORS.nightSky}
                 />
-                <View style={styles.loadingProgressContainer}>
-                  <CircularProgress 
-                    percentage={loadingProgress} 
-                    size={100} 
-                    strokeWidth={10} 
-                    progressColor={COLORS.nightSky}
-                  />
-                  <Text style={[styles.loadingText, styles.loadingTextBelow]}>
-                    {loadingStage === 'parsing' ? `Parsing resume${loadingDots}` : `Analyzing resume${loadingDots}`}
-                  </Text>
-                </View>
+                <Text style={styles.loadingText}>
+                  {loadingStage === 'uploading' && `Uploading Resume${loadingDots}`}
+                  {loadingStage === 'parsing' && `Parsing Resume${loadingDots}`}
+                  {loadingStage === 'analyzing' && `Analyzing Resume${loadingDots}`}
+                  {loadingStage === 'feedback' && `Creating Feedback${loadingDots}`}
+                </Text>
               </View>
             ) : categoryScores ? (
               <>
@@ -1372,17 +1377,18 @@ export default function ResumeRefinerScreen() {
                 </View>
               ) : loading ? (
                 <View style={styles.loadingContainer}>
-                  <View style={styles.loadingProgressContainer}>
-                    <CircularProgress 
-                      percentage={loadingProgress} 
-                      size={100} 
-                      strokeWidth={10} 
-                      progressColor={COLORS.nightSky}
-                    />
-                    <Text style={[styles.loadingText, styles.loadingTextBelow]}>
-                      {loadingStage === 'matching' ? `Matching resume with job${loadingDots}` : `Processing${loadingDots}`}
-                    </Text>
-                  </View>
+                  <CircularProgress 
+                    percentage={loadingProgress} 
+                    size={100} 
+                    strokeWidth={10} 
+                    progressColor={COLORS.nightSky}
+                  />
+                  <Text style={styles.loadingText}>
+                    {loadingStage === 'uploading' && `Uploading Resume${loadingDots}`}
+                    {loadingStage === 'parsing' && `Parsing Resume${loadingDots}`}
+                    {loadingStage === 'analyzing' && `Analyzing Resume${loadingDots}`}
+                    {loadingStage === 'feedback' && `Creating Feedback${loadingDots}`}
+                  </Text>
                 </View>
               ) : (
                 <>
