@@ -350,7 +350,7 @@ export default function TrackPalScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <CareerDaddyHeader title="Career Daddy" />
+      <CareerDaddyHeader title="CareerDaddy" />
       
       <View style={styles.contentContainer}>
         {renderDashboardTab()}
