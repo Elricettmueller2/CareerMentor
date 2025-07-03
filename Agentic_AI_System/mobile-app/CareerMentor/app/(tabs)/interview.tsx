@@ -308,8 +308,9 @@ export default function InterviewScreen() {
   return (
     <View style={styles.container}>
       <CareerDaddyHeader 
-        title="Mock Interview" 
-        subtitle={interviewStarted ? `${interviewType} Interview` : "Setup your interview"}
+        title="CareerDaddy" 
+        showBackButton={interviewStarted}
+        onBackPress={handleEndInterview}
       />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -397,9 +398,19 @@ export default function InterviewScreen() {
             <TouchableOpacity 
               style={styles.endButton}
               onPress={handleEndInterview}
+              activeOpacity={0.8}
             >
-              <Ionicons name="flag" size={18} color={COLORS.white} />
-              <Text style={styles.endButtonText}>End Interview</Text>
+              <LinearGradient
+                colors={[COLORS.rose, COLORS.sky] as unknown as string[]}
+                style={styles.endButtonGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <View style={styles.endButtonContent}>
+                  <Ionicons name="flag" size={18} color={COLORS.white} />
+                  <Text style={styles.endButtonText}>End Interview</Text>
+                </View>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         )}
@@ -447,11 +458,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   endButton: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.rose,
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 12,
     margin: 16,
+    shadowColor: COLORS.rose,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5,
+    overflow: 'hidden',
+  },
+  endButtonGradient: {
+    width: '100%',
+    borderRadius: 12,
+  },
+  endButtonContent: {
+    flexDirection: 'row',
+    padding: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },

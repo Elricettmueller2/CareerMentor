@@ -13,6 +13,7 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { colors, typography, borderRadius, spacing } from '@/constants/DesignSystem';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface InterviewSetupFormProps {
   onStartInterview: (data: InterviewSetupData) => void;
@@ -155,12 +156,20 @@ export const InterviewSetupForm: React.FC<InterviewSetupFormProps> = ({
         style={styles.button} 
         onPress={handleSubmit} 
         disabled={loading}
+        activeOpacity={0.8}
       >
-        {loading ? (
-          <ActivityIndicator color={colors.neutral.white} />
-        ) : (
-          <Text style={styles.buttonText}>Start Interview</Text>
-        )}
+        <LinearGradient
+          colors={['#C090C9', '#7B8ED9']}
+          style={styles.buttonGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          {loading ? (
+            <ActivityIndicator color={colors.neutral.white} />
+          ) : (
+            <Text style={styles.buttonText}>Start Interview</Text>
+          )}
+        </LinearGradient>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -230,10 +239,7 @@ const styles = StyleSheet.create({
     color: colors.neutral.grey800,
   },
   button: {
-    backgroundColor: colors.primary.main,
     borderRadius: borderRadius.md,
-    padding: spacing.md,
-    alignItems: 'center',
     marginTop: spacing.xl,
     marginHorizontal: spacing.md,
     shadowColor: colors.primary.main,
@@ -241,6 +247,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 5,
+    overflow: 'hidden',
+  },
+  buttonGradient: {
+    width: '100%',
+    padding: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: borderRadius.md,
   },
   buttonText: {
     color: colors.neutral.white,

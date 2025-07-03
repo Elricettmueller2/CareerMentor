@@ -3,11 +3,13 @@ import { View, StyleSheet, ActivityIndicator, TouchableOpacity, SafeAreaView, Pl
 import { Text } from '@/components/Themed';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { CAREER_COLORS as COLORS } from '@/constants/Colors';
+import { colors, typography, borderRadius, spacing } from '@/constants/DesignSystem';
 import { InterviewSummaryData } from '@/types/interview';
 import ReviewCard from '@/components/interview/ReviewCard';
 import { Ionicons } from '@expo/vector-icons';
 import { shareInterviewReview, captureAndShareScreenshot, ViewShotRef } from '@/utils/shareUtils';
 import ViewShot from 'react-native-view-shot';
+import { LinearGradient } from 'expo-linear-gradient';
 
 // API base URLs for different environments
 const API_URLS = {
@@ -421,8 +423,15 @@ const InterviewReviewScreen = () => {
         </View>
       )}
       
-      <TouchableOpacity style={styles.button} onPress={handleStartNewInterview}>
-        <Text style={styles.buttonText}>Start New Interview</Text>
+      <TouchableOpacity style={styles.button} onPress={handleStartNewInterview} activeOpacity={0.8}>
+        <LinearGradient
+          colors={['#C090C9', '#7B8ED9']}
+          style={styles.buttonGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          <Text style={styles.buttonText}>Start New Interview</Text>
+        </LinearGradient>
       </TouchableOpacity>
       
       {/* Share options modal */}
@@ -486,13 +495,13 @@ const styles = StyleSheet.create({
       borderBottomColor: '#f0f0f0',
     },
     backButton: {
-      padding: 8,
+      padding: spacing.sm,
     },
     placeholder: {
       width: 40,
     },
     shareButton: {
-      padding: 8,
+      padding: spacing.sm,
       width: 40,
       alignItems: 'center',
       justifyContent: 'center',
@@ -538,22 +547,26 @@ const styles = StyleSheet.create({
       textAlign: 'center',
     },
     button: {
-      backgroundColor: COLORS.sky,
-      paddingVertical: 15,
-      paddingHorizontal: 30,
-      borderRadius: 8,
+      borderRadius: borderRadius.md,
+      margin: spacing.md,
+      shadowColor: colors.primary.main,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 5,
+      elevation: 5,
+      overflow: 'hidden',
+    },
+    buttonGradient: {
+      width: '100%',
+      padding: spacing.md,
       alignItems: 'center',
-      margin: 16,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
+      justifyContent: 'center',
+      borderRadius: borderRadius.md,
     },
     buttonText: {
-      color: 'white',
-      fontSize: 16,
-      fontWeight: 'bold',
+      color: colors.neutral.white,
+      fontSize: typography.fontSize.lg,
+      fontFamily: typography.fontFamily.bold,
     },
     // Modal styles
     modalOverlay: {
@@ -562,41 +575,41 @@ const styles = StyleSheet.create({
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
     },
     modalContent: {
-      backgroundColor: '#fff',
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
-      padding: 20,
-      paddingBottom: Platform.OS === 'ios' ? 40 : 20, // Extra padding for iOS home indicator
+      backgroundColor: colors.neutral.white,
+      borderTopLeftRadius: borderRadius.lg,
+      borderTopRightRadius: borderRadius.lg,
+      padding: spacing.lg,
+      paddingBottom: Platform.OS === 'ios' ? spacing.xxxl : spacing.lg, // Extra padding for iOS home indicator
     },
     modalTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      color: COLORS.midnight,
+      fontSize: typography.fontSize.xl,
+      fontFamily: typography.fontFamily.bold,
+      color: colors.neutral.grey900,
       textAlign: 'center',
-      marginBottom: 20,
+      marginBottom: spacing.lg,
     },
     shareOption: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingVertical: 15,
+      paddingVertical: spacing.md,
       borderBottomWidth: 1,
-      borderBottomColor: '#f0f0f0',
+      borderBottomColor: colors.neutral.grey200,
     },
     shareOptionText: {
-      fontSize: 16,
-      marginLeft: 15,
-      color: COLORS.midnight,
+      fontSize: typography.fontSize.md,
+      marginLeft: spacing.md,
+      color: colors.neutral.grey800,
     },
     cancelOption: {
       justifyContent: 'center',
-      marginTop: 10,
+      marginTop: spacing.sm,
       borderBottomWidth: 0,
     },
     cancelText: {
-      fontSize: 16,
-      color: COLORS.rose,
+      fontSize: typography.fontSize.md,
+      color: colors.accent.error,
       textAlign: 'center',
-      fontWeight: 'bold',
+      fontFamily: typography.fontFamily.bold,
     },
 });
 
