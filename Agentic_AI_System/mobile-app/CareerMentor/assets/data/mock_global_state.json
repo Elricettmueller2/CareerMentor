@@ -1,0 +1,338 @@
+{
+  "user": {
+    "id": "default_user",
+    "preferences": {
+      "theme": "light",
+      "notifications": true,
+      "language": "en"
+    }
+  },
+  "agent_knowledge": {
+    "user_profile": {
+      "skills": [
+        "Python", 
+        "JavaScript", 
+        "React", 
+        "Node.js", 
+        "Machine Learning", 
+        "TensorFlow", 
+        "TypeScript",
+        "React Native",
+        "SQL"
+      ],
+      "experience": [
+        {
+          "title": "Software Developer",
+          "company": "TechCorp GmbH",
+          "duration": "3 years",
+          "description": "Web development and machine learning"
+        },
+        {
+          "title": "Junior Developer",
+          "company": "StartUp Solutions",
+          "duration": "1.5 years",
+          "description": "Front-end development"
+        }
+      ],
+      "education": [
+        {
+          "degree": "Bachelor of Science in Computer Science",
+          "institution": "Technical University of Munich",
+          "year": "2019"
+        }
+      ],
+      "job_preferences": {
+        "roles": ["Software Developer", "Machine Learning Engineer", "Full Stack Developer", "Mobile Developer"],
+        "locations": ["Munich", "Berlin", "Remote"],
+        "industries": ["Technology", "AI", "Web Development", "Mobile Apps"]
+      }
+    },
+    "interview": {
+      "current_session_id": "int-001",
+      "history": {
+        "int-001": {
+          "company": "Tech Innovations GmbH",
+          "position": "Senior React Developer",
+          "date": "2025-06-28T14:00:00",
+          "questions": [
+            {
+              "question": "Tell me about your experience with React Native.",
+              "answer": "I've been working with React Native for 2 years, building cross-platform mobile applications. I've implemented complex UI components, integrated with RESTful APIs, and used state management libraries like Redux.",
+              "feedback": "Good answer, shows specific experience and technical knowledge."
+            },
+            {
+              "question": "How do you handle state management in large React applications?",
+              "answer": "For large applications, I prefer using Redux for global state management. For component-specific state, I use React's useState and useReducer hooks. I also implement context API for sharing state between related components without prop drilling.",
+              "feedback": "Excellent answer with multiple approaches based on different scenarios."
+            }
+          ],
+          "notes": "Went well overall. Follow up on their tech stack and team structure.",
+          "overall_feedback": "Strong technical skills, good communication. Prepare more examples of problem-solving for next round."
+        }
+      }
+    },
+    "resume": {
+      "current_resume_id": "res-001",
+      "resumes": {
+        "res-001": {
+          "full_text": "Max Mustermann\nSoftware Developer\n\nProfile\nExperienced software developer with 3 years of experience in web development and machine learning.\nPassionate about creating user-friendly applications and implementing AI solutions.\n\nExperience\nSoftware Developer, TechCorp GmbH\nJanuary 2020 - Present\n- Developed and maintained web applications using React and Node.js\n- Implemented machine learning models for data analysis\n- Collaborated with cross-functional teams to deliver high-quality software\n- Improved application performance by 30%\n\nJunior Developer, StartUp Solutions\nJune 2018 - December 2019\n- Assisted in front-end development using HTML, CSS, and JavaScript\n- Participated in code reviews and testing\n- Developed small features for the company's main product\n\nEducation\nBachelor of Science in Computer Science\nTechnical University of Munich\n2015 - 2019\n\nSkills\nProgramming Languages: Python, JavaScript, Java, C++\nFrameworks & Libraries: React, Node.js, Express, TensorFlow, PyTorch\nDatabase: MongoDB, PostgreSQL, MySQL\nTools: Git, Docker, AWS, Azure\nLanguages: German (Native), English (Fluent)",
+          "sections": {
+            "profile": "Experienced software developer with 3 years of experience in web development and machine learning. Passionate about creating user-friendly applications and implementing AI solutions.",
+            "experience": "Software Developer, TechCorp GmbH\nJanuary 2020 - Present\n- Developed and maintained web applications using React and Node.js\n- Implemented machine learning models for data analysis\n- Collaborated with cross-functional teams to deliver high-quality software\n- Improved application performance by 30%\n\nJunior Developer, StartUp Solutions\nJune 2018 - December 2019\n- Assisted in front-end development using HTML, CSS, and JavaScript\n- Participated in code reviews and testing\n- Developed small features for the company's main product",
+            "education": "Bachelor of Science in Computer Science\nTechnical University of Munich\n2015 - 2019",
+            "skills": "Programming Languages: Python, JavaScript, Java, C++\nFrameworks & Libraries: React, Node.js, Express, TensorFlow, PyTorch\nDatabase: MongoDB, PostgreSQL, MySQL\nTools: Git, Docker, AWS, Azure\nLanguages: German (Native), English (Fluent)"
+          },
+          "keywords": [
+            "python", "javascript", "react", "node", "machine", "learning", 
+            "developer", "software", "web", "applications", "tensorflow"
+          ]
+        }
+      }
+    },
+    "job_search": {
+      "saved_jobs": [
+        {
+          "id": "job-001",
+          "position": "Senior React Developer",
+          "company": "InnoTech Solutions",
+          "location": "Munich, Germany",
+          "application_link": "https://innotech.com/careers/senior-react-developer",
+          "description": "We are looking for a Senior React Developer to join our growing team. You will be responsible for building and maintaining high-performance web applications using React and related technologies.",
+          "match_score": 85,
+          "distance": 5,
+          "education_required": "Bachelor's degree in Computer Science or related field",
+          "experience_required": 3,
+          "salary": "€65,000 - €80,000",
+          "skills": ["React", "JavaScript", "TypeScript", "Redux", "REST APIs"],
+          "requirements": "Strong experience with React and modern JavaScript. Knowledge of state management patterns and libraries.",
+          "source": "Adzuna",
+          "status": "Applied",
+          "days_since_applied": "5",
+          "days_until_followup": "2",
+          "notes": "Sent application with portfolio link. Follow up next week if no response.",
+          "created_at": "2025-06-25T10:30:00",
+          "updated_at": "2025-06-25T10:30:00"
+        },
+        {
+          "id": "job-002",
+          "position": "Full Stack Developer",
+          "company": "Digital Creations",
+          "location": "Berlin, Germany",
+          "application_link": "https://digitalcreations.de/jobs/fullstack",
+          "description": "Digital Creations is seeking a Full Stack Developer to work on our e-commerce platform. You will be involved in both frontend and backend development using React and Node.js.",
+          "match_score": 78,
+          "distance": 280,
+          "education_required": "Bachelor's degree or equivalent experience",
+          "experience_required": 2,
+          "salary": "€55,000 - €70,000",
+          "skills": ["React", "Node.js", "MongoDB", "Express", "JavaScript"],
+          "requirements": "Experience with full stack JavaScript development. Knowledge of e-commerce platforms is a plus.",
+          "source": "Adzuna",
+          "status": "Interview Scheduled",
+          "days_since_applied": "12",
+          "days_until_followup": "0",
+          "notes": "First interview scheduled for July 5th at 2 PM. Prepare examples of e-commerce projects.",
+          "created_at": "2025-06-18T14:15:00",
+          "updated_at": "2025-06-30T09:45:00"
+        },
+        {
+          "id": "job-003",
+          "position": "Machine Learning Engineer",
+          "company": "AI Innovations",
+          "location": "Remote",
+          "application_link": "https://ai-innovations.com/careers/ml-engineer",
+          "description": "Join our team of AI experts to develop cutting-edge machine learning solutions for various industries. You will design, implement, and optimize ML models for real-world applications.",
+          "match_score": 72,
+          "distance": 0,
+          "education_required": "Master's degree in Computer Science, AI, or related field preferred",
+          "experience_required": 2,
+          "salary": "€70,000 - €90,000",
+          "skills": ["Python", "TensorFlow", "PyTorch", "Machine Learning", "Data Science"],
+          "requirements": "Strong understanding of machine learning algorithms and frameworks. Experience with deploying ML models in production environments.",
+          "source": "Adzuna",
+          "status": "Saved",
+          "days_since_applied": "",
+          "days_until_followup": "",
+          "notes": "Interesting opportunity but requires more ML experience. Consider applying after completing the current ML course.",
+          "created_at": "2025-07-01T16:20:00",
+          "updated_at": "2025-07-01T16:20:00"
+        },
+        {
+          "id": "job-004",
+          "position": "React Native Developer",
+          "company": "MobileFirst Apps",
+          "location": "Munich, Germany",
+          "application_link": "https://mobilefirst.io/careers/react-native-dev",
+          "description": "MobileFirst Apps is looking for a React Native developer to help build cross-platform mobile applications for our clients in various industries.",
+          "match_score": 90,
+          "distance": 7,
+          "education_required": "Bachelor's degree or equivalent experience",
+          "experience_required": 2,
+          "salary": "€60,000 - €75,000",
+          "skills": ["React Native", "JavaScript", "TypeScript", "Redux", "Mobile Development"],
+          "requirements": "Experience building and deploying React Native applications. Knowledge of iOS and Android development processes.",
+          "source": "Adzuna",
+          "status": "Applied",
+          "days_since_applied": "3",
+          "days_until_followup": "4",
+          "notes": "Applied with GitHub portfolio. Position seems like a great fit for my React Native experience.",
+          "created_at": "2025-06-28T11:45:00",
+          "updated_at": "2025-06-30T14:30:00"
+        },
+        {
+          "id": "job-005",
+          "position": "Frontend Developer",
+          "company": "WebSolutions GmbH",
+          "location": "Remote",
+          "application_link": "https://websolutions.de/careers/frontend",
+          "description": "WebSolutions is seeking a Frontend Developer to join our remote team. You will be responsible for implementing responsive user interfaces and collaborating with designers and backend developers.",
+          "match_score": 82,
+          "distance": 0,
+          "education_required": "Relevant degree or equivalent experience",
+          "experience_required": 2,
+          "salary": "€50,000 - €65,000",
+          "skills": ["React", "JavaScript", "HTML", "CSS", "Responsive Design"],
+          "requirements": "Strong frontend development skills with React. Experience with modern CSS frameworks and responsive design principles.",
+          "source": "Adzuna",
+          "status": "Rejected",
+          "days_since_applied": "20",
+          "days_until_followup": "",
+          "notes": "Received rejection email. They were looking for someone with more experience in their specific industry (finance).",
+          "created_at": "2025-06-10T09:15:00",
+          "updated_at": "2025-06-25T16:40:00"
+        }
+      ],
+      "search_history": [
+        {
+          "query": "React developer Munich",
+          "date": "2025-06-20T14:30:00",
+          "results_count": 24
+        },
+        {
+          "query": "Machine learning engineer remote",
+          "date": "2025-06-25T10:15:00",
+          "results_count": 18
+        },
+        {
+          "query": "Full stack developer Berlin",
+          "date": "2025-06-28T16:45:00",
+          "results_count": 32
+        }
+      ],
+      "recent_searches": [
+        "React developer Munich",
+        "Machine learning engineer remote",
+        "Full stack developer Berlin",
+        "React Native developer",
+        "Frontend developer remote"
+      ]
+    },
+    "applications": {
+      "app-001": {
+        "id": "app-001",
+        "jobTitle": "Senior React Developer",
+        "company": "InnoTech Solutions",
+        "location": "Munich, Germany",
+        "jobUrl": "https://innotech.com/careers/senior-react-developer",
+        "status": "Applied",
+        "applicationDate": "2025-06-25T10:30:00",
+        "applicationDeadline": null,
+        "followUpDate": "2025-07-05T10:30:00",
+        "notes": "Sent application with portfolio link. Follow up next week if no response.",
+        "contactPerson": "Sarah Schmidt",
+        "contactEmail": "hr@innotech.com",
+        "reminderSet": true,
+        "interviews": []
+      },
+      "app-002": {
+        "id": "app-002",
+        "jobTitle": "Full Stack Developer",
+        "company": "Digital Creations",
+        "location": "Berlin, Germany",
+        "jobUrl": "https://digitalcreations.de/jobs/fullstack",
+        "status": "Interview",
+        "applicationDate": "2025-06-18T14:15:00",
+        "applicationDeadline": null,
+        "followUpDate": null,
+        "notes": "First interview scheduled for July 5th at 2 PM. Prepare examples of e-commerce projects.",
+        "contactPerson": "Thomas Weber",
+        "contactEmail": "careers@digitalcreations.de",
+        "reminderSet": true,
+        "interviews": [
+          {
+            "date": "2025-07-05T14:00:00",
+            "type": "Video",
+            "notes": "First round with HR and Tech Lead",
+            "reminderSet": true
+          }
+        ]
+      },
+      "app-003": {
+        "id": "app-003",
+        "jobTitle": "React Native Developer",
+        "company": "MobileFirst Apps",
+        "location": "Munich, Germany",
+        "jobUrl": "https://mobilefirst.io/careers/react-native-dev",
+        "status": "Applied",
+        "applicationDate": "2025-06-28T11:45:00",
+        "applicationDeadline": null,
+        "followUpDate": "2025-07-07T11:45:00",
+        "notes": "Applied with GitHub portfolio. Position seems like a great fit for my React Native experience.",
+        "contactPerson": "Lisa Müller",
+        "contactEmail": "jobs@mobilefirst.io",
+        "reminderSet": true,
+        "interviews": []
+      },
+      "app-004": {
+        "id": "app-004",
+        "jobTitle": "Frontend Developer",
+        "company": "WebSolutions GmbH",
+        "location": "Remote",
+        "jobUrl": "https://websolutions.de/careers/frontend",
+        "status": "Rejected",
+        "applicationDate": "2025-06-10T09:15:00",
+        "applicationDeadline": null,
+        "followUpDate": null,
+        "notes": "Received rejection email. They were looking for someone with more experience in their specific industry (finance).",
+        "contactPerson": "Michael Becker",
+        "contactEmail": "hr@websolutions.de",
+        "reminderSet": false,
+        "interviews": []
+      },
+      "app-005": {
+        "id": "app-005",
+        "jobTitle": "UI Designer",
+        "company": "Creative Solutions",
+        "location": "Munich, Germany",
+        "jobUrl": "https://creativesolutions.de/careers/ui-designer",
+        "status": "Offer",
+        "applicationDate": "2025-06-05T13:20:00",
+        "applicationDeadline": null,
+        "followUpDate": null,
+        "notes": "Received offer: €55,000 per year with 30 days vacation and remote work options. Need to respond by July 10th.",
+        "contactPerson": "Julia Schneider",
+        "contactEmail": "j.schneider@creativesolutions.de",
+        "reminderSet": true,
+        "interviews": [
+          {
+            "date": "2025-06-15T10:00:00",
+            "type": "Video",
+            "notes": "First interview with design team lead",
+            "reminderSet": false
+          },
+          {
+            "date": "2025-06-22T14:30:00",
+            "type": "On-site",
+            "notes": "Second interview with design team and portfolio review",
+            "reminderSet": false
+          }
+        ]
+      }
+    }
+  },
+  "system": {
+    "is_online": true,
+    "last_sync_time": "2025-07-03T12:00:00"
+  },
+  "last_updated": 1719917556
+}
