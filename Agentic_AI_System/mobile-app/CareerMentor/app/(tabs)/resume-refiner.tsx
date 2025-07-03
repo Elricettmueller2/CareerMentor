@@ -1042,6 +1042,11 @@ export default function ResumeRefinerScreen() {
       
       console.log(`Processing selected image: ${fileName}`);
       
+      // Set file metadata like in camera capture
+      setCurrentFileName(fileName);
+      const fileSizeInKB = (result.assets[0].fileSize / 1024).toFixed(1);
+      setFileSize(`${fileSizeInKB} KB`);
+      
       // Start loading animation
       setLoading(true);
       setLoadingStage('parsing');
@@ -1065,8 +1070,7 @@ export default function ResumeRefinerScreen() {
         console.log('Setting upload ID:', uploadId);
         setUploadId(uploadId);
         setUploadStarted(true);
-        
-        // Analyze the resume
+        setUploadStatus('processing'); // Added this line
         analyzeResume(uploadId);
       } catch (uploadError) {
         console.error('Upload error:', uploadError);
