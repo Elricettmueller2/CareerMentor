@@ -634,7 +634,20 @@ export default function TrackPalJobDetailsScreen() {
             )}
             <StatusBadge status={application.status} style={styles.statusBadge} />
           </View>
+          
         </View>
+        {/* Separator */}
+        <View style={styles.separator} />
+        
+        {/* Description Section */}
+        {application.description && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Description</Text>
+            <View style={styles.notesContainer}>
+              <Text style={styles.notesText}>{application.description}</Text>
+            </View>
+          </View>
+        )}
         
         {/* Separator */}
         <View style={styles.separator} />
@@ -851,6 +864,28 @@ export default function TrackPalJobDetailsScreen() {
                     iconName="location-outline"
                   />
 
+                  {/* Custom Description Field with icon in top left */}
+                  <View style={styles.descriptionContainer}>
+                    <Text style={styles.label}>Description</Text>
+                    <View style={styles.descriptionInputContainer}>
+                      <TextInput
+                        style={styles.descriptionInput}
+                        value={editedApplication.description}
+                        onChangeText={(text) => setEditedApplication({...editedApplication, description: text})}
+                        placeholder="Enter job description"
+                        multiline
+                        numberOfLines={5}
+                      />
+                      <View style={styles.iconTopLeft}>
+                        <Ionicons 
+                          name="document-text-outline" 
+                          size={20} 
+                          color={CAREER_COLORS.nightSky} 
+                        />
+                      </View>
+                    </View>
+                  </View>
+
                   <DatePickerField
                     label={editedApplication.status === 'saved' ? 'Job Deadline' : 
                           editedApplication.status === 'applied' ? 'Date Applied' : 
@@ -874,15 +909,27 @@ export default function TrackPalJobDetailsScreen() {
                     mode="date"
                   />
 
-                  <FormInput
-                    label="Notes"
-                    value={editedApplication.notes}
-                    onChangeText={(text) => setEditedApplication({...editedApplication, notes: text})}
-                    placeholder="Add your notes here..."
-                    multiline
-                    numberOfLines={4}
-                    iconName="document-text-outline"
-                  />
+                  {/* Custom Notes Field with icon in top left */}
+                  <View style={styles.descriptionContainer}>
+                    <Text style={styles.label}>Notes</Text>
+                    <View style={styles.descriptionInputContainer}>
+                      <TextInput
+                        style={styles.descriptionInput}
+                        value={editedApplication.notes}
+                        onChangeText={(text) => setEditedApplication({...editedApplication, notes: text})}
+                        placeholder="Add your notes here..."
+                        multiline
+                        numberOfLines={5}
+                      />
+                      <View style={styles.iconTopLeft}>
+                        <Ionicons 
+                          name="document-text-outline" 
+                          size={20} 
+                          color={CAREER_COLORS.nightSky} 
+                        />
+                      </View>
+                    </View>
+                  </View>
                 </>
               )}
             </ScrollView>
@@ -1373,4 +1420,37 @@ const styles = StyleSheet.create({
     marginVertical: 20,
     width: '100%',
   },
+  // Description styles
+  statusBadge: {
+    marginLeft: 'auto',
+  },
+  descriptionContainer: {
+    marginBottom: 16,
+  },
+  // Description input styles for edit modal
+  descriptionInputContainer: {
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
+    height: 5 * 24,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  descriptionInput: {
+    flex: 1,
+    height: '100%',
+    color: '#000',
+    fontSize: 16,
+    textAlignVertical: 'top',
+    paddingLeft: 30, // Add padding to prevent text from overlapping with the icon
+  },
+  iconTopLeft: {
+    position: 'absolute',
+    top: 12,
+    left: 10,
+  },
+
 });

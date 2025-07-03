@@ -29,6 +29,7 @@ export interface JobApplication {
   jobTitle: string;
   company: string;
   location: string;
+  description: string;
   applicationDeadline: string | null;
   applicationDeadlineReminder: string | null;
   status: string;
@@ -58,6 +59,7 @@ const convertSavedJobToApplication = (savedJob: SavedJob): JobApplication => {
     jobTitle: savedJob.position,
     company: savedJob.company,
     location: savedJob.location,
+    description: savedJob.description,
     applicationDeadline: null, // Not available in saved job format
     applicationDeadlineReminder: null,
     status: savedJob.status.toLowerCase(),
@@ -94,7 +96,7 @@ const convertApplicationToSavedJob = (application: JobApplication, existingSaved
     company: application.company,
     location: application.location,
     application_link: application.jobUrl || '',
-    description: existingSavedJob?.description || '',
+    description: application.description,
     match_score: existingSavedJob?.match_score || 0,
     distance: existingSavedJob?.distance || 0,
     education_required: existingSavedJob?.education_required || '',

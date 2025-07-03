@@ -7,6 +7,7 @@ export interface JobApplication {
   jobTitle: string;
   company: string;
   location: string;
+  description: string;
   applicationDeadline: string | null;
   applicationDeadlineReminder: string | null;
   status: string;
@@ -48,6 +49,7 @@ export const ApplicationService = {
           jobTitle: 'UI Designer',
           company: 'Acme Corp',
           location: 'San Francisco, CA',
+          description: '',
           applicationDeadline: null,
           applicationDeadlineReminder: null,
           status: 'applied',
@@ -62,6 +64,7 @@ export const ApplicationService = {
           jobTitle: 'Frontend Developer',
           company: 'TechStart',
           location: 'Remote',
+          description: '',
           applicationDeadline: null,
           applicationDeadlineReminder: null,
           status: 'interview',
@@ -76,6 +79,7 @@ export const ApplicationService = {
           jobTitle: 'UX Researcher',
           company: 'BigCorp',
           location: 'New York, NY',
+          description: '',
           applicationDeadline: null,
           applicationDeadlineReminder: null,
           status: 'rejected',
