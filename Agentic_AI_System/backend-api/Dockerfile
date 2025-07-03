@@ -28,7 +28,6 @@ RUN pip install --no-cache-dir beautifulsoup4 requests litellm pymongo
 
 # Copy specific directories
 COPY crews/ ./crews/
-COPY database/ ./database/
 COPY services/ ./services/
 
 # Copy .env.example to .env for configuration

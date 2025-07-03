@@ -1227,7 +1227,7 @@ export default function ResumeRefinerScreen() {
             style={styles.logo}
             resizeMode="contain" 
           />
-          <Text style={styles.headerTitle}>Career Daddy</Text>
+          <Text style={styles.headerTitle}>CareerDaddy</Text>
         </View>
       </View>
       <View style={styles.tabContainer}>
