@@ -16,6 +16,12 @@ interface ResumeAnalysisResultsProps {
   categoryScores?: Record<string, number>;
 }
 
+// Interface for parsed feedback item
+interface ParsedFeedbackItem {
+  header: string | null;
+  content: string;
+}
+
 const ResumeAnalysisResults: React.FC<ResumeAnalysisResultsProps> = ({
   feedbackMessages,
   overallScore,
@@ -48,6 +54,25 @@ const ResumeAnalysisResults: React.FC<ResumeAnalysisResultsProps> = ({
 
   // Debug logs for grouped messages
   console.log('ResumeAnalysisResults - grouped messages:', JSON.stringify(groupedMessages, null, 2));
+
+  // Parse feedback text to extract headers and content
+  const parseFeedbackText = (text: string): ParsedFeedbackItem => {
+    // Check if the text starts with a header pattern "**Text**"
+    const headerMatch = text.match(/^\s*\*\*(.*?)\*\*/);
+    
+    if (headerMatch) {
+      const header = headerMatch[1];
+      // Remove the header from the content
+      let content = text.replace(/^\s*\*\*(.*?)\*\*\s*:?\s*/, '').trim();
+      // Remove bullet point if it exists at the beginning
+      content = content.replace(/^\s*•\s*/, '').trim();
+      return { header, content };
+    }
+    
+    // If no header, just remove bullet point if it exists
+    const content = text.replace(/^\s*•\s*/, '').trim();
+    return { header: null, content };
+  };
 
   // Toggle section expansion
   const toggleSection = (section: string) => {
@@ -104,11 +129,24 @@ const ResumeAnalysisResults: React.FC<ResumeAnalysisResultsProps> = ({
                 onPress={() => toggleSection(category.id)}
               >
                 {sectionMessages.length > 0 ? (
-                  sectionMessages.map((text, i) => (
-                    <Text key={i} style={styles.feedbackText}>
-                      • {text}
-                    </Text>
-                  ))
+                  <View style={styles.feedbackItemsContainer}>
+                    {sectionMessages.map((text, i) => {
+                      const { header, content } = parseFeedbackText(text);
+                      
+                      return (
+                        <View key={i} style={styles.feedbackItemContainer}>
+                          {header && (
+                            <Text style={styles.feedbackHeader}>
+                              {header}
+                            </Text>
+                          )}
+                          <Text style={styles.feedbackText}>
+                            {content}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
                 ) : (
                   <Text style={styles.noFeedbackText}>
                     No specific feedback available for this category.
@@ -151,15 +189,30 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   feedbackText: {
-    fontSize: 14,
     color: CAREER_COLORS.white,
-    lineHeight: 20,
     marginBottom: 8,
+    fontSize: 14,
+    lineHeight: 20,
   },
   noFeedbackText: {
-    fontSize: 14,
     color: CAREER_COLORS.white,
     fontStyle: 'italic',
+    opacity: 0.7,
+  },
+  feedbackItemsContainer: {
+    width: '100%',
+  },
+  feedbackItemContainer: {
+    marginBottom: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    padding: 12,
+  },
+  feedbackHeader: {
+    color: CAREER_COLORS.white,
+    fontWeight: 'bold',
+    fontSize: 15,
+    marginBottom: 8,
   },
 });
 
