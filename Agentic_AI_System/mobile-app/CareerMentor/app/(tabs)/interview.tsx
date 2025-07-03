@@ -3,13 +3,12 @@ import {
   StyleSheet, 
   ScrollView, 
   ActivityIndicator, 
-  SafeAreaView, 
   KeyboardAvoidingView, 
   Platform,
-  View as RNView,
+  View,
   TouchableOpacity
 } from 'react-native';
-import { Text, View } from '@/components/Themed';
+import { Text } from '@/components/Themed';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFonts, Manrope_400Regular, Manrope_500Medium, Manrope_600SemiBold, Manrope_700Bold, Manrope_800ExtraBold } from '@expo-google-fonts/manrope';
@@ -17,7 +16,7 @@ import { CAREER_COLORS as COLORS } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 
 // Import custom components
-import InterviewHeader from '@/components/interview/InterviewHeader';
+import CareerDaddyHeader from '@/components/common/CareerDaddyHeader';
 import InterviewSetupForm from '@/components/interview/InterviewSetupForm';
 import MessageBubble from '@/components/interview/MessageBubble';
 import EnhancedMessageBubble from '@/components/interview/EnhancedMessageBubble';
@@ -307,13 +306,11 @@ export default function InterviewScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <InterviewHeader 
+    <View style={styles.container}>
+      <CareerDaddyHeader 
         title="Mock Interview" 
         subtitle={interviewStarted ? `${interviewType} Interview` : "Setup your interview"}
-        interviewType={interviewStarted ? interviewType : undefined}
       />
-      
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.content}
@@ -407,7 +404,7 @@ export default function InterviewScreen() {
           </View>
         )}
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -415,17 +412,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.white,
-    // Ensure consistent background color on iOS
-    paddingBottom: Platform.OS === 'ios' ? 20 : 0,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: COLORS.white,
-  },
-  content: {
-    flex: 1,
   },
   setupContainer: {
     flex: 1,
