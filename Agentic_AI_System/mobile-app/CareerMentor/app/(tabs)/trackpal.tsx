@@ -308,9 +308,10 @@ export default function TrackPalScreen() {
     if (applications.length === 0) {
       return (
         <EmptyState 
-          title="You haven't added any job applications yet."
-          subtitle="Tap the + button to add your first application."
-          icon="briefcase-outline"
+          title="You don't have any jobs saved yet!"
+          subtitle="Find and track your first job application with PathFinder or add your own by clicking the + button."
+          buttonText="Find Jobs"
+          onButtonPress={() => router.push('/(tabs)/pathfinder')}
         />
       );
     }
