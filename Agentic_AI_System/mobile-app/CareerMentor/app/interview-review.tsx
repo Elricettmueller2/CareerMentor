@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { shareInterviewReview, captureAndShareScreenshot, ViewShotRef } from '@/utils/shareUtils';
 import ViewShot from 'react-native-view-shot';
 import { LinearGradient } from 'expo-linear-gradient';
+import GradientButton from '@/components/trackpal/GradientButton';
 
 // API base URLs for different environments
 const API_URLS = {
@@ -423,16 +424,12 @@ const InterviewReviewScreen = () => {
         </View>
       )}
       
-      <TouchableOpacity style={styles.button} onPress={handleStartNewInterview} activeOpacity={0.8}>
-        <LinearGradient
-          colors={['#C090C9', '#7B8ED9']}
-          style={styles.buttonGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-        >
-          <Text style={styles.buttonText}>Start New Interview</Text>
-        </LinearGradient>
-      </TouchableOpacity>
+      <GradientButton
+        title="Start New Interview"
+        onPress={handleStartNewInterview}
+        colors={[COLORS.rose, COLORS.sky]}
+        style={{ margin: spacing.md }}
+      />
       
       {/* Share options modal */}
       <Modal
@@ -545,28 +542,6 @@ const styles = StyleSheet.create({
       fontSize: 16,
       color: COLORS.rose,
       textAlign: 'center',
-    },
-    button: {
-      borderRadius: borderRadius.md,
-      margin: spacing.md,
-      shadowColor: colors.primary.main,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 5,
-      elevation: 5,
-      overflow: 'hidden',
-    },
-    buttonGradient: {
-      width: '100%',
-      padding: spacing.md,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: borderRadius.md,
-    },
-    buttonText: {
-      color: colors.neutral.white,
-      fontSize: typography.fontSize.lg,
-      fontFamily: typography.fontFamily.bold,
     },
     // Modal styles
     modalOverlay: {

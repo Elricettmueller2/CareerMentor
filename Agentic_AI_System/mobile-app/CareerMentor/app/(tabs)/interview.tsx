@@ -14,6 +14,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFonts, Manrope_400Regular, Manrope_500Medium, Manrope_600SemiBold, Manrope_700Bold, Manrope_800ExtraBold } from '@expo-google-fonts/manrope';
 import { CAREER_COLORS as COLORS } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
+import GradientButton from '@/components/trackpal/GradientButton';
+import { spacing } from '@/constants/DesignSystem';
 
 // Import custom components
 import CareerDaddyHeader from '@/components/common/CareerDaddyHeader';
@@ -395,23 +397,13 @@ export default function InterviewScreen() {
             />
             
             {/* End interview button */}
-            <TouchableOpacity 
-              style={styles.endButton}
+            <GradientButton
+              title="End Interview"
               onPress={handleEndInterview}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={[COLORS.rose, COLORS.sky] as unknown as string[]}
-                style={styles.endButtonGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                <View style={styles.endButtonContent}>
-                  <Ionicons name="flag" size={18} color={COLORS.white} />
-                  <Text style={styles.endButtonText}>End Interview</Text>
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
+              colors={[COLORS.rose, COLORS.sky]}
+              style={{ margin: spacing.md }}
+              icon={<Ionicons name="flag" size={18} color={COLORS.white} />}
+            />
           </View>
         )}
       </KeyboardAvoidingView>
@@ -457,30 +449,5 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: 'center',
   },
-  endButton: {
-    borderRadius: 12,
-    margin: 16,
-    shadowColor: COLORS.rose,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
-    overflow: 'hidden',
-  },
-  endButtonGradient: {
-    width: '100%',
-    borderRadius: 12,
-  },
-  endButtonContent: {
-    flexDirection: 'row',
-    padding: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  endButtonText: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  }
+  // End button styles now handled by GradientButton component
 });
