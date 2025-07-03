@@ -235,9 +235,10 @@ class TrackPalCrew():
         
         return "\n".join(formatted_apps)
     
-    def create_check_reminders_task(self, user_id: str) -> Task:
-        # Get applications for the user
-        applications = self.application_manager.get_applications(user_id)
+    def create_check_reminders_task(self, user_id: str, applications: List[Dict[str, Any]] = None) -> Task:
+        # Use provided applications if available, otherwise get from storage
+        if applications is None:
+            applications = self.application_manager.get_applications(user_id)
         apps_text = self._format_applications(applications)
         
         task_description = f"""
@@ -268,9 +269,10 @@ class TrackPalCrew():
             agent=self.trackpal_agent()
         )
     
-    def create_analyze_patterns_task(self, user_id: str) -> Task:
-        # Get applications for the user
-        applications = self.application_manager.get_applications(user_id)
+    def create_analyze_patterns_task(self, user_id: str, applications: List[Dict[str, Any]] = None) -> Task:
+        # Use provided applications if available, otherwise get from storage
+        if applications is None:
+            applications = self.application_manager.get_applications(user_id)
         apps_text = self._format_applications(applications)
         
         task_description = f"""
@@ -310,15 +312,15 @@ class TrackPalCrew():
             agent=self.trackpal_agent()
         )
     
-    def crew(self, task_type: str = "check_reminders", user_id: str = "test_user") -> Crew:
+    def crew(self, task_type: str = "check_reminders", user_id: str = "test_user", applications: List[Dict[str, Any]] = None) -> Crew:
         # Create the agent
         agent = self.trackpal_agent()
         
         # Create the appropriate task with the user data
         if task_type == "check_reminders":
-            task = self.create_check_reminders_task(user_id)
+            task = self.create_check_reminders_task(user_id, applications)
         else:  # analyze_patterns
-            task = self.create_analyze_patterns_task(user_id)
+            task = self.create_analyze_patterns_task(user_id, applications)
             
         # Create and return the crew
         return Crew(

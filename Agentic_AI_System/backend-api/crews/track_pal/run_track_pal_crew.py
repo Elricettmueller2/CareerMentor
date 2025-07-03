@@ -5,23 +5,29 @@ from typing import Dict, Any, List, Optional
 track_pal = TrackPalCrew()
 
 # AGENT FEATURES - Functions that use CrewAI for AI capabilities
-def run_check_reminders(user_id: str) -> str:
-    """Run the TrackPal crew to check for reminders
-    
+def run_check_reminders(user_id: str, applications: List[Dict[str, Any]] = None) -> str:
+    """
     This is an AI-powered agent function that analyzes applications and generates
     personalized reminders based on application status and timeline.
+    
+    Args:
+        user_id: The user ID to check reminders for
+        applications: Optional list of applications to use instead of loading from storage
     """
-    crew = track_pal.crew(task_type="check_reminders", user_id=user_id)
+    crew = track_pal.crew(task_type="check_reminders", user_id=user_id, applications=applications)
     result = crew.kickoff()
     return result
 
-def run_analyze_patterns(user_id: str) -> str:
-    """Run the TrackPal crew to analyze application patterns
-    
+def run_analyze_patterns(user_id: str, applications: List[Dict[str, Any]] = None) -> str:
+    """
     This is an AI-powered agent function that identifies patterns in the user's
     job applications and provides insights and recommendations.
+    
+    Args:
+        user_id: The user ID to analyze patterns for
+        applications: Optional list of applications to use instead of loading from storage
     """
-    crew = track_pal.crew(task_type="analyze_patterns", user_id=user_id)
+    crew = track_pal.crew(task_type="analyze_patterns", user_id=user_id, applications=applications)
     result = crew.kickoff()
     return result
 

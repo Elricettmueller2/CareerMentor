@@ -126,7 +126,7 @@ const NotificationService = {
       // Schedule the notification
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
-          title: 'Job Application Follow-up Reminder',
+          title: 'Job Reminder 🚀',
           body: `Time to follow up on your ${position} application at ${company}!`,
           data: { applicationId },
         },
