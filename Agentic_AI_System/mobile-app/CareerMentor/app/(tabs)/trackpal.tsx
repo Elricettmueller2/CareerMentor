@@ -12,8 +12,7 @@ import {
   RefreshControl, 
   ScrollView,
   SafeAreaView,
-  Platform,
-  Image
+  Platform
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,6 +32,10 @@ import AIInsightsSection from '../../components/trackpal/AIInsightsSection';
 import AddJobButton from '../../components/trackpal/AddApplicationButton';
 import EmptyState from '../../components/trackpal/EmptyState';
 import ApplicationsList from '../../components/trackpal/ApplicationsList';
+
+// Import common components
+import CareerDaddyHeader from '../../components/common/CareerDaddyHeader';
+import TabSwitcher, { TabItem } from '../../components/common/TabSwitcher';
 
 export default function TrackPalScreen() {
   const router = useRouter();
@@ -358,35 +361,23 @@ export default function TrackPalScreen() {
     </ScrollView>
   );
   
+  // Define tabs for the tab switcher
+  const tabs: TabItem[] = [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'ai', label: 'AI Assistant' }
+  ];
+
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.headerBar}>
-        <View style={styles.headerContent}>
-          <Image 
-            source={require('../../assets/images/logo.png')} 
-            style={styles.logo}
-            resizeMode="contain" 
-          />
-          <Text style={styles.headerTitle}>Career Daddy</Text>
-        </View>
-      </View>
+      <CareerDaddyHeader title="Career Daddy" />
       
       {/* Tab Switcher */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'dashboard' ? styles.activeTab : {}]}
-          onPress={() => setActiveTab('dashboard')}
-        >
-          <Text style={[styles.tabText, activeTab === 'dashboard' ? styles.activeTabText : {}]}>Dashboard</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'ai' ? styles.activeTab : {}]}
-          onPress={() => setActiveTab('ai')}
-        >
-          <Text style={[styles.tabText, activeTab === 'ai' ? styles.activeTabText : {}]}>AI Assistant</Text>
-        </TouchableOpacity>
-      </View>
+      <TabSwitcher 
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={(tabId) => setActiveTab(tabId as 'dashboard' | 'ai')}
+      />
       
       <View style={styles.contentContainer}>
         {activeTab === 'dashboard' ? renderDashboardTab() : renderAIAssistantTab()}
@@ -439,65 +430,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   
-  // New header styles based on resume-refiner
-  headerBar: {
-    backgroundColor: CAREER_COLORS.nightSky,
-    paddingTop: Platform.OS === 'ios' ? 50 : 30,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 15,
-  },
-  logo: {
-    width: 30,
-    height: 36, 
-    marginRight: 10,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: CAREER_COLORS.white,
-  },
-  
-  // Tab switcher styles
-  tabContainer: {
-    flexDirection: 'row',
-    marginHorizontal: 16,
-    marginTop: -20,
-    borderRadius: 25,
-    backgroundColor: CAREER_COLORS.salt,
-    padding: 3,
-    zIndex: 10,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 25,
-    marginHorizontal: 0,
-  },
-  activeTab: {
-    backgroundColor: CAREER_COLORS.nightSky,
-  },
-  tabText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: CAREER_COLORS.nightSky,
-  },
-  activeTabText: {
-    color: CAREER_COLORS.white,
-  },
+
   contentContainer: {
     flex: 1,
   },
