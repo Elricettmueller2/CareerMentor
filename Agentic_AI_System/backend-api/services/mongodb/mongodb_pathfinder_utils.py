@@ -45,6 +45,7 @@ def save_job_for_user(user_id: str, job_data: Dict[str, Any]) -> Dict[str, Any]:
         "days_since_applied": job_data.get("days_since_applied", ""),
         "days_until_followup": job_data.get("days_until_followup", ""),
         "notes": job_data.get("notes", ""),
+        "application_status": job_data.get("application_status", "not applied"),
         "created_at": datetime.now().isoformat(),
         "updated_at": datetime.now().isoformat()
     }
