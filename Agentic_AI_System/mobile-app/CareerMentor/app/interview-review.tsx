@@ -1,25 +1,26 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, StyleSheet, ActivityIndicator, TouchableOpacity, SafeAreaView, Platform, Modal, Alert } from 'react-native';
-import { Text } from '@/components/Themed';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Alert, Platform, SafeAreaView, ActivityIndicator, Share } from 'react-native';
+import { Text as ThemedText } from '@/components/Themed';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { CAREER_COLORS as COLORS } from '@/constants/Colors';
 import { colors, typography, borderRadius, spacing } from '@/constants/DesignSystem';
 import { InterviewSummaryData } from '@/types/interview';
+import { formatInterviewReviewForSharing } from '@/utils/shareUtils';
 import ReviewCard from '@/components/interview/ReviewCard';
 import { Ionicons } from '@expo/vector-icons';
 import { shareInterviewReview, captureAndShareScreenshot, ViewShotRef } from '@/utils/shareUtils';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import ViewShot from 'react-native-view-shot';
 import { LinearGradient } from 'expo-linear-gradient';
 import GradientButton from '@/components/trackpal/GradientButton';
 
-// API base URLs for different environments
 const API_URLS = {
-  emulator: 'http://10.0.2.2:8000', // Android emulator
-  localhost: 'http://localhost:8000', // iOS simulator or web
-  device: 'http://192.168.1.218:8000' // Physical device
+  emulator: 'http://10.0.2.2:8000',
+  localhost: 'http://localhost:8000',
+  device: 'http://192.168.1.218:8000'
 };
 
-// Select appropriate API URL based on platform
 const API_BASE_URL = Platform.OS === 'android' ? API_URLS.emulator : API_URLS.localhost;
 
 const InterviewReviewScreen = () => {
@@ -30,8 +31,25 @@ const InterviewReviewScreen = () => {
   const [error, setError] = useState('');
   const [showShareOptions, setShowShareOptions] = useState(false);
   
-  // Reference to the ViewShot component for screenshot capture
+  const handleBackToInterviews = () => {
+    router.replace('/(tabs)/interview');
+  };
+  
   const viewShotRef = useRef<ViewShot>(null);
+  
+  useEffect(() => {
+    const checkViewShotInterval = setInterval(() => {
+      console.log('[DEBUG] Periodic ViewShot check:', {
+        refExists: !!viewShotRef,
+        currentExists: viewShotRef ? !!viewShotRef.current : false,
+        captureMethodExists: viewShotRef?.current ? typeof viewShotRef.current.capture === 'function' : false
+      });
+    }, 3000);
+    
+    return () => {
+      clearInterval(checkViewShotInterval);
+    };
+  }, []);
 
   useEffect(() => {
     if (!sessionId) {
@@ -46,7 +64,6 @@ const InterviewReviewScreen = () => {
           data: { session_id: sessionId },
         };
         
-        // Add a small delay on iOS to ensure network is ready
         if (Platform.OS === 'ios') {
           await new Promise(resolve => setTimeout(resolve, 500));
         }
@@ -103,46 +120,28 @@ const InterviewReviewScreen = () => {
           recommendation: 'Consider' as 'Hire' | 'Consider' | 'Reject',
         };
 
-        
-        
-        // Check if the response has a 'response' field that contains the review (from logs we see this is the case)
         if (responseData.response) {
-          
-          
-          
-          // Some APIs return the review as a JSON string that needs to be parsed again
           if (typeof responseData.response === 'string') {
             try {
-              
-              
-              // Try to fix potentially incomplete JSON by ensuring it's properly terminated
               let jsonString = responseData.response;
-              // Check if the string appears to be cut off
               if (!jsonString.trim().endsWith('}') && !jsonString.trim().endsWith(']')) {
-                
-                // Try to extract just the scores object which appears to be complete
                 const scoresMatch = jsonString.match(/"scores"\s*:\s*\{[^\}]*\}/g);
                 if (scoresMatch && scoresMatch[0]) {
-                  
                   try {
-                    // Create a minimal valid JSON with just the scores
                     const minimalJson = `{${scoresMatch[0]}}`;
                     const parsedScores = JSON.parse(minimalJson);
                     responseData = { scores: parsedScores.scores };
-                    
                   } catch (scoreParseError) {
                     
                   }
                 }
               } else {
-                // Try normal parsing if the JSON appears complete
                 const parsedResponse = JSON.parse(jsonString);
                 responseData = parsedResponse;
                 
               }
             } catch (responseParseError) {
               
-              // Try to extract scores directly from the string using regex
               try {
                 
                 const technicalMatch = responseData.response.match(/"technical_knowledge"\s*:\s*(\d+)/i);
@@ -162,7 +161,6 @@ const InterviewReviewScreen = () => {
                   };
                 }
                 
-                // Try to extract specific feedback using regex
                 const feedbackMatch = responseData.response.match(/"specific_feedback"\s*:\s*"([^"]*)"/i);
                 if (feedbackMatch && feedbackMatch[1]) {
                   
@@ -177,14 +175,10 @@ const InterviewReviewScreen = () => {
           }
         }
         
-        // Check if the response has a 'data' field that contains the review
         if (responseData.data && typeof responseData.data === 'object') {
           responseData = responseData.data;
         }
-
-        // Check if the response has a 'review' field that contains the review
         if (responseData.review) {
-          
           
           // Some APIs return the review as a JSON string that needs to be parsed again
           if (typeof responseData.review === 'string') {
@@ -337,15 +331,12 @@ const InterviewReviewScreen = () => {
               formattedData.recommendation = 'Consider';
             }
           } else {
-            console.log('[DEBUG] recommendation not found in raw text');
             formattedData.recommendation = 'Consider';
           }
         } else {
-          console.log('[DEBUG] recommendation not found or not a string');
           formattedData.recommendation = 'Consider';
         }
 
-        console.log('[DEBUG] Setting formatted review data');
         console.log('[DEBUG] Final formatted data structure:', JSON.stringify({
           hasScores: Object.keys(formattedData.scores).length > 0,
           strengthsCount: formattedData.strengths.length,
@@ -356,7 +347,6 @@ const InterviewReviewScreen = () => {
         
         // On iOS, ensure we're not setting state during an unmounted component
         if (Platform.OS === 'ios') {
-          console.log('[DEBUG] iOS platform - using timeout before setState');
           setTimeout(() => {
             setReviewData(formattedData);
             setLoading(false);
@@ -366,8 +356,6 @@ const InterviewReviewScreen = () => {
           setLoading(false);
         }
       } catch (e: any) {
-        console.error('[ERROR] Failed to load review:', e);
-        console.error('[ERROR] Error stack:', e.stack);
         setError(`Failed to load review: ${e.message}`);
         setLoading(false);
       }
@@ -387,11 +375,13 @@ const InterviewReviewScreen = () => {
       
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.midnight} />
+          <Ionicons name="chevron-back" size={24} color={COLORS.nightSky} />
         </TouchableOpacity>
-        <Text style={styles.title}>Interview Review</Text>
+        <Text style={styles.title}>Interview Feedback</Text>
         {reviewData ? (
-          <TouchableOpacity style={styles.shareButton} onPress={() => setShowShareOptions(true)}>
+          <TouchableOpacity style={styles.shareButton} onPress={() => {
+            setShowShareOptions(true);
+          }}>
             <Ionicons name="share-outline" size={24} color={COLORS.sky} />
           </TouchableOpacity>
         ) : (
@@ -412,8 +402,15 @@ const InterviewReviewScreen = () => {
         </View>
       ) : reviewData ? (
         <View style={styles.reviewWrapper}>
-          {/* Log data before rendering ReviewCard */}
-          <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 0.9 }} style={styles.viewShotContainer}>
+          {/* ViewShot component wrapper */}
+          
+          {/* ViewShot component */}
+          <ViewShot 
+            ref={viewShotRef} 
+            options={{ format: 'png', quality: 0.9 }} 
+            style={styles.viewShotContainer}
+            onCapture={(uri) => console.log('[DEBUG] ViewShot captured:', uri ? 'URI exists' : 'URI is null')}
+          >
             <ReviewCard data={reviewData} />
           </ViewShot>
         </View>
@@ -426,27 +423,56 @@ const InterviewReviewScreen = () => {
       
       <GradientButton
         title="Start New Interview"
-        onPress={handleStartNewInterview}
+        onPress={() => router.push('/(tabs)/interview')}
         colors={[COLORS.rose, COLORS.sky]}
         style={{ margin: spacing.md }}
       />
       
-      {/* Share options modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={showShareOptions}
-        onRequestClose={() => setShowShareOptions(false)}
-      >
-        <View style={styles.modalOverlay}>
+      <View style={styles.returnButtonContainer}>
+        <GradientButton
+          title="Return to Interviews"
+          onPress={handleBackToInterviews}
+          colors={[COLORS.nightSky, COLORS.sky]}
+          style={{ marginHorizontal: spacing.md, marginVertical: spacing.md }}
+          icon={<Ionicons name="arrow-back" size={18} color={COLORS.white} />}
+        />
+      </View>
+
+      {/* Share Options Bottom Sheet Modal - Implemented as a direct overlay for better reliability */}
+      {showShareOptions && (
+        <SafeAreaView style={styles.modalOverlay}>
+          <TouchableOpacity 
+            style={styles.modalBackdrop}
+            activeOpacity={1} 
+            onPress={() => {
+              console.log('[DEBUG] Modal backdrop pressed');
+              setShowShareOptions(false);
+            }}
+          />
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Share Interview Feedback</Text>
             
             <TouchableOpacity 
               style={styles.shareOption} 
+              activeOpacity={0.7}
               onPress={() => {
-                shareInterviewReview(reviewData!);
-                setShowShareOptions(false);
+                try {
+                  if (reviewData) {
+                    const shareText = formatInterviewReviewForSharing(reviewData);
+                    Share.share({
+                      message: shareText,
+                      title: 'My Interview Feedback',
+                    }).then(result => {
+                    }).catch(error => {
+                      Alert.alert('Sharing Error', 'Failed to share text. Please try again.');
+                    });
+                    setShowShareOptions(false);
+                  } else {
+                    Alert.alert('Error', 'No interview data available to share');
+                  }
+                } catch (error) {
+                  Alert.alert('Error', 'An unexpected error occurred while sharing');
+                }
               }}
             >
               <Ionicons name="text-outline" size={24} color={COLORS.sky} />
@@ -455,9 +481,74 @@ const InterviewReviewScreen = () => {
             
             <TouchableOpacity 
               style={styles.shareOption} 
+              activeOpacity={0.7}
               onPress={() => {
-                captureAndShareScreenshot(viewShotRef as ViewShotRef);
-                setShowShareOptions(false);
+                try {
+                  if (viewShotRef && viewShotRef.current) {
+                    
+                    // Set a timeout to detect if the operation is taking too long
+                    const timeoutId = setTimeout(() => {
+                      Alert.alert(
+                        'Operation Taking Too Long', 
+                        'The screenshot capture is taking longer than expected. This might indicate a performance issue.'
+                      );
+                    }, 5000); // 5 second timeout
+                    
+                    const viewShotCurrent = viewShotRef.current;
+                    if (!viewShotCurrent) {
+                      clearTimeout(timeoutId);
+                      console.error('[DEBUG] ViewShot ref current is null');
+                      Alert.alert('Error', 'ViewShot reference is invalid');
+                      return;
+                    }
+                    
+                    viewShotCurrent.capture().then((uri: string) => {
+                      clearTimeout(timeoutId);
+                      
+                      if (Platform.OS === 'android') {
+                        const cacheDir = FileSystem.cacheDirectory;
+                        if (cacheDir) {
+                          const targetPath = `${cacheDir}interview_feedback_${Date.now()}.png`;
+                          FileSystem.copyAsync({
+                            from: uri,
+                            to: targetPath
+                          })
+                          .then(() => {
+                            Sharing.isAvailableAsync().then((isAvailable: boolean) => {
+                              if (isAvailable) {
+                                Sharing.shareAsync(targetPath).catch((error: Error) => {
+                                  Alert.alert('Sharing Error', 'Failed to share screenshot on Android');
+                                });
+                              } else {
+                                Alert.alert('Sharing Error', 'Sharing is not available on this device');
+                              }
+                            });
+                          }).catch((error: Error) => {
+                            Alert.alert('Error', 'Failed to prepare screenshot for sharing');
+                          });
+                        } else {
+                          Alert.alert('Error', 'Cannot access cache directory');
+                        }
+                      } else {
+                        Share.share({
+                          url: uri,
+                          title: 'My Interview Feedback',
+                        }).catch(error => {
+                          Alert.alert('Sharing Error', 'Failed to share screenshot on iOS');
+                        });
+                      }
+                    }).catch((error: Error) => {
+                      clearTimeout(timeoutId);
+                      Alert.alert('Error', `Failed to capture screenshot: ${error.message || 'Unknown error'}`);
+                    });
+                    
+                    setShowShareOptions(false);
+                  } else {
+                    Alert.alert('Error', 'Cannot capture screenshot. The view reference is invalid.');
+                  }
+                } catch (error) {
+                  Alert.alert('Error', 'An unexpected error occurred while capturing screenshot');
+                }
               }}
             >
               <Ionicons name="image-outline" size={24} color={COLORS.sky} />
@@ -466,13 +557,16 @@ const InterviewReviewScreen = () => {
             
             <TouchableOpacity 
               style={[styles.shareOption, styles.cancelOption]} 
-              onPress={() => setShowShareOptions(false)}
+              activeOpacity={0.7}
+              onPress={() => {
+                setShowShareOptions(false);
+              }}
             >
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
+        </SafeAreaView>
+      )}
     </SafeAreaView>
   );
 };
@@ -481,6 +575,11 @@ const styles = StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: '#fff',
+    },
+
+    returnButtonContainer: {
+      paddingHorizontal: 16,
+      paddingBottom: 8,
     },
     header: {
       flexDirection: 'row',
@@ -545,8 +644,20 @@ const styles = StyleSheet.create({
     },
     // Modal styles
     modalOverlay: {
-      flex: 1,
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
       justifyContent: 'flex-end',
+      zIndex: 1000,
+    },
+    modalBackdrop: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
     },
     modalContent: {
