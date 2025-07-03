@@ -236,6 +236,18 @@ const styles = StyleSheet.create({
     right: 12,
     zIndex: 10,
   },
+  saveButtonGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
   jobCardContent: {
     flex: 1,
     paddingRight: 30,
@@ -521,11 +533,18 @@ const toggleSaveJob = async (job: any) => {
         style={styles.saveButton} 
         onPress={() => toggleSaveJob(job)}
       >
-        <Ionicons 
-          name={job.is_saved ? "bookmark" : "bookmark-outline"} 
-          size={24} 
-          color={job.is_saved ? "#5A5D80" : "#888"} 
-        />
+        <LinearGradient
+          colors={[CAREER_COLORS.rose, CAREER_COLORS.sky]}
+          style={styles.saveButtonGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          <Ionicons 
+            name={job.is_saved ? "bookmark" : "bookmark-outline"} 
+            size={24} 
+            color="white" 
+          />
+        </LinearGradient>
       </TouchableOpacity>
       
       <TouchableOpacity 
@@ -626,14 +645,12 @@ const toggleSaveJob = async (job: any) => {
               : 'Standort nicht verfügbar'
             }
           </Text>
-          <TouchableOpacity 
-            style={styles.locationButton}
+          <GradientButton
+            title={locationPermission ? 'Aktualisieren' : 'Erlauben'}
             onPress={requestLocationPermission}
-          >
-            <Text style={styles.locationButtonText}>
-              {locationPermission ? 'Aktualisieren' : 'Erlauben'}
-            </Text>
-          </TouchableOpacity>
+            small={true}
+            style={{ minWidth: 100 }}
+          />
         </View>
         
         <Text style={styles.inputLabel}>
@@ -650,17 +667,13 @@ const toggleSaveJob = async (job: any) => {
           Gib deine Fähigkeiten und Interessen an, um passendere Ergebnisse zu erhalten.
         </Text>
         
-        <TouchableOpacity
-          style={[
-            styles.searchButton,
-            (!jobTitle || jobTitle.trim().length < 2) && styles.searchButtonDisabled
-          ]}
+        <GradientButton
+          title="Suchen"
           onPress={handleSearch}
           disabled={!jobTitle || jobTitle.trim().length < 2}
-        >
-          <Ionicons name="search" size={20} color="#fff" />
-          <Text style={styles.searchButtonText}>Suchen</Text>
-        </TouchableOpacity>
+          icon={<Ionicons name="search" size={20} color="#fff" />}
+          style={{ marginTop: 16 }}
+        />
       </View>
       
       <Text style={styles.sectionTitle}>Job Ergebnisse</Text>
@@ -719,12 +732,11 @@ const toggleSaveJob = async (job: any) => {
             <Text style={styles.emptySubtext}>
               Jobs you save will appear here.
             </Text>
-            <TouchableOpacity 
-              style={styles.browseButton}
+            <GradientButton
+              title="Browse Jobs"
               onPress={() => setActiveTab('search')}
-            >
-              <Text style={styles.browseButtonText}>Browse Jobs</Text>
-            </TouchableOpacity>
+              style={{ marginTop: 8, alignSelf: 'center' }}
+            />
           </View>
         )}
 
