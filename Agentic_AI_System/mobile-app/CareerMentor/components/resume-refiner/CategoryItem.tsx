@@ -24,10 +24,9 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
 }) => {
   // Determine color based on score
   const getScoreColor = (score: number): string => {
-    if (score >= 90) return CAREER_COLORS.sky;
-    if (score >= 75) return CAREER_COLORS.rose;
-    if (score >= 60) return CAREER_COLORS.lightRose;
-    return CAREER_COLORS.nightSky;
+    if (score >= 75) return CAREER_COLORS.green;  // Good score - green
+    if (score >= 50) return CAREER_COLORS.yellow;        // Medium score - yellow
+    return CAREER_COLORS.red;                     // Poor score - red
   };
 
   return (
@@ -39,19 +38,19 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
         disabled={!onPress}
       >
         <View style={styles.titleContainer}>
-          <Ionicons name={icon as any} size={24} color={getScoreColor(score)} style={styles.icon} />
+          <Ionicons name={icon as any} size={24} color={CAREER_COLORS.nightSky} style={styles.icon} />
           <Text style={styles.title}>{title}</Text>
         </View>
         
         <View style={styles.scoreContainer}>
-          <Text style={[styles.score, { color: getScoreColor(score) }]}>
+          <Text style={styles.score}>
             {score}%
           </Text>
           {onPress && (
             <Ionicons 
               name={expanded ? 'chevron-up' : 'chevron-down'} 
               size={20} 
-              color={CAREER_COLORS.midnight} 
+              color={CAREER_COLORS.nightSky} 
               style={styles.chevron}
             />
           )}
@@ -77,7 +76,7 @@ const styles = StyleSheet.create({
     backgroundColor: CAREER_COLORS.white,
     borderRadius: 12,
     marginBottom: 12,
-    shadowColor: CAREER_COLORS.midnight,
+    shadowColor: CAREER_COLORS.nightSky,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -106,7 +105,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: CAREER_COLORS.midnight,
+    color: CAREER_COLORS.nightSky,
   },
   scoreContainer: {
     flexDirection: 'row',
@@ -116,6 +115,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginRight: 8,
+    color: CAREER_COLORS.nightSky,
   },
   chevron: {
     marginLeft: 4,

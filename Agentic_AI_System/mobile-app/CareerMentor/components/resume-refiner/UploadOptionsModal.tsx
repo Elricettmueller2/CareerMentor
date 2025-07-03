@@ -3,6 +3,8 @@ import { View, StyleSheet, Modal, TouchableOpacity, TouchableWithoutFeedback } f
 import { Text } from '@/components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { CAREER_COLORS } from '@/constants/Colors';
+import { LinearGradient } from 'expo-linear-gradient';
+import SmartActionCard from '../trackpal/SmartActionCard';
 
 interface UploadOptionsModalProps {
   visible: boolean;
@@ -34,38 +36,29 @@ const UploadOptionsModal: React.FC<UploadOptionsModalProps> = ({
               <Text style={styles.modalSubtitle}>Choose an upload method</Text>
               
               <View style={styles.optionsContainer}>
-                <TouchableOpacity
-                  style={styles.optionButton}
+                <SmartActionCard
+                  title="Take Photo"
+                  description="Use your camera to take a picture of your resume"
+                  iconName="camera"
                   onPress={onCameraSelect}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.iconContainer}>
-                    <Ionicons name="camera" size={32} color={CAREER_COLORS.sky} />
-                  </View>
-                  <Text style={styles.optionText}>Take Photo</Text>
-                </TouchableOpacity>
+                  style={styles.actionCard}
+                />
                 
-                <TouchableOpacity
-                  style={styles.optionButton}
+                <SmartActionCard
+                  title="Choose from Gallery"
+                  description="Select an existing image from your photo library"
+                  iconName="images"
                   onPress={onGallerySelect}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.iconContainer}>
-                    <Ionicons name="images" size={32} color={CAREER_COLORS.sky} />
-                  </View>
-                  <Text style={styles.optionText}>Choose from Gallery</Text>
-                </TouchableOpacity>
+                  style={styles.actionCard}
+                />
                 
-                <TouchableOpacity
-                  style={styles.optionButton}
+                <SmartActionCard
+                  title="Select Document"
+                  description="Choose a PDF or document file from your device"
+                  iconName="document-text"
                   onPress={onDocumentSelect}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.iconContainer}>
-                    <Ionicons name="document-text" size={32} color={CAREER_COLORS.sky} />
-                  </View>
-                  <Text style={styles.optionText}>Select Document</Text>
-                </TouchableOpacity>
+                  style={styles.actionCard}
+                />
               </View>
               
               <TouchableOpacity
@@ -119,42 +112,8 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 16,
   },
-  optionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    backgroundColor: CAREER_COLORS.salt,
-    borderWidth: 1,
-    borderColor: CAREER_COLORS.lightRose,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: CAREER_COLORS.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-    shadowColor: CAREER_COLORS.midnight,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  optionText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: CAREER_COLORS.nightSky,
-    flex: 1,
-  },
-  optionDescription: {
-    fontSize: 14,
-    color: CAREER_COLORS.sky,
-    marginTop: 4,
-    flex: 1,
-    flexWrap: 'wrap',
+  actionCard: {
+    marginVertical: 6,
   },
   closeButton: {
     paddingVertical: 12,

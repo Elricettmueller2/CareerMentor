@@ -143,10 +143,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginVertical: 20,
   },
+  loadingProgressContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   loadingText: {
     fontSize: 16,
     marginTop: 10,
     color: COLORS.nightSky,
+  },
+  loadingTextBelow: {
+    marginTop: 20,
   },
   jobList: {
     marginTop: 20,
@@ -702,10 +709,9 @@ const styles = StyleSheet.create({
 
 // Helper function to determine the color based on match percentage
 const getMatchColor = (match: number): string => {
-  if (match >= 90) return COLORS.sky;
-  if (match >= 75) return COLORS.rose;
-  if (match >= 60) return COLORS.lightRose;
-  return COLORS.nightSky;
+  if (match >= 75) return COLORS.green;  // Good match - green
+  if (match >= 50) return COLORS.yellow; // Medium match - yellow
+  return COLORS.red;                     // Poor match - red
 };
 
 export default function ResumeRefinerScreen() {
@@ -798,6 +804,9 @@ export default function ResumeRefinerScreen() {
       loadingAnimationCleanupRef.current = null;
     }
     
+    // Reset loading progress to 0% when starting a new animation
+    setLoadingProgress(0);
+    
     const interval = setInterval(() => {
       setLoadingDots(prev => {
         if (prev.length >= 3) return '';
@@ -805,17 +814,18 @@ export default function ResumeRefinerScreen() {
       });
     }, 500);
     
-    // Simulate progress for demo purposes
+    // Simulate progress for demo purposes - slower increase
     const progressInterval = setInterval(() => {
       setLoadingProgress(prev => {
-        const newProgress = prev + (Math.random() * 5);
+        // Slower increment (reduced from 5 to 2)
+        const newProgress = prev + (Math.random() * 2);
         if (newProgress >= 100) {
           clearInterval(progressInterval);
           return 100;
         }
         return newProgress;
       });
-    }, 300);
+    }, 500); // Increased interval from 300ms to 500ms
     
     // Store cleanup function in ref
     const cleanup = () => {
@@ -958,7 +968,7 @@ export default function ResumeRefinerScreen() {
         const response = await ResumeService.uploadResume(uri, fileName, mimeType);
         console.log('Upload successful, response received:', response);
         
-        // Extract upload ID from response - backend returns { upload_id: string }
+        // Extract upload ID from response
         let uploadId = response?.upload_id;
         
         if (!uploadId) {
@@ -1278,15 +1288,17 @@ export default function ResumeRefinerScreen() {
                   progress={loadingProgress}
                   errorMessage={uploadError}
                 />
-                <CircularProgress 
-                  percentage={loadingProgress} 
-                  size={100} 
-                  strokeWidth={10} 
-                  progressColor={COLORS.nightSky}
-                />
-                <Text style={styles.loadingText}>
-                  {loadingStage === 'parsing' ? `Parsing resume${loadingDots}` : `Analyzing resume${loadingDots}`}
-                </Text>
+                <View style={styles.loadingProgressContainer}>
+                  <CircularProgress 
+                    percentage={loadingProgress} 
+                    size={100} 
+                    strokeWidth={10} 
+                    progressColor={COLORS.nightSky}
+                  />
+                  <Text style={[styles.loadingText, styles.loadingTextBelow]}>
+                    {loadingStage === 'parsing' ? `Parsing resume${loadingDots}` : `Analyzing resume${loadingDots}`}
+                  </Text>
+                </View>
               </View>
             ) : categoryScores ? (
               <>
@@ -1354,22 +1366,17 @@ export default function ResumeRefinerScreen() {
                 </View>
               ) : loading ? (
                 <View style={styles.loadingContainer}>
-                  <FileUploadStatus
-                    fileName={currentFileName}
-                    fileSize={fileSize}
-                    status={uploadStatus}
-                    progress={loadingProgress}
-                    errorMessage={uploadError}
-                  />
-                  <CircularProgress 
-                    percentage={loadingProgress} 
-                    size={100} 
-                    strokeWidth={10} 
-                    progressColor={COLORS.nightSky}
-                  />
-                  <Text style={styles.loadingText}>
-                    {loadingStage === 'matching' ? `Matching resume with job${loadingDots}` : `Processing${loadingDots}`}
-                  </Text>
+                  <View style={styles.loadingProgressContainer}>
+                    <CircularProgress 
+                      percentage={loadingProgress} 
+                      size={100} 
+                      strokeWidth={10} 
+                      progressColor={COLORS.nightSky}
+                    />
+                    <Text style={[styles.loadingText, styles.loadingTextBelow]}>
+                      {loadingStage === 'matching' ? `Matching resume with job${loadingDots}` : `Processing${loadingDots}`}
+                    </Text>
+                  </View>
                 </View>
               ) : (
                 <>
@@ -1485,6 +1492,7 @@ export default function ResumeRefinerScreen() {
                           size={80} 
                           strokeWidth={8}
                           progressColor={getMatchColor(matchResult.match_score)}
+                          textColor={COLORS.nightSky}
                           textSize={20}
                         />
                         <View style={styles.matchScoreTextContainer}>
