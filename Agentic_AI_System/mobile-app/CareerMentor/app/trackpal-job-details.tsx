@@ -44,7 +44,7 @@ export default function TrackPalJobDetailsScreen() {
   const [showReminderTimePicker, setShowReminderTimePicker] = useState(false);
   const [settingReminder, setSettingReminder] = useState(false);
   const [reminderType, setReminderType] = useState<'application' | 'follow-up' | 'interview'>('follow-up');
-  const [reminderTitle, setReminderTitle] = useState('Set Follow-up Reminder');
+  const [reminderTitle, setReminderTitle] = useState('Set Reminder');
   const [reminderMessage, setReminderMessage] = useState('');
 
   useEffect(() => {
