@@ -152,13 +152,13 @@ const styles = StyleSheet.create({
   },
   feedbackText: {
     fontSize: 14,
-    color: CAREER_COLORS.midnight,
+    color: CAREER_COLORS.white,
     lineHeight: 20,
     marginBottom: 8,
   },
   noFeedbackText: {
     fontSize: 14,
-    color: CAREER_COLORS.midnight,
+    color: CAREER_COLORS.white,
     fontStyle: 'italic',
   },
 });

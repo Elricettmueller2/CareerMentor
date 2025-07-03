@@ -73,7 +73,7 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: CAREER_COLORS.white,
+    backgroundColor: CAREER_COLORS.nightSky,
     borderRadius: 12,
     marginBottom: 12,
     shadowColor: CAREER_COLORS.nightSky,
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   expandedContainer: {
-    borderWidth: 2,
+    borderWidth: 0,
     borderColor: CAREER_COLORS.nightSky,
   },
   header: {
@@ -101,11 +101,13 @@ const styles = StyleSheet.create({
   },
   icon: {
     marginRight: 12,
+    marginLeft: 4,
+    color: CAREER_COLORS.white,
   },
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: CAREER_COLORS.nightSky,
+    color: CAREER_COLORS.white,
   },
   scoreContainer: {
     flexDirection: 'row',
@@ -115,20 +117,22 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginRight: 8,
-    color: CAREER_COLORS.nightSky,
+    color: CAREER_COLORS.white,
   },
   chevron: {
-    marginLeft: 4,
+    marginLeft: 0,
+    marginRight: 4,
+    color: CAREER_COLORS.white,
   },
   progressBarContainer: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingBottom: 16,
   },
   content: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingTop: 0,
     paddingBottom: 16,
-    backgroundColor: CAREER_COLORS.salt,
+    backgroundColor: CAREER_COLORS.nightSky,
   },
 });
 
