@@ -1,4 +1,4 @@
-import { API_BASE_URL, ENDPOINTS } from '../constants/ApiEndpoints';
+import { API_BASE_URL, ENDPOINTS, API_FALLBACK_URLS } from '../constants/ApiEndpoints';
 import { FileUploadService } from './FileUploadService';
 
 /**
@@ -221,14 +221,24 @@ export class ResumeService {
           jobTitle = job.title || jobTitle;
           jobDescription = job.description || jobDescription;
           console.log(`Found job details for ${jobId}: ${jobTitle}`);
+        } else {
+          console.warn(`Job with ID ${jobId} not found in loaded jobs`);
         }
       } catch (jobError) {
-        console.log(`Could not get job details: ${jobError.message}`);
+        console.error(`Could not get job details: ${jobError.message}`);
         // Continue with default values
       }
       
       // Use the new endpoint for resume matching
       const endpoint = ENDPOINTS.RESUME.MATCH.replace('{upload_id}', resumeId);
+      
+      console.log(`Calling resume match API: ${API_BASE_URL}${endpoint}`);
+      console.log('With job data:', {
+        id: jobId,
+        title: jobTitle,
+        description: jobDescription
+      });
+      
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: {
@@ -254,6 +264,46 @@ export class ResumeService {
           console.error(`Could not read error response: ${e.message}`);
         }
         
+        // Try fallback URLs if the main API fails
+        for (const fallbackUrl of API_FALLBACK_URLS) {
+          try {
+            console.log(`Trying fallback URL: ${fallbackUrl}${endpoint}`);
+            const fallbackResponse = await fetch(`${fallbackUrl}${endpoint}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                job_descriptions: [{
+                  id: jobId,
+                  title: jobTitle,
+                  description: jobDescription || "Software Developer position requiring React Native and TypeScript skills"
+                }]
+              }),
+              // Add a shorter timeout for fallback URLs
+              signal: AbortSignal.timeout(15000)
+            });
+            
+            if (fallbackResponse.ok) {
+              const fallbackData = await fallbackResponse.json();
+              console.log('Fallback job match response:', JSON.stringify(fallbackData, null, 2));
+              
+              const fallbackResult = fallbackData.response && Array.isArray(fallbackData.response) 
+                ? fallbackData.response[0] 
+                : (fallbackData.response || fallbackData);
+              
+              return {
+                match_score: fallbackResult.overall_score || fallbackResult.skill_match_percentage || 0,
+                missing_keywords: fallbackResult.missing_skills || [],
+                improvement_suggestions: fallbackResult.improvement_suggestions || []
+              };
+            }
+          } catch (fallbackError) {
+            console.error(`Fallback URL failed: ${fallbackError.message}`);
+            // Continue to the next fallback URL
+          }
+        }
+        
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
       
@@ -261,6 +311,12 @@ export class ResumeService {
       console.log('Job match response:', JSON.stringify(data, null, 2));
       
       const result = data.response && Array.isArray(data.response) ? data.response[0] : (data.response || data);
+      
+      // Validate the result to ensure we have actual data
+      if (!result || (typeof result.overall_score !== 'number' && typeof result.skill_match_percentage !== 'number')) {
+        console.error('Invalid match result format:', result);
+        throw new Error('Invalid match result format from API');
+      }
       
       return {
         match_score: result.overall_score || result.skill_match_percentage || 0,
@@ -270,29 +326,20 @@ export class ResumeService {
     } catch (error) {
       console.error('Error matching resume with job:', error);
       
-      // Return mock data as fallback for development
-      return {
-        match_score: 68,
-        missing_keywords: ['React Native', 'TypeScript', 'UI/UX Design'],
-        improvement_suggestions: [
-          'Add more details about your React Native experience',
-          'Highlight your TypeScript skills more prominently',
-          'Include examples of UI/UX work you\'ve done',
-          'Quantify your achievements with metrics and results'
-        ]
-      };
+      // Instead of returning mock data, throw the error to show a proper error message
+      throw new Error(`Failed to match resume with job: ${error.message}`);
     }
   }
-
+  
   /**
    * Load jobs from local data
    * @returns Array of job objects
    */
   static async loadJobs() {
     try {
-      // This is a placeholder - in a real app, you would fetch from a service
-      // For now, we'll return an empty array
-      return [];
+      // Use the dataLoader utility to load jobs from the mock global state
+      const { loadJobs } = await import('../utils/dataLoader');
+      return await loadJobs();
     } catch (error) {
       console.error('Error loading jobs:', error);
       return [];

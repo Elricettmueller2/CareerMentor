@@ -1159,10 +1159,28 @@ export default function ResumeRefinerScreen() {
     try {
       console.log(`Matching resume ${uploadId} with job ${selectedJob.id}`);
       const result = await ResumeService.matchResumeWithJob(uploadId, selectedJob.id);
+      
+      // Validate the result to ensure we have actual data
+      if (!result || typeof result.match_score !== 'number') {
+        console.error('Invalid match result format:', result);
+        Alert.alert(
+          'Error', 
+          'Received invalid match data from the server. Please try again later.'
+        );
+        return;
+      }
+      
+      console.log('Match result received:', result);
       setMatchResult(result);
     } catch (error) {
       console.error('Error matching resume with job:', error);
-      Alert.alert('Error', 'Failed to match resume with job. Please try again.');
+      
+      // Provide a more informative error message
+      const errorMessage = error.message || 'Unknown error';
+      Alert.alert(
+        'Resume Matching Failed', 
+        `Could not match your resume with this job. ${errorMessage}\n\nPlease check your internet connection and try again.`
+      );
     } finally {
       setLoading(false);
       
