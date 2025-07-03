@@ -9,7 +9,7 @@ import HeaderWithToggle from '../../components/common/HeaderWithToggle';
 import { CAREER_COLORS } from '../../constants/Colors';
 import GradientButton from '../../components/trackpal/GradientButton';
 
-// Typendefinition für die Slider-Props
+// Type definition for Slider props
 type CustomSliderProps = {
   value: number;
   minimumValue?: number;
@@ -22,7 +22,7 @@ type CustomSliderProps = {
   thumbTintColor?: string;
 };
 
-// Web-kompatible Slider-Komponente
+// Web-compatible Slider component
 const CustomSlider = (props: CustomSliderProps) => {
   // Verwende Platform.OS um zu prüfen, ob wir auf Web sind
   if (Platform.OS === 'web') {
@@ -329,10 +329,10 @@ export default function PathFinderScreen() {
     }
   };
 
-  // Tabs für den HeaderWithToggle
+  // Tabs for the HeaderWithToggle
   const toggleOptions = [
-    { id: 'search', label: 'Suche' },
-    { id: 'saved', label: 'Gespeichert' }
+    { id: 'search', label: 'Search' },
+    { id: 'saved', label: 'Saved' }
   ];
   
   // Function to fetch recommended jobs
@@ -420,19 +420,19 @@ const handleSearch = async () => {
   setResults([]);
 
   try {
-    // Bereite die Daten für die API-Anfrage vor
+    // Prepare data for the API request
     const interestsList = interests
       .split(',')
       .map(item => item.trim())
       .filter(item => item.length > 0);
 
-    // Vereinfache den Jobtitel für bessere Ergebnisse (wie im test_path_finder.py)
+    // Simplify job title for better results (as in test_path_finder.py)
     const simplifiedJobTitle = jobTitle.includes(' ') ? 
       jobTitle.split(' ')[0] : // Nimm nur das erste Wort, wenn es Leerzeichen gibt
       jobTitle;
 
     const requestData = {
-      job_title: simplifiedJobTitle, // Vereinfachter Jobtitel für bessere Ergebnisse
+      job_title: simplifiedJobTitle, // Simplified job title for better results
       education_level: degree || "Bachelor", // Standardwert, falls leer
       years_experience: yearsExperience || 3, // Standardwert von 3 wie im Test-Script
       location_radius: locationRadius,
@@ -441,7 +441,7 @@ const handleSearch = async () => {
       top_n: 10
     };
 
-    // Füge Standortdaten hinzu, wenn verfügbar
+    // Add location data if available
     if (userLocation) {
       // Using type assertion to add dynamic properties
       (requestData as any)['latitude'] = userLocation.latitude;
@@ -483,7 +483,7 @@ const handleSearch = async () => {
     }
   } catch (err: any) {
     console.error('Error searching jobs:', err);
-    setError(`Bei der Suche ist ein Fehler aufgetreten: ${err.message || 'Unknown error'}`);
+    setError(`An error occurred during search: ${err.message || 'Unknown error'}`);
     setResults([]);
   } finally {
     setLoading(false);
@@ -581,27 +581,27 @@ const toggleSaveJob = async (job: any) => {
     >
       <View style={styles.detailedSearchContainer}>
         <Text style={styles.inputLabel}>
-          Jobtitel <Text style={styles.requiredStar}>*</Text>
+          Job Title <Text style={styles.requiredStar}>*</Text>
         </Text>
         <TextInput
           style={styles.textInput}
-          placeholder="z.B. Software Developer"
+          placeholder="e.g. Software Developer"
           value={jobTitle}
           onChangeText={setJobTitle}
         />
         
         <Text style={styles.inputLabel}>
-          Bildungsabschluss <Text style={styles.requiredStar}>*</Text>
+          Degree <Text style={styles.requiredStar}>*</Text>
         </Text>
         <TextInput
           style={styles.textInput}
-          placeholder="z.B. Bachelor"
+          placeholder="e.g. Bachelor"
           value={degree}
           onChangeText={setDegree}
         />
         
         <Text style={styles.inputLabel}>
-          Berufserfahrung (Jahre) <Text style={styles.requiredStar}>*</Text>
+          Work Experience (Years) <Text style={styles.requiredStar}>*</Text>
         </Text>
         <View style={styles.sliderContainer}>
           <CustomSlider
@@ -619,7 +619,7 @@ const toggleSaveJob = async (job: any) => {
         </View>
         
         <Text style={styles.inputLabel}>
-          Suchradius (km) <Text style={styles.requiredStar}>*</Text>
+          Search Radius (km) <Text style={styles.requiredStar}>*</Text>
         </Text>
         <View style={styles.sliderContainer}>
           <CustomSlider
@@ -640,13 +640,13 @@ const toggleSaveJob = async (job: any) => {
           <Text style={styles.locationStatus}>
             {locationPermission 
               ? userLocation 
-                ? 'Standort verfügbar' 
-                : 'Standort wird ermittelt...'
-              : 'Standort nicht verfügbar'
+                ? 'Location available' 
+                : 'Determining location...'
+              : 'Location not available'
             }
           </Text>
           <GradientButton
-            title={locationPermission ? 'Aktualisieren' : 'Erlauben'}
+            title={locationPermission ? 'Update' : 'Allow'}
             onPress={requestLocationPermission}
             small={true}
             style={{ minWidth: 100 }}
@@ -654,7 +654,7 @@ const toggleSaveJob = async (job: any) => {
         </View>
         
         <Text style={styles.inputLabel}>
-          Interessen (durch Komma getrennt) <Text style={styles.requiredStar}>*</Text>
+          Interests (comma separated) <Text style={styles.requiredStar}>*</Text>
         </Text>
         <TextInput
           style={[styles.textInput, styles.textArea]}
@@ -664,11 +664,11 @@ const toggleSaveJob = async (job: any) => {
           multiline
         />
         <Text style={styles.inputHint}>
-          Gib deine Fähigkeiten und Interessen an, um passendere Ergebnisse zu erhalten.
+          Enter your skills and interests to get more relevant results.
         </Text>
         
         <GradientButton
-          title="Suchen"
+          title="Search"
           onPress={handleSearch}
           disabled={!jobTitle || jobTitle.trim().length < 2}
           icon={<Ionicons name="search" size={20} color="#fff" />}
@@ -676,12 +676,12 @@ const toggleSaveJob = async (job: any) => {
         />
       </View>
       
-      <Text style={styles.sectionTitle}>Job Ergebnisse</Text>
+      <Text style={styles.sectionTitle}>Job Results</Text>
       
       {loading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#5A5D80" />
-          <Text style={styles.loadingText}>Jobs werden gesucht...</Text>
+          <Text style={styles.loadingText}>Searching for jobs...</Text>
         </View>
       )}
       
@@ -691,7 +691,7 @@ const toggleSaveJob = async (job: any) => {
         <View style={styles.emptyContainer}>
           <Ionicons name="search" size={48} color="#ccc" />
           <Text style={styles.emptyText}>
-            Führen Sie eine Suche durch, um Ergebnisse zu sehen.
+            Perform a search to see results.
           </Text>
         </View>
       )}
