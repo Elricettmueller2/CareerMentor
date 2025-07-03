@@ -13,6 +13,8 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { colors, typography, borderRadius, spacing } from '@/constants/DesignSystem';
 import { Ionicons } from '@expo/vector-icons';
+import { CAREER_COLORS as COLORS } from '@/constants/Colors';
+import GradientButton from '@/components/trackpal/GradientButton';
 
 interface InterviewSetupFormProps {
   onStartInterview: (data: InterviewSetupData) => void;
@@ -151,17 +153,14 @@ export const InterviewSetupForm: React.FC<InterviewSetupFormProps> = ({
         )}
       </View>
 
-      <TouchableOpacity 
-        style={styles.button} 
-        onPress={handleSubmit} 
+      <GradientButton
+        title="Start Interview"
+        onPress={handleSubmit}
         disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color={colors.neutral.white} />
-        ) : (
-          <Text style={styles.buttonText}>Start Interview</Text>
-        )}
-      </TouchableOpacity>
+        loading={loading}
+        colors={[COLORS.rose, COLORS.sky]}
+        style={{ marginHorizontal: spacing.md, marginTop: spacing.xl }}
+      />
     </ScrollView>
   );
 };
@@ -229,24 +228,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily.regular,
     color: colors.neutral.grey800,
   },
-  button: {
-    backgroundColor: colors.primary.main,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    alignItems: 'center',
-    marginTop: spacing.xl,
-    marginHorizontal: spacing.md,
-    shadowColor: colors.primary.main,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
-  },
-  buttonText: {
-    color: colors.neutral.white,
-    fontSize: typography.fontSize.lg,
-    fontFamily: typography.fontFamily.bold,
-  },
+  // Button styles now handled by GradientButton component
 });
 
 export default InterviewSetupForm;

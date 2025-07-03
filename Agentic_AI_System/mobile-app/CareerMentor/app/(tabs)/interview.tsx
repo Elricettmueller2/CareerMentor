@@ -3,21 +3,22 @@ import {
   StyleSheet, 
   ScrollView, 
   ActivityIndicator, 
-  SafeAreaView, 
   KeyboardAvoidingView, 
   Platform,
-  View as RNView,
+  View,
   TouchableOpacity
 } from 'react-native';
-import { Text, View } from '@/components/Themed';
+import { Text } from '@/components/Themed';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFonts, Manrope_400Regular, Manrope_500Medium, Manrope_600SemiBold, Manrope_700Bold, Manrope_800ExtraBold } from '@expo-google-fonts/manrope';
 import { CAREER_COLORS as COLORS } from '@/constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
+import GradientButton from '@/components/trackpal/GradientButton';
+import { spacing } from '@/constants/DesignSystem';
 
 // Import custom components
-import InterviewHeader from '@/components/interview/InterviewHeader';
+import CareerDaddyHeader from '@/components/common/CareerDaddyHeader';
 import InterviewSetupForm from '@/components/interview/InterviewSetupForm';
 import MessageBubble from '@/components/interview/MessageBubble';
 import EnhancedMessageBubble from '@/components/interview/EnhancedMessageBubble';
@@ -307,13 +308,12 @@ export default function InterviewScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <InterviewHeader 
-        title="Mock Interview" 
-        subtitle={interviewStarted ? `${interviewType} Interview` : "Setup your interview"}
-        interviewType={interviewStarted ? interviewType : undefined}
+    <View style={styles.container}>
+      <CareerDaddyHeader 
+        title="CareerDaddy" 
+        showBackButton={interviewStarted}
+        onBackPress={handleEndInterview}
       />
-      
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.content}
@@ -397,17 +397,17 @@ export default function InterviewScreen() {
             />
             
             {/* End interview button */}
-            <TouchableOpacity 
-              style={styles.endButton}
+            <GradientButton
+              title="End Interview"
               onPress={handleEndInterview}
-            >
-              <Ionicons name="flag" size={18} color={COLORS.white} />
-              <Text style={styles.endButtonText}>End Interview</Text>
-            </TouchableOpacity>
+              colors={[COLORS.rose, COLORS.sky]}
+              style={{ margin: spacing.md }}
+              icon={<Ionicons name="flag" size={18} color={COLORS.white} />}
+            />
           </View>
         )}
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -415,17 +415,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.white,
-    // Ensure consistent background color on iOS
-    paddingBottom: Platform.OS === 'ios' ? 20 : 0,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: COLORS.white,
-  },
-  content: {
-    flex: 1,
   },
   setupContainer: {
     flex: 1,
@@ -449,19 +449,5 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: 'center',
   },
-  endButton: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.rose,
-    borderRadius: 8,
-    padding: 12,
-    margin: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  endButtonText: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  }
+  // End button styles now handled by GradientButton component
 });

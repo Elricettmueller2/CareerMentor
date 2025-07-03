@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
 import { Text } from '@/components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { CAREER_COLORS as COLORS } from '@/constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface InterviewHeaderProps {
   title: string;
@@ -20,39 +21,50 @@ const InterviewHeader: React.FC<InterviewHeaderProps> = ({
   showBackButton = false,
   interviewType
 }) => {
+  const insets = useSafeAreaInsets();
+
   return (
-    <LinearGradient
-      colors={[COLORS.nightSky, COLORS.nightSky]}
-      style={styles.header}
-    >
-      <View style={styles.headerContent}>
-        {showBackButton && (
-          <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.white} />
-          </TouchableOpacity>
-        )}
-        
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>{title}</Text>
-          {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
-        </View>
-        
-        {interviewType && (
-          <View style={[
-            styles.badge,
-            interviewType === 'Technical' ? styles.technicalBadge : styles.behavioralBadge
-          ]}>
-            <Text style={styles.badgeText}>{interviewType}</Text>
+    <View style={styles.container}>
+      <StatusBar backgroundColor={COLORS.nightSky} barStyle="light-content" />
+      <LinearGradient
+        colors={[COLORS.nightSky, COLORS.nightSky]}
+        style={[styles.header]}
+      >
+        <View style={[styles.headerContent, { paddingTop: insets.top + 10 }]}>
+          {showBackButton && (
+            <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
+              <Ionicons name="arrow-back" size={24} color={COLORS.white} />
+            </TouchableOpacity>
+          )}
+          
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>{title}</Text>
+            {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
           </View>
-        )}
-      </View>
-    </LinearGradient>
+          
+          {interviewType && (
+            <View style={[
+              styles.badge,
+              interviewType === 'Technical' ? styles.technicalBadge : styles.behavioralBadge
+            ]}>
+              <Text style={styles.badgeText}>{interviewType}</Text>
+            </View>
+          )}
+        </View>
+      </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    zIndex: 10,
+  },
   header: {
-    paddingTop: 50,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     paddingBottom: 20,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
@@ -62,6 +74,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
+    paddingBottom: 15,
   },
   backButton: {
     marginRight: 15,
