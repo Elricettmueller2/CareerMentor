@@ -30,6 +30,11 @@ const InterviewReviewScreen = () => {
   const [error, setError] = useState('');
   const [showShareOptions, setShowShareOptions] = useState(false);
   
+  // Function to navigate back to the interview screen
+  const handleBackToInterviews = () => {
+    router.replace('/(tabs)/interview');
+  };
+  
   // Reference to the ViewShot component for screenshot capture
   const viewShotRef = useRef<ViewShot>(null);
 
@@ -387,9 +392,9 @@ const InterviewReviewScreen = () => {
       
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.midnight} />
+          <Ionicons name="chevron-back" size={24} color={COLORS.nightSky} />
         </TouchableOpacity>
-        <Text style={styles.title}>Interview Review</Text>
+        <Text style={styles.title}>Interview Feedback</Text>
         {reviewData ? (
           <TouchableOpacity style={styles.shareButton} onPress={() => setShowShareOptions(true)}>
             <Ionicons name="share-outline" size={24} color={COLORS.sky} />
@@ -426,14 +431,23 @@ const InterviewReviewScreen = () => {
       
       <GradientButton
         title="Start New Interview"
-        onPress={handleStartNewInterview}
+        onPress={() => router.push('/(tabs)/interview')}
         colors={[COLORS.rose, COLORS.sky]}
         style={{ margin: spacing.md }}
       />
       
-      {/* Share options modal */}
+      <View style={styles.returnButtonContainer}>
+        <GradientButton
+          title="Return to Interviews"
+          onPress={handleBackToInterviews}
+          colors={[COLORS.nightSky, COLORS.sky]}
+          style={{ marginHorizontal: spacing.md, marginVertical: spacing.md }}
+          icon={<Ionicons name="arrow-back" size={18} color={COLORS.white} />}
+        />
+      </View>
+
       <Modal
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         visible={showShareOptions}
         onRequestClose={() => setShowShareOptions(false)}
@@ -445,8 +459,10 @@ const InterviewReviewScreen = () => {
             <TouchableOpacity 
               style={styles.shareOption} 
               onPress={() => {
-                shareInterviewReview(reviewData!);
-                setShowShareOptions(false);
+                if (reviewData) {
+                  shareInterviewReview(reviewData);
+                  setShowShareOptions(false);
+                }
               }}
             >
               <Ionicons name="text-outline" size={24} color={COLORS.sky} />
@@ -456,8 +472,10 @@ const InterviewReviewScreen = () => {
             <TouchableOpacity 
               style={styles.shareOption} 
               onPress={() => {
-                captureAndShareScreenshot(viewShotRef as ViewShotRef);
-                setShowShareOptions(false);
+                if (viewShotRef && viewShotRef.current) {
+                  captureAndShareScreenshot(viewShotRef as ViewShotRef);
+                  setShowShareOptions(false);
+                }
               }}
             >
               <Ionicons name="image-outline" size={24} color={COLORS.sky} />
@@ -481,6 +499,10 @@ const styles = StyleSheet.create({
     container: {
       flex: 1,
       backgroundColor: '#fff',
+    },
+    returnButtonContainer: {
+      paddingHorizontal: 16,
+      paddingBottom: 8,
     },
     header: {
       flexDirection: 'row',
