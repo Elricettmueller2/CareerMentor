@@ -101,7 +101,7 @@ const ResumeAnalysisResults: React.FC<ResumeAnalysisResultsProps> = ({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <Text style={styles.title}>Resume Analysis</Text>
+        <Text style={styles.title}>Resume Feedback</Text>
         
         {/* Overall Score Circle - without any text */}
         <View style={styles.overallScoreContainer}>
@@ -180,6 +180,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 12,
     textAlign: 'center',
+    color: CAREER_COLORS.midnight,
   },
   overallScoreContainer: {
     alignItems: 'center',

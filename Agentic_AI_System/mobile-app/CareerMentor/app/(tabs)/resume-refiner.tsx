@@ -11,6 +11,7 @@ import { ResumeService } from '@/services/ResumeService';
 import { loadJobs } from '@/utils/dataLoader';
 import { truncateText, formatPercentage } from '@/utils/formatters';
 import GradientButton from '@/components/trackpal/GradientButton';
+import { LinearGradient } from 'expo-linear-gradient';
 
 // Import resume-refiner components
 import UploadOptionsModal from '@/components/resume-refiner/UploadOptionsModal';
@@ -547,10 +548,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  replaceGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
   currentCVActionText: {
     fontSize: 13,
     fontWeight: '500',
-    color: COLORS.sky,
+    color: 'white',
     marginRight: 4,
   },
   matchInstructionText: {
@@ -1321,8 +1329,15 @@ export default function ResumeRefinerScreen() {
                     </View>
                   </View>
                   <View style={styles.currentCVAction}>
-                    <Text style={styles.currentCVActionText}>Replace</Text>
-                    <Ionicons name="arrow-up-circle" size={16} color={COLORS.sky} />
+                    <LinearGradient
+                      colors={[COLORS.rose, COLORS.sky]}
+                      style={styles.replaceGradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                    >
+                      <Text style={styles.currentCVActionText}>Replace</Text>
+                      <Ionicons name="arrow-up-circle" size={16} color="white" />
+                    </LinearGradient>
                   </View>
                 </TouchableOpacity>
                 
@@ -1399,8 +1414,15 @@ export default function ResumeRefinerScreen() {
                       </View>
                     </View>
                     <View style={styles.currentCVAction}>
-                      <Text style={styles.currentCVActionText}>Replace</Text>
-                      <Ionicons name="arrow-up-circle" size={16} color={COLORS.sky} />
+                      <LinearGradient
+                        colors={[COLORS.rose, COLORS.sky]}
+                        style={styles.replaceGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                      >
+                        <Text style={styles.currentCVActionText}>Replace</Text>
+                        <Ionicons name="arrow-up-circle" size={16} color="white" />
+                      </LinearGradient>
                     </View>
                   </TouchableOpacity>
                   
