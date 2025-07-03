@@ -5,14 +5,12 @@ import {
   Text, 
   View, 
   ActivityIndicator, 
-  Modal, 
   Alert, 
   RefreshControl, 
   ScrollView
 } from 'react-native';
 import { CAREER_COLORS } from '../../constants/Colors';
 import { useFocusEffect } from '@react-navigation/native';
-import ApplicationForm from '../../components/ApplicationForm';
 import JobService, { JobApplication } from '../../services/JobService';
 import TrackPalService, { PatternInsight } from '../../services/TrackPalService';
 import NotificationService from '../../services/NotificationService';
@@ -27,58 +25,11 @@ import ApplicationsList from '../../components/trackpal/ApplicationsList';
 // Import common components
 import CareerDaddyHeader from '../../components/common/CareerDaddyHeader';
 
-// Define styles at the top to avoid usage before declaration
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  contentContainer: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: CAREER_COLORS.nightSky,
-  },
-  scrollContainer: {
-    flex: 1,
-    paddingTop: 16,
-  },
-  applicationSectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 12,
-    color: '#333',
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#f9f9f9',
-  },
-  separator: {
-    marginVertical: 20,
-    height: 1,
-    width: '80%',
-    backgroundColor: '#ccc',
-  }
-});
-
 export default function TrackPalScreen() {
   const router = useRouter();
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-
-  
   // Application stats
   const [stats, setStats] = useState({
     totalApplications: 0,
@@ -247,51 +198,6 @@ export default function TrackPalScreen() {
     }
   };
 
-  const handleAddJob = async (applicationData: any) => {
-    try {
-      // Add the application to storage
-      const newApplication = await JobService.addJob({
-        ...applicationData,
-        applicationDeadline: applicationData.applicationDeadline ? 
-          applicationData.applicationDeadline.toISOString() : null,
-        followUpDate: applicationData.followUpDate ? 
-          applicationData.followUpDate.toISOString() : null,
-      });
-      
-      // Schedule notification for follow-up reminder if a follow-up date is set
-      if (applicationData.followUpDate) {
-        try {
-          // Request notification permissions if not already granted
-          await NotificationService.requestPermissions();
-          
-          // Schedule the notification for the follow-up date
-          const notificationId = await NotificationService.scheduleFollowUpReminder(
-            newApplication.id,
-            applicationData.company,
-            applicationData.jobTitle,
-            applicationData.followUpDate
-          );
-          
-          if (notificationId) {
-            console.log(`Scheduled follow-up reminder notification: ${notificationId}`);
-          }
-        } catch (notificationError) {
-          console.error('Error scheduling notification:', notificationError);
-          // Don't alert the user about notification errors, just log them
-        }
-      }
-      
-      setModalVisible(false);
-      loadApplications();
-      Alert.alert('Success', 'Job added successfully');
-    } catch (error) {
-      console.error('Error adding job:', error);
-      Alert.alert('Error', 'Failed to add job');
-    }
-  };
-  
-
-
   // Render the dashboard tab content
   const renderDashboardTab = () => {
     // If loading, show loading indicator
@@ -358,22 +264,50 @@ export default function TrackPalScreen() {
         
         {/* Add Job Button - Fixed position at bottom right */}
         <AddJobButton onPress={() => router.push('/trackpal-add-application')} />
-
-        {/* Application Form Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={modalVisible}
-          onRequestClose={() => setModalVisible(false)}
-        >
-          <ApplicationForm 
-            onCancel={() => setModalVisible(false)}
-            onSubmit={handleAddJob}
-          />
-        </Modal>
       </View>
     </View>
   );
 }
 
-// Styles moved to the top of the file
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  contentContainer: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: CAREER_COLORS.nightSky,
+  },
+  scrollContainer: {
+    flex: 1,
+    paddingTop: 16,
+  },
+  applicationSectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 12,
+    color: '#333',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#f9f9f9',
+  },
+  separator: {
+    marginVertical: 20,
+    height: 1,
+    width: '80%',
+    backgroundColor: '#ccc',
+  }
+});

@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, View, Alert, Platform, ActionSheetIOS, Modal, TextInput, StatusBar } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, ScrollView, TouchableOpacity, View, Alert, Platform, ActionSheetIOS, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Text } from '@/components/Themed';
@@ -9,7 +9,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { CAREER_COLORS } from '../constants/Colors';
 import JobService, { JobApplication } from '@/services/JobService';
 import NotificationService from '@/services/NotificationService';
-import { useState, useEffect } from 'react';
 
 // Import custom components
 import GradientButton from '@/components/trackpal/GradientButton';
@@ -1420,14 +1419,14 @@ const styles = StyleSheet.create({
     marginVertical: 20,
     width: '100%',
   },
-  // Description styles
+  // Status and description styles
   statusBadge: {
     marginLeft: 'auto',
   },
   descriptionContainer: {
     marginBottom: 16,
   },
-  // Description input styles for edit modal
+  // Input styles for multiline fields with top-left icons
   descriptionInputContainer: {
     position: 'relative',
     borderWidth: 1,
@@ -1435,7 +1434,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 10,
     backgroundColor: '#fff',
-    height: 5 * 24,
+    height: 5 * 24, // Height for 5 lines of text
     paddingTop: 8,
     paddingBottom: 8,
   },
@@ -1445,7 +1444,7 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 16,
     textAlignVertical: 'top',
-    paddingLeft: 30, // Add padding to prevent text from overlapping with the icon
+    paddingLeft: 30, // Left padding to prevent text from overlapping with the icon
   },
   iconTopLeft: {
     position: 'absolute',
