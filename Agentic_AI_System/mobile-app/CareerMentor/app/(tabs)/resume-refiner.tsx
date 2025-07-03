@@ -831,12 +831,6 @@ export default function ResumeRefinerScreen() {
   const handleDocumentPick = async () => {
     console.log('Document pick handler triggered');
     
-    // We'll use a separate function to launch the picker after the modal is closed
-    setTimeout(launchDocumentPicker, 500);
-  };
-  
-  // Separate function to launch document picker
-  const launchDocumentPicker = async () => {
     try {
       console.log('Launching document picker...');
       
@@ -844,6 +838,9 @@ export default function ResumeRefinerScreen() {
       const result = await DocumentPicker.getDocumentAsync();
       
       console.log('Document picker result:', result);
+      
+      // Close modal immediately regardless of result
+      setShowUploadOptions(false);
       
       if (result.canceled || !result.assets || result.assets.length === 0) {
         console.log('Document picking was canceled or no file selected');
@@ -895,20 +892,20 @@ export default function ResumeRefinerScreen() {
           loadingAnimationCleanupRef.current();
           loadingAnimationCleanupRef.current = null;
         }
+      } finally {
+        setShowUploadOptions(false);
       }
     } catch (pickerError) {
       console.error('Document picker error:', pickerError);
       setUploadError('Error selecting document. Please try again.');
       setUploadStatus('error');
+      setShowUploadOptions(false);
     }
   };
 
   // Function to handle camera capture
   const handleCameraCapture = async () => {
     console.log('Camera capture handler triggered');
-    
-    // Simple delay to ensure modal is closed
-    await new Promise(resolve => setTimeout(resolve, 300));
     
     try {
       console.log('Requesting camera permissions...');
@@ -918,6 +915,7 @@ export default function ResumeRefinerScreen() {
         console.log('Camera permission denied');
         setUploadError('Camera permission not granted');
         setUploadStatus('error');
+        setShowUploadOptions(false);
         return;
       }
       
@@ -927,6 +925,9 @@ export default function ResumeRefinerScreen() {
         allowsEditing: true,
         quality: 1,
       });
+      
+      // Close modal immediately regardless of result
+      setShowUploadOptions(false);
       
       console.log('Camera result:', result);
       
@@ -980,23 +981,20 @@ export default function ResumeRefinerScreen() {
           loadingAnimationCleanupRef.current();
           loadingAnimationCleanupRef.current = null;
         }
+      } finally {
+        setShowUploadOptions(false);
       }
     } catch (cameraError) {
       console.error('Camera error:', cameraError);
       setUploadError('Error taking photo. Please try again.');
       setUploadStatus('error');
+      setShowUploadOptions(false);
     }
   };
 
   // Function to handle gallery image pick
   const handleGalleryPick = async () => {
     console.log('Gallery pick handler triggered');
-    
-    // Close the upload options modal first
-    setShowUploadOptions(false);
-    
-    // Simple delay to ensure modal is closed
-    await new Promise(resolve => setTimeout(resolve, 300));
     
     try {
       console.log('Requesting media library permissions...');
@@ -1006,6 +1004,7 @@ export default function ResumeRefinerScreen() {
         console.log('Media library permission denied');
         setUploadError('Gallery access denied. Please enable media access in your device settings.');
         setUploadStatus('error');
+        setShowUploadOptions(false);
         return;
       }
       
@@ -1015,6 +1014,9 @@ export default function ResumeRefinerScreen() {
         quality: 0.8,
         allowsEditing: true,
       });
+      
+      // Close modal immediately regardless of result
+      setShowUploadOptions(false);
       
       console.log('Gallery pick result:', result);
       
@@ -1067,11 +1069,14 @@ export default function ResumeRefinerScreen() {
           loadingAnimationCleanupRef.current();
           loadingAnimationCleanupRef.current = null;
         }
+      } finally {
+        setShowUploadOptions(false);
       }
     } catch (galleryError) {
       console.error('Gallery error:', galleryError);
       setUploadError('Error selecting image. Please try again.');
       setUploadStatus('error');
+      setShowUploadOptions(false);
     }
   };
 
@@ -1271,7 +1276,7 @@ export default function ResumeRefinerScreen() {
                 {/* Current CV display */}
                 <TouchableOpacity 
                   style={styles.currentCVContainer}
-                  onPress={launchDocumentPicker}
+                  onPress={() => setShowUploadOptions(true)}
                 >
                   <View style={styles.currentCVContent}>
                     <Ionicons name="document-text" size={20} color={COLORS.nightSky} />

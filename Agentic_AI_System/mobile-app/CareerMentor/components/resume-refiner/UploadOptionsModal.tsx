@@ -21,7 +21,7 @@ const UploadOptionsModal: React.FC<UploadOptionsModalProps> = ({
 }) => {
   return (
     <Modal
-      animationType="fade"
+      animationType="none"
       transparent={true}
       visible={visible}
       onRequestClose={onClose}
