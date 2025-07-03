@@ -43,7 +43,6 @@ RUN chmod +x start_with_ngrok.py
 
 # Copy specific directories
 COPY crews/ ./crews/
-COPY database/ ./database/
 COPY services/ ./services/
 
 # Copy .env.example to .env for configuration

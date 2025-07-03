@@ -158,3 +158,36 @@ class JobFilterAgent:
 
 # Create a singleton instance
 job_filter = JobFilterAgent()
+
+# Function to filter and rank jobs - wrapper for the JobFilterAgent.filter_jobs method
+def filter_and_rank_jobs(jobs, user_years_experience=0, user_education_level="", 
+                        user_interest_points=None, location_radius=50, top_n=10, user_id="default_user"):
+    """
+    Filter and rank jobs based on user criteria and resume data
+    
+    Args:
+        jobs: List of job listings to filter
+        user_years_experience: Years of experience the user has
+        user_education_level: User's education level
+        user_interest_points: List of user's interest points
+        location_radius: Search radius in km
+        top_n: Number of top jobs to return
+        user_id: User ID for personalization
+        
+    Returns:
+        Dictionary with top_jobs and other metadata
+    """
+    # Add user criteria to each job for scoring
+    for job in jobs:
+        job["user_years_experience"] = user_years_experience
+        job["user_education_level"] = user_education_level
+        job["user_interest_points"] = user_interest_points
+        
+    # Use the JobFilterAgent to filter jobs
+    filtered_jobs = job_filter.filter_jobs(jobs, user_id=user_id, top_n=top_n)
+    
+    # Return in the expected format
+    return {
+        "top_jobs": filtered_jobs,
+        "count": len(filtered_jobs)
+    }
