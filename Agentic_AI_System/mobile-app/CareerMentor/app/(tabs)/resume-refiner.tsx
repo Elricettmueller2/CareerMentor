@@ -19,6 +19,7 @@ import ResumeAnalysisResults from '@/components/resume-refiner/ResumeAnalysisRes
 import FileUploadStatus from '@/components/resume-refiner/FileUploadStatus';
 import CircularProgress from '@/components/resume-refiner/CircularProgress';
 import JobCard from '@/components/resume-refiner/JobCard';
+import HeaderWithToggle from '@/components/common/HeaderWithToggle';
 
 // Import services
 import { FileUploadService } from '@/services/FileUploadService';
@@ -1264,30 +1265,16 @@ export default function ResumeRefinerScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <Image 
-            source={require('@/assets/images/logo.png')} 
-            style={styles.logo}
-            resizeMode="contain" 
-          />
-          <Text style={styles.headerTitle}>Career Daddy</Text>
-        </View>
-      </View>
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'analyse' ? styles.activeTab : {}]}
-          onPress={() => setActiveTab('analyse')}
-        >
-          <Text style={[styles.tabText, activeTab === 'analyse' ? styles.activeTabText : null]}>Analyse</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'match' ? styles.activeTab : {}]}
-          onPress={() => setActiveTab('match')}
-        >
-          <Text style={[styles.tabText, activeTab === 'match' ? styles.activeTabText : null]}>Match</Text>
-        </TouchableOpacity>
-      </View>
+      <HeaderWithToggle
+        title="CareerDaddy"
+        options={[
+          { id: 'analyse', label: 'Analyse' },
+          { id: 'match', label: 'Match' }
+        ]}
+        activeOptionId={activeTab}
+        onOptionChange={(id) => setActiveTab(id as 'analyse' | 'match')}
+      />
+      
       <View style={styles.content}>
         {activeTab === 'analyse' && (
           <View style={styles.analysisContainer}>

@@ -17,7 +17,7 @@ interface HeaderWithToggleProps {
 }
 
 const HeaderWithToggle: React.FC<HeaderWithToggleProps> = ({
-  title = 'Career Daddy',
+  title = 'CareerDaddy',
   options,
   activeOptionId,
   onOptionChange,
