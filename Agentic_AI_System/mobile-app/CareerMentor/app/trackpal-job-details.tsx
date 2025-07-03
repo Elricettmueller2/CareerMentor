@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, View, Alert, Platform, ActionSheetIOS, Modal, TextInput, StatusBar } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, ScrollView, TouchableOpacity, View, Alert, Platform, ActionSheetIOS, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Text } from '@/components/Themed';
@@ -9,7 +9,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { CAREER_COLORS } from '../constants/Colors';
 import JobService, { JobApplication } from '@/services/JobService';
 import NotificationService from '@/services/NotificationService';
-import { useState, useEffect } from 'react';
 
 // Import custom components
 import GradientButton from '@/components/trackpal/GradientButton';
@@ -44,7 +43,7 @@ export default function TrackPalJobDetailsScreen() {
   const [showReminderTimePicker, setShowReminderTimePicker] = useState(false);
   const [settingReminder, setSettingReminder] = useState(false);
   const [reminderType, setReminderType] = useState<'application' | 'follow-up' | 'interview'>('follow-up');
-  const [reminderTitle, setReminderTitle] = useState('Set Follow-up Reminder');
+  const [reminderTitle, setReminderTitle] = useState('Set Reminder');
   const [reminderMessage, setReminderMessage] = useState('');
 
   useEffect(() => {
@@ -624,17 +623,33 @@ export default function TrackPalJobDetailsScreen() {
           <Text style={styles.jobTitle}>{application.jobTitle}</Text>
           <Text style={styles.companyName}>{application.company}</Text>
           
-          {application.location && (
-            <View style={styles.infoRow}>
-              <Ionicons name="location-outline" size={16} color="#666" />
-              <Text style={styles.infoText}>{application.location}</Text>
-            </View>
-          )}
-          <StatusBadge status={application.status} style={styles.statusBadge} />
+          {/* Location and Status Row */}
+          <View style={styles.infoStatusRow}>
+            {application.location && (
+              <View style={styles.infoRow}>
+                <Ionicons name="location-outline" size={16} color={CAREER_COLORS.nightSky} />
+                <Text style={styles.infoText}>{application.location}</Text>
+              </View>
+            )}
+            <StatusBadge status={application.status} style={styles.statusBadge} />
+          </View>
           
-          {/* Job Link Button */}
-          <JobLinkButton url={application.jobUrl} />
         </View>
+        {/* Separator */}
+        <View style={styles.separator} />
+        
+        {/* Description Section */}
+        {application.description && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Description</Text>
+            <View style={styles.notesContainer}>
+              <Text style={styles.notesText}>{application.description}</Text>
+            </View>
+          </View>
+        )}
+        
+        {/* Separator */}
+        <View style={styles.separator} />
         
         {/* Smart Actions Section */}
         <View style={styles.section}>
@@ -643,6 +658,9 @@ export default function TrackPalJobDetailsScreen() {
             {renderSmartActions()}
           </View>
         </View>
+        
+        {/* Separator */}
+        <View style={styles.separator} />
         
         {/* Timeline Section */}
         <View style={styles.section}>
@@ -707,6 +725,9 @@ export default function TrackPalJobDetailsScreen() {
           </View>
         </View>
         
+        {/* Separator */}
+        <View style={styles.separator} />
+        
         {/* Notes Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notes</Text>
@@ -717,7 +738,8 @@ export default function TrackPalJobDetailsScreen() {
           </View>
         </View>
         
-        {/* Important dates have been moved to the timeline */}
+        {/* Separator */}
+        <View style={styles.separator} />
         
         {/* Resume Section (placeholder for future) */}
         <View style={styles.section}>
@@ -744,6 +766,14 @@ export default function TrackPalJobDetailsScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Floating Job Link Button */}
+      <View style={styles.floatingButtonContainer}>
+        <JobLinkButton 
+          url={application.jobUrl} 
+          style={styles.floatingButton}
+        />
+      </View>
 
       {/* Follow-up Reminder Modal */}
       <Modal
@@ -833,6 +863,28 @@ export default function TrackPalJobDetailsScreen() {
                     iconName="location-outline"
                   />
 
+                  {/* Custom Description Field with icon in top left */}
+                  <View style={styles.descriptionContainer}>
+                    <Text style={styles.label}>Description</Text>
+                    <View style={styles.descriptionInputContainer}>
+                      <TextInput
+                        style={styles.descriptionInput}
+                        value={editedApplication.description}
+                        onChangeText={(text) => setEditedApplication({...editedApplication, description: text})}
+                        placeholder="Enter job description"
+                        multiline
+                        numberOfLines={5}
+                      />
+                      <View style={styles.iconTopLeft}>
+                        <Ionicons 
+                          name="document-text-outline" 
+                          size={20} 
+                          color={CAREER_COLORS.nightSky} 
+                        />
+                      </View>
+                    </View>
+                  </View>
+
                   <DatePickerField
                     label={editedApplication.status === 'saved' ? 'Job Deadline' : 
                           editedApplication.status === 'applied' ? 'Date Applied' : 
@@ -856,15 +908,27 @@ export default function TrackPalJobDetailsScreen() {
                     mode="date"
                   />
 
-                  <FormInput
-                    label="Notes"
-                    value={editedApplication.notes}
-                    onChangeText={(text) => setEditedApplication({...editedApplication, notes: text})}
-                    placeholder="Add your notes here..."
-                    multiline
-                    numberOfLines={4}
-                    iconName="document-text-outline"
-                  />
+                  {/* Custom Notes Field with icon in top left */}
+                  <View style={styles.descriptionContainer}>
+                    <Text style={styles.label}>Notes</Text>
+                    <View style={styles.descriptionInputContainer}>
+                      <TextInput
+                        style={styles.descriptionInput}
+                        value={editedApplication.notes}
+                        onChangeText={(text) => setEditedApplication({...editedApplication, notes: text})}
+                        placeholder="Add your notes here..."
+                        multiline
+                        numberOfLines={5}
+                      />
+                      <View style={styles.iconTopLeft}>
+                        <Ionicons 
+                          name="document-text-outline" 
+                          size={20} 
+                          color={CAREER_COLORS.nightSky} 
+                        />
+                      </View>
+                    </View>
+                  </View>
                 </>
               )}
             </ScrollView>
@@ -933,47 +997,44 @@ const styles = StyleSheet.create({
   jobInfoContainer: {
     backgroundColor: '#fff',
     padding: 16,
-    marginBottom: 8,
+    marginTop: 32,
+    marginBottom: 10,
+    alignItems: 'center', // Center children horizontally
   },
   jobTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#212529',
     marginBottom: 8,
+    textAlign: 'center', // Center text
   },
   companyName: {
     fontSize: 18,
     color: '#495057',
     marginBottom: 12,
+    textAlign: 'center', // Center text
+  },
+  infoStatusRow: {
+    flexDirection: 'row',
+    justifyContent: 'center', // Center children horizontally
+    alignItems: 'center',
+    marginBottom: 12,
+    flexWrap: 'wrap', // Allow wrapping if needed
+    gap: 12, // Space between location and status
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
   },
   infoText: {
     marginLeft: 6,
     fontSize: 14,
     color: '#6c757d',
   },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginTop: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
   section: {
     backgroundColor: '#fff',
     padding: 16,
-    marginBottom: 8,
+    marginBottom: 0,
   },
   sectionTitle: {
     fontSize: 18,
@@ -1335,5 +1396,60 @@ const styles = StyleSheet.create({
     width: 100,
     borderRadius: 18,
     marginVertical: 0,
-  }
+  },
+  floatingButtonContainer: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    zIndex: 999,
+  },
+  floatingButton: {
+    width: 200,
+    height: 50,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 8,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: CAREER_COLORS.salt,
+    marginVertical: 20,
+    width: '100%',
+  },
+  // Status and description styles
+  statusBadge: {
+    marginLeft: 'auto',
+  },
+  descriptionContainer: {
+    marginBottom: 16,
+  },
+  // Input styles for multiline fields with top-left icons
+  descriptionInputContainer: {
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
+    height: 5 * 24, // Height for 5 lines of text
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  descriptionInput: {
+    flex: 1,
+    height: '100%',
+    color: '#000',
+    fontSize: 16,
+    textAlignVertical: 'top',
+    paddingLeft: 30, // Left padding to prevent text from overlapping with the icon
+  },
+  iconTopLeft: {
+    position: 'absolute',
+    top: 12,
+    left: 10,
+  },
+
 });

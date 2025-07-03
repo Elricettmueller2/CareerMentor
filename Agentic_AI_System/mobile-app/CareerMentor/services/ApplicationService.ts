@@ -1,11 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NotificationService from './NotificationService';
+import { mockGlobalStateService } from './MockGlobalStateService';
 
 export interface JobApplication {
   id: string;
   jobTitle: string;
   company: string;
   location: string;
+  description: string;
   applicationDeadline: string | null;
   applicationDeadlineReminder: string | null;
   status: string;
@@ -23,11 +25,18 @@ export const ApplicationService = {
   // Get all applications
   getApplications: async (): Promise<JobApplication[]> => {
     try {
-      // First try to get applications from local storage
+      // Try to get applications from MockGlobalStateService first (simulating MongoDB)
+      const mockApps = mockGlobalStateService.getApplications();
+      
+      if (mockApps && mockApps.length > 0) {
+        console.log('Retrieved applications from mock global state');
+        return mockApps;
+      }
+      
+      // Fall back to local storage if mock data is not available
       const jsonValue = await AsyncStorage.getItem(APPLICATIONS_STORAGE_KEY);
       const localApps = jsonValue != null ? JSON.parse(jsonValue) : [];
       
-      // If we have local applications, return those
       if (localApps.length > 0) {
         return localApps;
       }
@@ -40,6 +49,7 @@ export const ApplicationService = {
           jobTitle: 'UI Designer',
           company: 'Acme Corp',
           location: 'San Francisco, CA',
+          description: '',
           applicationDeadline: null,
           applicationDeadlineReminder: null,
           status: 'applied',
@@ -54,6 +64,7 @@ export const ApplicationService = {
           jobTitle: 'Frontend Developer',
           company: 'TechStart',
           location: 'Remote',
+          description: '',
           applicationDeadline: null,
           applicationDeadlineReminder: null,
           status: 'interview',
@@ -68,6 +79,7 @@ export const ApplicationService = {
           jobTitle: 'UX Researcher',
           company: 'BigCorp',
           location: 'New York, NY',
+          description: '',
           applicationDeadline: null,
           applicationDeadlineReminder: null,
           status: 'rejected',
@@ -98,35 +110,31 @@ export const ApplicationService = {
   // Add a new application
   addApplication: async (application: Omit<JobApplication, 'id'>): Promise<JobApplication> => {
     try {
-      const applications = await ApplicationService.getApplications();
-      
+      // Generate a unique ID
+      const id = Date.now().toString();
       const newApplication: JobApplication = {
         ...application,
-        id: Date.now().toString(), // Simple ID generation
-        appliedDate: new Date().toISOString(),
+        id
       };
       
-      const updatedApplications = [...applications, newApplication];
-      await AsyncStorage.setItem(APPLICATIONS_STORAGE_KEY, JSON.stringify(updatedApplications));
+      // Get existing applications
+      const existingApps = await ApplicationService.getApplications();
+      const updatedApps = [...existingApps, newApplication];
       
-      // Schedule follow-up notification if a follow-up date is set
+      // Save to AsyncStorage
+      await AsyncStorage.setItem(APPLICATIONS_STORAGE_KEY, JSON.stringify(updatedApps));
+      
+      // Also save to MockGlobalStateService
+      mockGlobalStateService.saveApplication(newApplication);
+      
+      // Schedule notification if follow-up date is set
       if (newApplication.followUpDate) {
-        try {
-          const followUpDate = new Date(newApplication.followUpDate);
-          const notificationId = await NotificationService.scheduleFollowUpReminder(
-            newApplication.id,
-            newApplication.company,
-            newApplication.jobTitle,
-            followUpDate
-          );
-          
-          if (notificationId) {
-            console.log(`Scheduled follow-up notification ${notificationId} for new application ${newApplication.id}`);
-          }
-        } catch (notificationError) {
-          // Log but don't throw - we don't want to prevent application creation if notification fails
-          console.error('Error scheduling follow-up notification:', notificationError);
-        }
+        await NotificationService.scheduleFollowUpReminder(
+          newApplication.id,
+          newApplication.jobTitle,
+          newApplication.company,
+          new Date(newApplication.followUpDate)
+        );
       }
       
       return newApplication;
@@ -137,53 +145,41 @@ export const ApplicationService = {
   },
 
   // Update an existing application
-  updateApplication: async (id: string, updatedData: Partial<JobApplication>): Promise<JobApplication | null> => {
+  updateApplication: async (application: JobApplication): Promise<JobApplication> => {
     try {
-      const applications = await ApplicationService.getApplications();
-      const index = applications.findIndex(app => app.id === id);
+      // Get existing applications
+      const existingApps = await ApplicationService.getApplications();
       
-      if (index === -1) return null;
+      // Find the index of the application to update
+      const index = existingApps.findIndex(app => app.id === application.id);
       
-      const originalApplication = applications[index];
-      const updatedApplication = {
-        ...originalApplication,
-        ...updatedData
-      };
-      
-      applications[index] = updatedApplication;
-      await AsyncStorage.setItem(APPLICATIONS_STORAGE_KEY, JSON.stringify(applications));
-      
-      // Handle notification updates if follow-up date changed
-      if (updatedData.followUpDate !== undefined && 
-          updatedData.followUpDate !== originalApplication.followUpDate) {
-        try {
-          // Get existing notifications for this application
-          const notifications = await NotificationService.getApplicationNotifications(id);
-          
-          // Cancel existing notifications
-          for (const notification of notifications) {
-            if (notification.notificationId) {
-              await NotificationService.cancelNotification(notification.notificationId);
-            }
-          }
-          
-          // Schedule new notification if follow-up date is set
-          if (updatedData.followUpDate) {
-            const followUpDate = new Date(updatedData.followUpDate);
-            await NotificationService.scheduleFollowUpReminder(
-              id,
-              updatedApplication.company,
-              updatedApplication.jobTitle,
-              followUpDate
-            );
-          }
-        } catch (notificationError) {
-          console.error('Error updating notification:', notificationError);
-          // Continue with application update even if notification update fails
-        }
+      if (index === -1) {
+        throw new Error(`Application with ID ${application.id} not found`);
       }
       
-      return updatedApplication;
+      // Update the application
+      existingApps[index] = application;
+      
+      // Save to AsyncStorage for now
+      await AsyncStorage.setItem(APPLICATIONS_STORAGE_KEY, JSON.stringify(existingApps));
+      
+      // Also save the updated application to MockGlobalStateService
+      mockGlobalStateService.saveApplication(application);
+      
+      // Update notification if follow-up date is set
+      if (application.followUpDate) {
+        await NotificationService.scheduleFollowUpReminder(
+          application.id,
+          application.jobTitle,
+          application.company,
+          new Date(application.followUpDate)
+        );
+      } else {
+        // Cancel notification if follow-up date is removed
+        await NotificationService.cancelNotification(application.id);
+      }
+      
+      return application;
     } catch (error) {
       console.error('Error updating application:', error);
       throw error;
@@ -191,31 +187,22 @@ export const ApplicationService = {
   },
 
   // Delete an application
-  deleteApplication: async (id: string): Promise<boolean> => {
+  deleteApplication: async (id: string): Promise<void> => {
     try {
-      const applications = await ApplicationService.getApplications();
-      const updatedApplications = applications.filter(app => app.id !== id);
+      // Get existing applications
+      const existingApps = await ApplicationService.getApplications();
       
-      if (updatedApplications.length === applications.length) {
-        return false; // No application was deleted
-      }
+      // Filter out the application to delete
+      const updatedApps = existingApps.filter(app => app.id !== id);
       
-      await AsyncStorage.setItem(APPLICATIONS_STORAGE_KEY, JSON.stringify(updatedApplications));
+      // Save to AsyncStorage for now
+      await AsyncStorage.setItem(APPLICATIONS_STORAGE_KEY, JSON.stringify(updatedApps));
       
-      // Cancel any notifications associated with this application
-      try {
-        const notifications = await NotificationService.getApplicationNotifications(id);
-        for (const notification of notifications) {
-          if (notification.notificationId) {
-            await NotificationService.cancelNotification(notification.notificationId);
-          }
-        }
-      } catch (notificationError) {
-        console.error('Error canceling notifications:', notificationError);
-        // Continue with application deletion even if notification cancellation fails
-      }
+      // Also delete from MockGlobalStateService
+      mockGlobalStateService.deleteApplication(id);
       
-      return true;
+      // Cancel any scheduled notifications
+      await NotificationService.cancelNotification(id);
     } catch (error) {
       console.error('Error deleting application:', error);
       throw error;

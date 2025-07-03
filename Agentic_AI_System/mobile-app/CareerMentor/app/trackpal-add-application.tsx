@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, ScrollView, Alert, TouchableOpacity, Text } from 'react-native';
+import { StyleSheet, View, ScrollView, Alert, TouchableOpacity, Text, TextInput } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +24,7 @@ export default function TrackPalAddJobScreen() {
     jobTitle: '',
     company: '',
     location: '',
+    description: '', 
     applicationDeadline: null as Date | null,
     applicationDeadlineReminder: null as string | null,
     status: 'saved',
@@ -158,6 +159,28 @@ export default function TrackPalAddJobScreen() {
             iconName="location-outline"
           />
           
+          {/* Custom Description Field with icon in top left */}
+          <View style={styles.descriptionContainer}>
+            <Text style={styles.label}>Description</Text>
+            <View style={styles.descriptionInputContainer}>
+              <TextInput
+                style={styles.descriptionInput}
+                value={application.description}
+                onChangeText={(text) => updateField('description', text)}
+                placeholder="Enter job description"
+                multiline
+                numberOfLines={5}
+              />
+              <View style={styles.iconTopLeft}>
+                <Ionicons 
+                  name="document-text-outline" 
+                  size={20} 
+                  color="#5D5B8D" 
+                />
+              </View>
+            </View>
+          </View>
+          
           <DatePickerField
             label={getDeadlineLabel()}
             value={application.applicationDeadline}
@@ -178,15 +201,27 @@ export default function TrackPalAddJobScreen() {
             mode="date"
           />
           
-          <FormInput
-            label="Notes"
-            value={application.notes}
-            onChangeText={(text) => updateField('notes', text)}
-            placeholder="Add your notes here..."
-            multiline
-            numberOfLines={4}
-            iconName="document-text-outline"
-          />
+          {/* Custom Notes Field with icon in top left */}
+          <View style={styles.descriptionContainer}>
+            <Text style={styles.label}>Notes</Text>
+            <View style={styles.descriptionInputContainer}>
+              <TextInput
+                style={styles.descriptionInput}
+                value={application.notes}
+                onChangeText={(text) => updateField('notes', text)}
+                placeholder="Add your notes here..."
+                multiline
+                numberOfLines={5}
+              />
+              <View style={styles.iconTopLeft}>
+                <Ionicons 
+                  name="document-text-outline" 
+                  size={20} 
+                  color="#5D5B8D" 
+                />
+              </View>
+            </View>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -253,5 +288,33 @@ const styles = StyleSheet.create({
     width: 80,
     borderRadius: 18,
     marginVertical: 0,
+  },
+  // Custom description field styles
+  descriptionContainer: {
+    marginBottom: 16,
+  },
+  descriptionInputContainer: {
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
+    height: 5 * 24,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  descriptionInput: {
+    flex: 1,
+    height: '100%',
+    color: '#000',
+    fontSize: 16,
+    textAlignVertical: 'top',
+    paddingLeft: 30, // Add padding to prevent text from overlapping with the icon
+  },
+  iconTopLeft: {
+    position: 'absolute',
+    top: 12,
+    left: 10,
   }
 });
