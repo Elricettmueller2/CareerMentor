@@ -4,6 +4,7 @@ import { Text } from '@/components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { CAREER_COLORS } from '@/constants/Colors';
 import CategoryProgressBar from './CategoryProgressBar';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface CategoryItemProps {
   title: string;
@@ -30,7 +31,10 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
   };
 
   return (
-    <View style={[styles.container, expanded && styles.expandedContainer]}>
+    <View style={[
+      styles.container, 
+      expanded && styles.expandedContainer,
+    ]}>
       <TouchableOpacity 
         style={styles.header}
         onPress={onPress}
@@ -38,7 +42,14 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
         disabled={!onPress}
       >
         <View style={styles.titleContainer}>
-          <Ionicons name={icon as any} size={24} color={CAREER_COLORS.nightSky} style={styles.icon} />
+          <LinearGradient
+            colors={[CAREER_COLORS.rose, CAREER_COLORS.sky]}
+            style={styles.iconContainer}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Ionicons name={icon as any} size={20} color={CAREER_COLORS.white} />
+          </LinearGradient>
           <Text style={styles.title}>{title}</Text>
         </View>
         
@@ -50,7 +61,7 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
             <Ionicons 
               name={expanded ? 'chevron-up' : 'chevron-down'} 
               size={20} 
-              color={CAREER_COLORS.nightSky} 
+              color={CAREER_COLORS.white} 
               style={styles.chevron}
             />
           )}
@@ -91,7 +102,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 12,
     paddingHorizontal: 12,
   },
   titleContainer: {
@@ -99,10 +110,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  icon: {
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 12,
     marginLeft: 4,
-    color: CAREER_COLORS.white,
   },
   title: {
     fontSize: 16,
