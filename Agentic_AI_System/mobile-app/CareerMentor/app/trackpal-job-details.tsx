@@ -624,17 +624,20 @@ export default function TrackPalJobDetailsScreen() {
           <Text style={styles.jobTitle}>{application.jobTitle}</Text>
           <Text style={styles.companyName}>{application.company}</Text>
           
-          {application.location && (
-            <View style={styles.infoRow}>
-              <Ionicons name="location-outline" size={16} color="#666" />
-              <Text style={styles.infoText}>{application.location}</Text>
-            </View>
-          )}
-          <StatusBadge status={application.status} style={styles.statusBadge} />
-          
-          {/* Job Link Button */}
-          <JobLinkButton url={application.jobUrl} />
+          {/* Location and Status Row */}
+          <View style={styles.infoStatusRow}>
+            {application.location && (
+              <View style={styles.infoRow}>
+                <Ionicons name="location-outline" size={16} color={CAREER_COLORS.nightSky} />
+                <Text style={styles.infoText}>{application.location}</Text>
+              </View>
+            )}
+            <StatusBadge status={application.status} style={styles.statusBadge} />
+          </View>
         </View>
+        
+        {/* Separator */}
+        <View style={styles.separator} />
         
         {/* Smart Actions Section */}
         <View style={styles.section}>
@@ -643,6 +646,9 @@ export default function TrackPalJobDetailsScreen() {
             {renderSmartActions()}
           </View>
         </View>
+        
+        {/* Separator */}
+        <View style={styles.separator} />
         
         {/* Timeline Section */}
         <View style={styles.section}>
@@ -707,6 +713,9 @@ export default function TrackPalJobDetailsScreen() {
           </View>
         </View>
         
+        {/* Separator */}
+        <View style={styles.separator} />
+        
         {/* Notes Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notes</Text>
@@ -717,7 +726,8 @@ export default function TrackPalJobDetailsScreen() {
           </View>
         </View>
         
-        {/* Important dates have been moved to the timeline */}
+        {/* Separator */}
+        <View style={styles.separator} />
         
         {/* Resume Section (placeholder for future) */}
         <View style={styles.section}>
@@ -744,6 +754,14 @@ export default function TrackPalJobDetailsScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Floating Job Link Button */}
+      <View style={styles.floatingButtonContainer}>
+        <JobLinkButton 
+          url={application.jobUrl} 
+          style={styles.floatingButton}
+        />
+      </View>
 
       {/* Follow-up Reminder Modal */}
       <Modal
@@ -933,47 +951,44 @@ const styles = StyleSheet.create({
   jobInfoContainer: {
     backgroundColor: '#fff',
     padding: 16,
-    marginBottom: 8,
+    marginTop: 32,
+    marginBottom: 10,
+    alignItems: 'center', // Center children horizontally
   },
   jobTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#212529',
     marginBottom: 8,
+    textAlign: 'center', // Center text
   },
   companyName: {
     fontSize: 18,
     color: '#495057',
     marginBottom: 12,
+    textAlign: 'center', // Center text
+  },
+  infoStatusRow: {
+    flexDirection: 'row',
+    justifyContent: 'center', // Center children horizontally
+    alignItems: 'center',
+    marginBottom: 12,
+    flexWrap: 'wrap', // Allow wrapping if needed
+    gap: 12, // Space between location and status
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
   },
   infoText: {
     marginLeft: 6,
     fontSize: 14,
     color: '#6c757d',
   },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginTop: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
   section: {
     backgroundColor: '#fff',
     padding: 16,
-    marginBottom: 8,
+    marginBottom: 0,
   },
   sectionTitle: {
     fontSize: 18,
@@ -1335,5 +1350,27 @@ const styles = StyleSheet.create({
     width: 100,
     borderRadius: 18,
     marginVertical: 0,
-  }
+  },
+  floatingButtonContainer: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    zIndex: 999,
+  },
+  floatingButton: {
+    width: 200,
+    height: 50,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 8,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: CAREER_COLORS.salt,
+    marginVertical: 20,
+    width: '100%',
+  },
 });
