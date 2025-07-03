@@ -80,3 +80,38 @@ export const getAllApiUrls = (endpoint: string): string[] => {
   // Use the API_FALLBACK_URLS directly from ApiEndpoints.ts
   return API_FALLBACK_URLS.map(baseUrl => `${baseUrl}${endpoint}`);
 };
+
+// Fetch with fallback mechanism that tries multiple ngrok URLs if the first one fails
+export const fetchWithFallback = async (
+  endpoint: string,
+  options?: RequestInit
+): Promise<Response> => {
+  // Check if the endpoint already includes a base URL (starts with http)
+  const isFullUrl = endpoint.startsWith('http');
+  
+  // Generate URLs to try - use the primary URL first, then fallbacks if needed
+  const urls = isFullUrl
+    ? [endpoint] // If it's already a full URL, just use it
+    : getAllApiUrls(endpoint); // Otherwise, try with different base URLs from API_FALLBACK_URLS
+  
+  let lastError;
+  
+  // Try each URL in sequence
+  for (const url of urls) {
+    try {
+      console.log(`Attempting to fetch from: ${url}`);
+      const response = await fetch(url, options);
+      if (response.ok) {
+        console.log(`Successfully connected to: ${url}`);
+        return response;
+      }
+      lastError = new Error(`API error: ${response.status} from ${url}`);
+    } catch (error: any) {
+      console.warn(`Failed to fetch from ${url}:`, error);
+      lastError = error;
+    }
+  }
+  
+  // If we get here, all attempts failed
+  throw lastError || new Error('Failed to connect to any API endpoint');
+};
