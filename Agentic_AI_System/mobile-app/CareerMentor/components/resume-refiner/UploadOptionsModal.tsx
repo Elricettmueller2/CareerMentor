@@ -21,7 +21,7 @@ const UploadOptionsModal: React.FC<UploadOptionsModalProps> = ({
 }) => {
   return (
     <Modal
-      animationType="none"
+      animationType="fade"
       transparent={true}
       visible={visible}
       onRequestClose={onClose}
@@ -43,9 +43,6 @@ const UploadOptionsModal: React.FC<UploadOptionsModalProps> = ({
                     <Ionicons name="camera" size={32} color={CAREER_COLORS.sky} />
                   </View>
                   <Text style={styles.optionText}>Take Photo</Text>
-                  <Text style={styles.optionDescription}>
-                    Use your camera to take a photo of your resume
-                  </Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity
@@ -57,9 +54,6 @@ const UploadOptionsModal: React.FC<UploadOptionsModalProps> = ({
                     <Ionicons name="images" size={32} color={CAREER_COLORS.sky} />
                   </View>
                   <Text style={styles.optionText}>Choose from Gallery</Text>
-                  <Text style={styles.optionDescription}>
-                    Select an image of your resume from your gallery
-                  </Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity
@@ -68,12 +62,9 @@ const UploadOptionsModal: React.FC<UploadOptionsModalProps> = ({
                   activeOpacity={0.7}
                 >
                   <View style={styles.iconContainer}>
-                    <Ionicons name="document-text" size={32} color={CAREER_COLORS.rose} />
+                    <Ionicons name="document-text" size={32} color={CAREER_COLORS.sky} />
                   </View>
                   <Text style={styles.optionText}>Select Document</Text>
-                  <Text style={styles.optionDescription}>
-                    Choose a PDF or document file from your device
-                  </Text>
                 </TouchableOpacity>
               </View>
               
@@ -169,13 +160,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
-    backgroundColor: CAREER_COLORS.salt,
+    backgroundColor: CAREER_COLORS.nightSky,
     marginTop: 8,
   },
   closeButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: CAREER_COLORS.nightSky,
+    color: CAREER_COLORS.salt,
   },
 });
 

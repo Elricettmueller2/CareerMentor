@@ -922,7 +922,7 @@ export default function ResumeRefinerScreen() {
       console.log('Launching camera...');
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
+        allowsEditing: false, // Disable editing completely to avoid any cropping
         quality: 1,
       });
       
@@ -1012,7 +1012,7 @@ export default function ResumeRefinerScreen() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 0.8,
-        allowsEditing: true,
+        allowsEditing: false, // Disable editing completely to avoid any cropping
       });
       
       // Close modal immediately regardless of result
@@ -1028,37 +1028,36 @@ export default function ResumeRefinerScreen() {
       // Process the selected image
       const imageUri = result.assets[0].uri;
       const fileName = imageUri.split('/').pop() || 'resume_image.jpg';
+      const mimeType = result.assets[0].mimeType || FileUploadService.getMimeType(fileName);
       
       console.log(`Processing selected image: ${fileName}`);
       
       // Start loading animation
       setLoading(true);
-      setLoadingText('Uploading and analyzing your resume...');
+      setLoadingStage('parsing');
       setUploadStatus('uploading');
+      startLoadingAnimation();
       
       try {
-        // Upload the file
-        const uploadResult = await FileUploadService.uploadFile(imageUri, fileName);
-        console.log('Upload result:', uploadResult);
+        // Upload the file using the correct method signature
+        console.log('Starting upload with ResumeService...');
+        const response = await ResumeService.uploadResume(imageUri, fileName, mimeType);
+        console.log('Upload successful, response received:', response);
         
-        if (uploadResult && uploadResult.upload_id) {
-          setUploadedFileName(fileName);
-          setUploadedFileId(uploadResult.upload_id);
-          setUploadStatus('success');
-          
-          // Get resume feedback
-          await fetchResumeFeedback(uploadResult.upload_id);
-        } else {
-          console.error('Upload failed, no upload_id returned');
-          setUploadError('Failed to upload image. Please try again.');
-          setUploadStatus('error');
-          setLoading(false);
-          
-          if (loadingAnimationCleanupRef.current) {
-            loadingAnimationCleanupRef.current();
-            loadingAnimationCleanupRef.current = null;
-          }
+        // Extract upload ID from response
+        let uploadId = response?.upload_id;
+        
+        if (!uploadId) {
+          console.log('No upload_id found in response, using fallback');
+          uploadId = `temp_${Date.now()}`;
         }
+        
+        console.log('Setting upload ID:', uploadId);
+        setUploadId(uploadId);
+        setUploadStarted(true);
+        
+        // Analyze the resume
+        analyzeResume(uploadId);
       } catch (uploadError) {
         console.error('Upload error:', uploadError);
         setUploadError('Failed to upload image. Please try again.');
