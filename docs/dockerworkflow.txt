@@ -114,7 +114,8 @@ docker rm careermentor-backend careermentor-mongodb
 docker rmi careermentor-backend mongo:latest
 docker volume rm $(docker volume ls -q)
 
-optional: docker system prune -a
+optional:
+docker system prune -a
 
 ===== Start Backend =====
 cd Agentic_AI_System/backend-api
@@ -124,7 +125,6 @@ docker run -d --name careermentor-backend -p 8000:8000 --add-host=host.docker.in
 ===== Start MongoDB =====
 docker run -d --name career-mentor-mongodb -p 27017:27017 mongo:latest
 docker start career-mentor-mongodb
-
 
 ===== Windsurf Prompts =====
 Remove everything in docker

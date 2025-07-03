@@ -1,8 +1,9 @@
 import React from 'react';
-import { StyleSheet, ScrollView, TouchableOpacity, View, Alert, Platform, ActionSheetIOS, Modal, TextInput } from 'react-native';
+import { StyleSheet, ScrollView, TouchableOpacity, View, Alert, Platform, ActionSheetIOS, Modal, TextInput, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Text } from '@/components/Themed';
-import { useLocalSearchParams, useRouter, Link, Stack } from 'expo-router';
+import { useLocalSearchParams, useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CAREER_COLORS } from '../constants/Colors';
@@ -600,30 +601,22 @@ export default function TrackPalJobDetailsScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen 
-        options={{
-          title: "",  // Empty title to remove the job name from header
-          headerTintColor: '#5D5B8D',
-          headerTitleStyle: {
-            color: '#5D5B8D',
-          },
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 10 }}>
-              <Ionicons name="arrow-back" size={24} color="#5D5B8D" />
-            </TouchableOpacity>
-          ),
-          headerRight: () => (
-            <View style={styles.headerButtonContainer}>
-              <GradientButton
-                title="Edit Job"
-                onPress={() => setShowEditModal(true)}
-                small={true}
-                style={styles.headerEditButton}
-              />
-            </View>
-          )
-        }} 
-      />
+      <SafeAreaView style={styles.safeAreaHeader}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color="#5D5B8D" />
+          </TouchableOpacity>
+          
+          <View style={styles.headerButtonContainer}>
+            <GradientButton
+              title="Edit Job"
+              onPress={() => setShowEditModal(true)}
+              small={true}
+              style={styles.headerEditButton}
+            />
+          </View>
+        </View>
+      </SafeAreaView>
       
       <ScrollView style={styles.scrollContainer} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Job Info Section */}
@@ -1313,6 +1306,23 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
     marginBottom: 15,
+  },
+  safeAreaHeader: {
+    backgroundColor: '#fff',
+    width: '100%',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#dee2e6',
+  },
+  backButton: {
+    padding: 8,
   },
   headerButtonContainer: {
     marginRight: 10,
