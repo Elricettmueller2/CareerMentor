@@ -4,11 +4,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { CAREER_COLORS } from '../../constants/Colors';
 
-interface AddApplicationButtonProps {
+interface AddJobButtonProps {
   onPress: () => void;
 }
 
-const AddApplicationButton: React.FC<AddApplicationButtonProps> = ({ onPress }) => {
+const AddJobButton: React.FC<AddJobButtonProps> = ({ onPress }) => {
   return (
     <TouchableOpacity
       style={styles.fab}
@@ -20,7 +20,7 @@ const AddApplicationButton: React.FC<AddApplicationButtonProps> = ({ onPress }) 
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
       >
-        <Text style={styles.fabText}>Add Application</Text>
+        <Text style={styles.fabText}>Add Job</Text>
         <Ionicons name="add" size={30} color="#fff" />
       </LinearGradient>
     </TouchableOpacity>
@@ -56,4 +56,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AddApplicationButton;
+export default AddJobButton;

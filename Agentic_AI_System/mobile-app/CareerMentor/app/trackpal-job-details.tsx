@@ -7,7 +7,7 @@ import { useLocalSearchParams, useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CAREER_COLORS } from '../constants/Colors';
-import { ApplicationService, JobApplication } from '@/services/ApplicationService';
+import JobService, { JobApplication } from '@/services/JobService';
 import NotificationService from '@/services/NotificationService';
 import { useState, useEffect } from 'react';
 
@@ -54,24 +54,24 @@ export default function TrackPalJobDetailsScreen() {
   }, [application]);
 
   useEffect(() => {
-    const fetchApplication = async () => {
+    const fetchJob = async () => {
       if (!id) return;
       
       try {
-        const applications = await ApplicationService.getApplications();
-        const foundApp = applications.find(app => app.id === id);
+        const jobs = await JobService.getJobs();
+        const foundJob = jobs.find(job => job.id === id);
         
-        if (foundApp) {
-          setApplication(foundApp);
+        if (foundJob) {
+          setApplication(foundJob);
         }
       } catch (error) {
-        console.error('Error fetching application details:', error);
+        console.error('Error fetching job details:', error);
       } finally {
         setLoading(false);
       }
     };
     
-    fetchApplication();
+    fetchJob();
   }, [id]);
   
   const formatDate = (date: Date | null) => {
@@ -118,68 +118,71 @@ export default function TrackPalJobDetailsScreen() {
     if (!application) return;
     
     setSettingReminder(true);
-    
     try {
-      // Combine date and time into a single Date object
+      // Combine date and time
       const combinedDate = new Date(reminderDate);
-      combinedDate.setHours(reminderTime.getHours());
-      combinedDate.setMinutes(reminderTime.getMinutes());
+      const timeParts = reminderTime.toTimeString().split(':');
+      combinedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
       
-      // Schedule the notification
-      const notificationId = await NotificationService.scheduleFollowUpReminder(
-        application.id,
-        application.company,
-        application.jobTitle,
-        combinedDate
-      );
+      let updatedJob: JobApplication | null = null;
       
-      if (notificationId) {
-        // Update application based on reminder type
-        let updateData: any = {};
-        let successMessage = '';
-        const isEditing = (
-          (reminderType === 'application' && application.applicationDeadlineReminder) ||
-          (reminderType === 'follow-up' && application.followUpDate) ||
-          (reminderType === 'interview' && application.interviewReminder)
+      // Update the appropriate field based on reminder type
+      if (reminderType === 'application') {
+        // Update job with deadline reminder
+        updatedJob = await JobService.updateJob(
+          application.id,
+          { applicationDeadlineReminder: combinedDate.toISOString() }
         );
         
-        switch (reminderType) {
-          case 'application':
-            updateData = {
-              applicationDeadlineReminder: combinedDate.toISOString()
-            };
-            successMessage = isEditing ? 'Application deadline reminder updated successfully!' : 'Application deadline reminder set successfully!';
-            break;
-            
-          case 'follow-up':
-            updateData = {
-              followUpDate: combinedDate.toISOString(),
-              followUpTime: `${combinedDate.getHours().toString().padStart(2, '0')}:${combinedDate.getMinutes().toString().padStart(2, '0')}`
-            };
-            successMessage = isEditing ? 'Follow-up reminder updated successfully!' : 'Follow-up reminder set successfully!';
-            break;
-            
-          case 'interview':
-            updateData = {
-              interviewReminder: combinedDate.toISOString()
-            };
-            successMessage = isEditing ? 'Interview reminder updated successfully!' : 'Interview reminder set successfully!';
-            break;
-        }
+        // Schedule notification
+        await NotificationService.scheduleFollowUpReminder(
+          application.id,
+          application.company,
+          application.jobTitle,
+          combinedDate
+        );
+      } else if (reminderType === 'follow-up') {
+        // Update job with follow-up date
+        updatedJob = await JobService.updateJob(
+          application.id,
+          { 
+            followUpDate: combinedDate.toISOString(),
+            followUpTime: `${combinedDate.getHours()}:${combinedDate.getMinutes().toString().padStart(2, '0')}` 
+          }
+        );
         
-        const updatedApp = await ApplicationService.updateApplication(application.id, updateData);
+        // Schedule notification
+        await NotificationService.scheduleFollowUpReminder(
+          application.id,
+          application.company,
+          application.jobTitle,
+          combinedDate
+        );
+      } else if (reminderType === 'interview') {
+        // Update job with interview reminder
+        updatedJob = await JobService.updateJob(
+          application.id,
+          { interviewReminder: combinedDate.toISOString() }
+        );
         
-        if (updatedApp) {
-          setApplication(updatedApp);
-          Alert.alert('Success', successMessage);
-          setShowReminderModal(false);
-        }
-      } else {
-        Alert.alert('Error', 'Failed to schedule notification. Please check notification permissions.');
+        // Schedule notification
+        await NotificationService.scheduleFollowUpReminder(
+          application.id,
+          application.company,
+          application.jobTitle,
+          combinedDate
+        );
       }
+      
+      if (updatedJob) {
+        setApplication(updatedJob);
+      }
+      
+      setShowReminderModal(false);
+      Alert.alert('Success', 'Reminder set successfully');
     } catch (error) {
       console.error('Error setting reminder:', error);
-      Alert.alert('Error', 'An error occurred while setting the reminder');
+      Alert.alert('Error', 'Failed to set reminder');
     } finally {
       setSettingReminder(false);
     }
@@ -189,13 +192,13 @@ export default function TrackPalJobDetailsScreen() {
     if (!application || application.status === newStatus) return;
     
     setUpdating(true);
-    ApplicationService.updateApplication(application.id, { status: newStatus })
-      .then(updatedApp => {
-        if (updatedApp) {
-          setApplication(updatedApp);
+    JobService.updateJob(application.id, { status: newStatus })
+      .then(updatedJob => {
+        if (updatedJob) {
+          setApplication(updatedJob);
           Alert.alert('Success', `Status updated to ${formatStatusText(newStatus)}`);
         } else {
-          Alert.alert('Error', 'Failed to update application status');
+          Alert.alert('Error', 'Failed to update job status');
         }
       })
       .catch(error => {
@@ -216,7 +219,7 @@ export default function TrackPalJobDetailsScreen() {
           options: ['Cancel', 'Saved', 'Applied', 'Interview', 'Rejected', 'Accepted'],
           cancelButtonIndex: 0,
           title: 'Update Status',
-          message: 'Select a new status for this application'
+          message: 'Select a new status for this job'
         },
         (buttonIndex) => {
           if (buttonIndex === 0) return; // Cancel
@@ -239,58 +242,55 @@ export default function TrackPalJobDetailsScreen() {
     setShowAndroidStatusPicker(false);
   };
 
-  const saveChanges = () => {
+  const saveChanges = async () => {
     if (!editedApplication) return;
     
-    // Validate required fields
-    if (!editedApplication.jobTitle.trim() || !editedApplication.company.trim()) {
-      Alert.alert('Error', 'Job title and company are required');
-      return;
-    }
-    
     setUpdating(true);
-    ApplicationService.updateApplication(editedApplication.id, editedApplication)
-      .then(updatedApp => {
-        if (updatedApp) {
-          setApplication(updatedApp);
-          setShowEditModal(false);
-          // Alert.alert('Success', 'Job application updated successfully');
-        } else {
-          Alert.alert('Error', 'Failed to update job application');
-        }
-      })
-      .catch(error => {
-        console.error('Error updating application:', error);
-        Alert.alert('Error', 'An error occurred while updating the job application');
-      })
-      .finally(() => {
-        setUpdating(false);
-      });
+    try {
+      const updatedJob = await JobService.updateJob(
+        editedApplication.id,
+        editedApplication
+      );
+      
+      if (updatedJob) {
+        setApplication(updatedJob);
+        setShowEditModal(false);
+      }
+    } catch (error) {
+      console.error('Error updating job:', error);
+      Alert.alert('Error', 'Failed to update job');
+    } finally {
+      setUpdating(false);
+    }
   };
 
   const handleDeletePress = () => {
+    if (!application) return;
+    
     Alert.alert(
-      'Delete Application',
-      'Are you sure you want to delete this job application?',
+      'Delete Job',
+      `Are you sure you want to delete your job for ${application.jobTitle} at ${application.company}?`,
       [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            setDeleting(true);
             try {
-              setDeleting(true);
-              const success = await ApplicationService.deleteApplication(id as string);
-              
+              const success = await JobService.deleteJob(application.id);
               if (success) {
-                router.replace('/(tabs)/trackpal');
+                router.back();
               } else {
-                Alert.alert('Error', 'Failed to delete job application');
-                setDeleting(false);
+                Alert.alert('Error', 'Failed to delete job');
               }
             } catch (error) {
-              console.error('Error deleting application:', error);
-              Alert.alert('Error', 'An error occurred while deleting the job application');
+              console.error('Error deleting job:', error);
+              Alert.alert('Error', 'An error occurred while deleting the job');
+            } finally {
               setDeleting(false);
             }
           }
@@ -341,7 +341,7 @@ export default function TrackPalJobDetailsScreen() {
           // Add application deadline if it exists
           ...(application.applicationDeadline ? [
             { 
-              label: 'Application Deadline:', 
+              label: 'Job Deadline:', 
               value: new Date(application.applicationDeadline).toLocaleDateString(),
               icon: 'hourglass-outline' as const
             }
@@ -469,7 +469,7 @@ export default function TrackPalJobDetailsScreen() {
             </Link>
             {application.applicationDeadlineReminder ? (
               <SmartActionCard
-                title="Application Reminder"
+                title="Job Deadline Reminder"
                 description={`Reminder set for: ${formatReminderForDisplay(application.applicationDeadlineReminder)}`}
                 iconName="notifications"
                 onPress={() => prepareReminderModal('application', application.applicationDeadlineReminder)}
@@ -580,7 +580,7 @@ export default function TrackPalJobDetailsScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text>Loading application details...</Text>
+        <Text>Loading job details...</Text>
       </View>
     );
   }
@@ -588,7 +588,7 @@ export default function TrackPalJobDetailsScreen() {
   if (!application) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Application not found</Text>
+        <Text style={styles.errorText}>Job not found</Text>
         <TouchableOpacity 
           style={{ padding: 10, backgroundColor: '#5D5B8D', borderRadius: 8, marginTop: 10 }} 
           onPress={() => router.back()}
@@ -646,7 +646,7 @@ export default function TrackPalJobDetailsScreen() {
         
         {/* Timeline Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Application Timeline</Text>
+          <Text style={styles.sectionTitle}>Job Timeline</Text>
           <View style={styles.timeline}>
             {getTimelineSteps().map((step, index) => {
               const currentIndex = getCurrentStepIndex();
@@ -739,7 +739,7 @@ export default function TrackPalJobDetailsScreen() {
           >
             <Ionicons name="trash-outline" size={20} color="white" />
             <Text style={styles.deleteButtonText}>
-              {deleting ? 'Deleting...' : 'Delete Application'}
+              {deleting ? 'Deleting...' : 'Delete Job'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -798,7 +798,7 @@ export default function TrackPalJobDetailsScreen() {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <ModalHeader
-              title="Edit Job Application"
+              title="Edit Saved Job"
               onDone={saveChanges}
               loading={updating}
               loadingText="Saving..."
@@ -834,7 +834,7 @@ export default function TrackPalJobDetailsScreen() {
                   />
 
                   <DatePickerField
-                    label={editedApplication.status === 'saved' ? 'Application Deadline' : 
+                    label={editedApplication.status === 'saved' ? 'Job Deadline' : 
                           editedApplication.status === 'applied' ? 'Date Applied' : 
                           editedApplication.status === 'interview' ? 'Interview Date' : 
                           'Important Date'}

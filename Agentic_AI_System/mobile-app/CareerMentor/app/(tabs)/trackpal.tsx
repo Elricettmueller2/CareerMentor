@@ -19,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { CAREER_COLORS } from '../../constants/Colors';
 import { useFocusEffect } from '@react-navigation/native';
 import ApplicationForm from '../../components/ApplicationForm';
-import ApplicationService, { JobApplication } from '../../services/ApplicationService';
+import JobService, { JobApplication } from '../../services/JobService';
 import TrackPalService, { PatternInsight } from '../../services/TrackPalService';
 import NotificationService from '../../services/NotificationService';
 import NotificationTest from '../../components/NotificationTest';
@@ -29,7 +29,7 @@ import StatsCard from '../../components/trackpal/StatsCard';
 import StatsDashboard from '../../components/trackpal/StatsDashboard';
 import InsightCard from '../../components/trackpal/InsightCard';
 import AIInsightsSection from '../../components/trackpal/AIInsightsSection';
-import AddApplicationButton from '../../components/trackpal/AddApplicationButton';
+import AddJobButton from '../../components/trackpal/AddApplicationButton';
 
 import TabNavigation from '../../components/trackpal/TabNavigation';
 import EmptyState from '../../components/trackpal/EmptyState';
@@ -156,12 +156,12 @@ export default function TrackPalScreen() {
   const loadApplications = async () => {
     setLoading(true);
     try {
-      const data = await ApplicationService.getApplications();
+      const data = await JobService.getJobs();
       setApplications(data);
       calculateStats(data);
     } catch (error) {
-      console.error('Error loading applications:', error);
-      Alert.alert('Error', 'Failed to load applications');
+      console.error('Error loading saved jobs:', error);
+      Alert.alert('Error', 'Failed to load saved jobs');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -224,10 +224,10 @@ export default function TrackPalScreen() {
     }
   };
 
-  const handleAddApplication = async (applicationData: any) => {
+  const handleAddJob = async (applicationData: any) => {
     try {
       // Add the application to storage
-      const newApplication = await ApplicationService.addApplication({
+      const newApplication = await JobService.addJob({
         ...applicationData,
         applicationDeadline: applicationData.applicationDeadline ? 
           applicationData.applicationDeadline.toISOString() : null,
@@ -260,10 +260,10 @@ export default function TrackPalScreen() {
       
       setModalVisible(false);
       loadApplications();
-      Alert.alert('Success', 'Application added successfully');
+      Alert.alert('Success', 'Job added successfully');
     } catch (error) {
-      console.error('Error adding application:', error);
-      Alert.alert('Error', 'Failed to add application');
+      console.error('Error adding job:', error);
+      Alert.alert('Error', 'Failed to add job');
     }
   };
   
@@ -291,8 +291,8 @@ export default function TrackPalScreen() {
         onRefresh={loadPatternInsights}
       />
 
-      {/* Applications Section */}
-      <Text style={styles.applicationSectionTitle}>Applications</Text>
+      {/* Saved Jobs Section */}
+      <Text style={styles.applicationSectionTitle}>My Saved Jobs</Text>
       <ApplicationsList 
         applications={applications}
         loading={loading}
@@ -377,8 +377,8 @@ export default function TrackPalScreen() {
         <>
 
           
-          {/* Add Application Button */}
-          <AddApplicationButton onPress={() => router.push('/trackpal-add-application')} />
+          {/* Add Job Button */}
+          <AddJobButton onPress={() => router.push('/trackpal-add-application')} />
         </>
       )}
 

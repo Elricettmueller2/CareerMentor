@@ -12,10 +12,10 @@ import GradientButton from '@/components/trackpal/GradientButton';
 import { Text } from '@/components/Themed';
 
 // Import services
-import ApplicationService from '@/services/ApplicationService';
+import JobService from '@/services/JobService';
 import NotificationService from '@/services/NotificationService';
 
-export default function TrackPalAddApplicationScreen() {
+export default function TrackPalAddJobScreen() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   
@@ -25,10 +25,12 @@ export default function TrackPalAddApplicationScreen() {
     company: '',
     location: '',
     applicationDeadline: null as Date | null,
+    applicationDeadlineReminder: null as string | null,
     status: 'saved',
     followUpDate: null as Date | null,
-    followUpTime: '12:00', // Adding missing property
-    appliedDate: new Date().toISOString(), // Adding missing property
+    followUpTime: '12:00',
+    appliedDate: new Date().toISOString(),
+    interviewReminder: null as string | null,
     notes: '',
   });
 
@@ -40,8 +42,8 @@ export default function TrackPalAddApplicationScreen() {
     }));
   };
 
-  // Handle save application
-  const handleSaveApplication = async () => {
+  // Handle save job
+  const handleSaveJob = async () => {
     // Validate required fields
     if (!application.jobTitle.trim()) {
       Alert.alert('Missing Information', 'Please enter a job title');
@@ -63,16 +65,18 @@ export default function TrackPalAddApplicationScreen() {
           application.applicationDeadline.toISOString() : null,
         followUpDate: application.followUpDate ? 
           application.followUpDate.toISOString() : null,
+        applicationDeadlineReminder: null,
+        interviewReminder: null
       };
       
-      // Add the application
-      const newApplication = await ApplicationService.addApplication(applicationData);
+      // Add the job
+      const newJob = await JobService.addJob(applicationData);
       
       // Schedule follow-up reminder if needed
       if (application.followUpDate && application.status !== 'rejected' && application.status !== 'accepted') {
         try {
           await NotificationService.scheduleFollowUpReminder(
-            newApplication.id,
+            newJob.id,
             application.jobTitle,
             application.company,
             application.followUpDate
@@ -83,11 +87,11 @@ export default function TrackPalAddApplicationScreen() {
         }
       }
       
-      Alert.alert('Success', 'Application added successfully');
+      Alert.alert('Success', 'Job added successfully');
       router.back();
     } catch (error) {
       console.error('Error adding application:', error);
-      Alert.alert('Error', 'Failed to add application');
+      Alert.alert('Error', 'Failed to add job');
     } finally {
       setSaving(false);
     }
@@ -96,7 +100,7 @@ export default function TrackPalAddApplicationScreen() {
   // Get label for deadline field based on status
   const getDeadlineLabel = () => {
     switch (application.status) {
-      case 'saved': return 'Application Deadline';
+      case 'saved': return 'Job Deadline';
       case 'applied': return 'Date Applied';
       case 'interview': return 'Interview Date';
       default: return 'Important Date';
@@ -107,7 +111,7 @@ export default function TrackPalAddApplicationScreen() {
     <View style={styles.container}>
       <Stack.Screen 
         options={{
-          title: "Add New Application",
+          title: "Add New Job",
           headerTintColor: '#5D5B8D',
           headerTitleStyle: {
             color: '#5D5B8D',
@@ -121,7 +125,7 @@ export default function TrackPalAddApplicationScreen() {
             <View style={styles.headerButtonContainer}>
               <GradientButton
                 title="Save"
-                onPress={handleSaveApplication}
+                onPress={handleSaveJob}
                 small={true}
                 loading={saving}
                 loadingText="Saving..."
