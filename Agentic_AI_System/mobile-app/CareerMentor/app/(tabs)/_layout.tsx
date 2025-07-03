@@ -5,7 +5,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Link, Tabs } from 'expo-router';
 import { Pressable } from 'react-native';
 
-import Colors from '@/constants/Colors';
+import Colors, { CAREER_COLORS } from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 
@@ -32,9 +32,19 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors['light'].tint,
-        tabBarStyle: { backgroundColor: '#ffffff' },
-        tabBarInactiveTintColor: '#999999',
+        tabBarActiveTintColor: CAREER_COLORS.white,
+        tabBarStyle: { 
+          backgroundColor: CAREER_COLORS.nightSky,
+          paddingTop: 3,
+          height: 80,
+          borderTopWidth: 0,
+        },
+        tabBarInactiveTintColor: CAREER_COLORS.lightRose,
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+          paddingBottom: 5,
+        },
         // Disable the static render of the header on web
         // to prevent a hydration error in React Navigation v6.
         headerShown: useClientOnlyValue(false, true),
@@ -43,23 +53,23 @@ export default function TabLayout() {
         name="trackpal"
         options={{
           title: 'TrackPal',
-          tabBarIcon: ({ color }) => <MaterialIcons name="insights" color={color} size={28}/>,
+          tabBarIcon: ({ color }) => <MaterialIcons name="insights" color={color} size={24}/>,
           headerShown: false,
         }}
       />
       <Tabs.Screen
         name="pathfinder"
         options={{
-          title: 'Path Finder',
-          tabBarIcon: ({ color }) => <IonIcon name="compass" color={color} />,
+          title: 'PathFinder',
+          tabBarIcon: ({ color }) => <IonIcon name="compass" color={color} size={24} />,
           headerShown: false,
         }}
       />
       <Tabs.Screen
         name="interview"
         options={{
-          title: 'Interview',
-          tabBarIcon: ({ color }) => <IonIcon name="chatbubbles" color={color} />,
+          title: 'MockMate',
+          tabBarIcon: ({ color }) => <IonIcon name="chatbubbles" color={color} size={24} />,
           headerShown: false,
         }}
       />
