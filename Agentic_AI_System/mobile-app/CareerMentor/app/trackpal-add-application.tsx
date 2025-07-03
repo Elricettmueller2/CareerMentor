@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, ScrollView, Alert, TouchableOpacity, Text } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,11 +9,11 @@ import FormInput from '@/components/trackpal/FormInput';
 import DatePickerField from '@/components/trackpal/DatePickerField';
 import StatusPicker from '@/components/trackpal/StatusPicker';
 import GradientButton from '@/components/trackpal/GradientButton';
-import { Text } from '@/components/Themed';
 
 // Import services
 import JobService from '@/services/JobService';
 import NotificationService from '@/services/NotificationService';
+import { CAREER_COLORS } from '@/constants/Colors';
 
 export default function TrackPalAddJobScreen() {
   const router = useRouter();
@@ -109,32 +109,26 @@ export default function TrackPalAddJobScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen 
-        options={{
-          title: "Add New Job",
-          headerTintColor: '#5D5B8D',
-          headerTitleStyle: {
-            color: '#5D5B8D',
-          },
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 10 }}>
-              <Ionicons name="arrow-back" size={24} color="#5D5B8D" />
-            </TouchableOpacity>
-          ),
-          headerRight: () => (
-            <View style={styles.headerButtonContainer}>
-              <GradientButton
-                title="Save"
-                onPress={handleSaveJob}
-                small={true}
-                loading={saving}
-                loadingText="Saving..."
-                style={styles.headerSaveButton}
-              />
-            </View>
-          )
-        }} 
-      />
+      <SafeAreaView style={styles.safeAreaHeader} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color={CAREER_COLORS.nightSky} />
+          </TouchableOpacity>
+          
+          <Text style={styles.headerTitle}>Add New Job</Text>
+          
+          <View style={styles.headerButtonContainer}>
+            <GradientButton
+              title="Save"
+              onPress={handleSaveJob}
+              small={true}
+              loading={saving}
+              loadingText="Saving..."
+              style={styles.headerSaveButton}
+            />
+          </View>
+        </View>
+      </SafeAreaView>
       
       <ScrollView style={styles.scrollContainer} contentContainerStyle={{ paddingBottom: 100 }}>
         <View style={styles.formContainer}>
@@ -202,7 +196,33 @@ export default function TrackPalAddJobScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: CAREER_COLORS.white,
+  },
+  safeAreaHeader: {
+    backgroundColor: CAREER_COLORS.white,
+    zIndex: 10,
+    shadowColor: CAREER_COLORS.midnight,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#5D5B8D',
+    flex: 1,
+    textAlign: 'center',
+  },
+  backButton: {
+    padding: 5,
   },
   scrollContainer: {
     flex: 1,
@@ -225,12 +245,12 @@ const styles = StyleSheet.create({
     color: '#5D5B8D',
   },
   headerButtonContainer: {
-    marginRight: 10,
+    marginRight: 0,
   },
   headerSaveButton: {
     height: 36,
-    minWidth: 100,
-    width: 100,
+    minWidth: 80,
+    width: 80,
     borderRadius: 18,
     marginVertical: 0,
   }

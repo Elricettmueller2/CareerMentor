@@ -216,7 +216,7 @@ export default function TrackPalJobDetailsScreen() {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'Saved', 'Applied', 'Interview', 'Rejected', 'Accepted'],
+          options: ['Saved', 'Applied', 'Interview', 'Rejected', 'Accepted'],
           cancelButtonIndex: 0,
           title: 'Update Status',
           message: 'Select a new status for this job'
@@ -601,10 +601,10 @@ export default function TrackPalJobDetailsScreen() {
 
   return (
     <View style={styles.container}>
-      <SafeAreaView style={styles.safeAreaHeader}>
+      <SafeAreaView style={styles.safeAreaHeader} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color="#5D5B8D" />
+            <Ionicons name="arrow-back" size={24} color={CAREER_COLORS.nightSky} />
           </TouchableOpacity>
           
           <View style={styles.headerButtonContainer}>
@@ -909,7 +909,7 @@ export default function TrackPalJobDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: CAREER_COLORS.white,
   },
   loadingContainer: {
     flex: 1,
@@ -1308,18 +1308,20 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   safeAreaHeader: {
-    backgroundColor: '#fff',
-    width: '100%',
+    backgroundColor: CAREER_COLORS.white,
+    zIndex: 10,
+    shadowColor: CAREER_COLORS.midnight,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 3,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingVertical: 12,
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#dee2e6',
+    paddingVertical: 12,
   },
   backButton: {
     padding: 8,
