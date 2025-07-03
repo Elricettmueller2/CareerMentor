@@ -62,8 +62,10 @@ export const InterviewSetupForm: React.FC<InterviewSetupFormProps> = ({
             );
           }}
         >
-          <Text style={styles.iosPickerText}>{selectedLabel}</Text>
-          <Ionicons name="chevron-down" size={20} color={colors.neutral.grey600} />
+          <View style={styles.iosPickerContent}>
+            <Text style={styles.iosPickerText} numberOfLines={1} ellipsizeMode="tail">{selectedLabel}</Text>
+            <Ionicons name="chevron-down" size={20} color={colors.neutral.grey600} />
+          </View>
         </TouchableOpacity>
       );
     }
@@ -75,9 +77,16 @@ export const InterviewSetupForm: React.FC<InterviewSetupFormProps> = ({
           selectedValue={selectedValue}
           onValueChange={onValueChange}
           style={styles.picker}
+          dropdownIconColor={colors.neutral.grey600}
+          mode="dropdown"
         >
           {items.map(item => (
-            <Picker.Item key={item.value} label={item.label} value={item.value} />
+            <Picker.Item 
+              key={item.value} 
+              label={item.label} 
+              value={item.value} 
+              style={styles.pickerItem}
+            />
           ))}
         </Picker>
       </View>
@@ -204,17 +213,18 @@ const styles = StyleSheet.create({
   picker: {
     width: '100%',
     height: Platform.OS === 'ios' ? 150 : 50,
+    color: colors.neutral.grey800,
+  },
+  pickerItem: {
+    fontSize: typography.fontSize.md,
+    color: colors.neutral.grey800,
   },
   // iOS specific picker styles
   iosPickerButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     backgroundColor: colors.neutral.white,
     borderRadius: borderRadius.md,
     borderWidth: 1,
     borderColor: colors.neutral.grey300,
-    padding: spacing.md,
     height: 50,
     marginBottom: 4,
     // iOS-specific shadow
@@ -223,10 +233,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 1,
   },
+  iosPickerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    height: '100%',
+    width: '100%',
+  },
   iosPickerText: {
     fontSize: typography.fontSize.md,
     fontFamily: typography.fontFamily.regular,
     color: colors.neutral.grey800,
+    flex: 1,
+    marginRight: spacing.md,
   },
   // Button styles now handled by GradientButton component
 });
