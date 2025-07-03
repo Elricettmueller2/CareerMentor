@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   headerBar: {
     backgroundColor: CAREER_COLORS.nightSky,
     paddingTop: Platform.OS === 'ios' ? 50 : 30,
-    paddingBottom: 20,
+    paddingBottom: 0,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
   },

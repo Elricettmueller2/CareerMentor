@@ -1,33 +1,24 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { 
   StyleSheet, 
   Text, 
   View, 
-  TouchableOpacity, 
-  FlatList, 
   ActivityIndicator, 
   Modal, 
   Alert, 
   RefreshControl, 
-  ScrollView,
-  SafeAreaView,
-  Platform
+  ScrollView
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import { CAREER_COLORS } from '../../constants/Colors';
 import { useFocusEffect } from '@react-navigation/native';
 import ApplicationForm from '../../components/ApplicationForm';
 import JobService, { JobApplication } from '../../services/JobService';
 import TrackPalService, { PatternInsight } from '../../services/TrackPalService';
 import NotificationService from '../../services/NotificationService';
-import NotificationTest from '../../components/NotificationTest';
 
-// Import new modular components
-import StatsCard from '../../components/trackpal/StatsCard';
+// Import modular components
 import StatsDashboard from '../../components/trackpal/StatsDashboard';
-import InsightCard from '../../components/trackpal/InsightCard';
 import AIInsightsSection from '../../components/trackpal/AIInsightsSection';
 import AddJobButton from '../../components/trackpal/AddApplicationButton';
 import EmptyState from '../../components/trackpal/EmptyState';
@@ -35,7 +26,50 @@ import ApplicationsList from '../../components/trackpal/ApplicationsList';
 
 // Import common components
 import CareerDaddyHeader from '../../components/common/CareerDaddyHeader';
-import TabSwitcher, { TabItem } from '../../components/common/TabSwitcher';
+
+// Define styles at the top to avoid usage before declaration
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  contentContainer: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: CAREER_COLORS.nightSky,
+  },
+  scrollContainer: {
+    flex: 1,
+    paddingTop: 16,
+  },
+  applicationSectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 12,
+    color: '#333',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#f9f9f9',
+  },
+  separator: {
+    marginVertical: 20,
+    height: 1,
+    width: '80%',
+    backgroundColor: '#ccc',
+  }
+});
 
 export default function TrackPalScreen() {
   const router = useRouter();
@@ -62,10 +96,6 @@ export default function TrackPalScreen() {
   const [patternInsights, setPatternInsights] = useState<PatternInsight[]>([]);
   const [loadingInsights, setLoadingInsights] = useState(false);
 
-
-
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'ai'>('dashboard');
-
   // Auto-loading of insights when the component mounts
   // (comment out if you don't want to load insights on initial load)
   useEffect(() => {
@@ -73,15 +103,10 @@ export default function TrackPalScreen() {
   }, []);
 
   // Load applications when screen comes into focus
-  // We'll use a ref to track if we've already loaded the AI data
-  const aiDataLoaded = useRef(false);
-  
   useFocusEffect(
     useCallback(() => {
       loadApplications();
-      
-      // No auto-loading of AI data when the tab is focused
-    }, [activeTab])
+    }, [])
   );
 
   // Calculate application statistics
@@ -173,18 +198,14 @@ export default function TrackPalScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.all([
-        loadApplications(),
-        activeTab === 'ai' ? loadReminders() : Promise.resolve(),
-        activeTab === 'ai' ? loadPatternAnalysis() : Promise.resolve()
-        // Don't automatically refresh insights on pull-to-refresh
-      ]);
+      await loadApplications();
+      // Don't automatically refresh insights on pull-to-refresh
     } catch (error) {
       console.error('Error refreshing data:', error);
     } finally {
       setRefreshing(false);
     }
-  }, [activeTab]);
+  }, []);
 
   // TrackPal AI methods
   const loadReminders = async () => {
@@ -271,14 +292,36 @@ export default function TrackPalScreen() {
   
 
 
-  // Dashboard tab content
-  const renderDashboardTab = () => (
-    <ScrollView 
-      style={styles.scrollContainer}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
+  // Render the dashboard tab content
+  const renderDashboardTab = () => {
+    // If loading, show loading indicator
+    if (loading) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={CAREER_COLORS.nightSky} />
+          <Text style={styles.loadingText}>Loading your applications...</Text>
+        </View>
+      );
+    }
+
+    // If no applications, show empty state
+    if (applications.length === 0) {
+      return (
+        <EmptyState 
+          title="You haven't added any job applications yet."
+          subtitle="Tap the + button to add your first application."
+          icon="briefcase-outline"
+        />
+      );
+    }
+
+    return (
+      <ScrollView 
+        style={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
       {/* Stats Dashboard */}
       <StatsDashboard 
         stats={stats}
@@ -302,261 +345,34 @@ export default function TrackPalScreen() {
       />
     </ScrollView>
   );
-
-  // Testing tab content
-  const renderAIAssistantTab = () => (
-    <ScrollView 
-      style={styles.scrollContainer}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          colors={['#8089B4']}
-          tintColor="#8089B4"
-        />
-      }
-    >
-      {/* Notification Test Section */}
-      <NotificationTest />
-      
-      {/* Reminders Section */}
-      <View style={styles.aiSectionContainer}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.aiSectionTitle}>TrackPal Reminders</Text>
-          <TouchableOpacity onPress={loadReminders}>
-            <Ionicons name="refresh" size={20} color="#5D5B8D" />
-          </TouchableOpacity>
-        </View>
-        
-        <Text style={styles.sectionSubtitle}>Personalized reminders for your job applications</Text>
-        
-        {loadingReminders ? (
-          <ActivityIndicator size="small" color="#5D5B8D" style={{marginVertical: 10}} />
-        ) : reminders ? (
-          <Text style={styles.aiResponseText}>{reminders}</Text>
-        ) : (
-          <Text>No reminders available. Add more applications to get personalized reminders.</Text>
-        )}
-      </View>
-      
-      {/* Pattern Analysis Section */}
-      <View style={styles.aiSectionContainer}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.aiSectionTitle}>Application Patterns</Text>
-          <TouchableOpacity onPress={loadPatternAnalysis}>
-            <Ionicons name="refresh" size={20} color="#5D5B8D" />
-          </TouchableOpacity>
-        </View>
-        
-        <Text style={styles.sectionSubtitle}>Analysis of your application patterns and trends</Text>
-        
-        {loadingPatterns ? (
-          <ActivityIndicator size="small" color="#5D5B8D" style={{marginVertical: 10}} />
-        ) : patterns ? (
-          <Text style={styles.aiResponseText}>{patterns}</Text>
-        ) : (
-          <Text>No patterns detected yet. Add more applications to see patterns.</Text>
-        )}
-      </View>
-    </ScrollView>
-  );
-  
-  // Define tabs for the tab switcher
-  const tabs: TabItem[] = [
-    { id: 'dashboard', label: 'Dashboard' },
-    { id: 'ai', label: 'AI Assistant' }
-  ];
+};
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <CareerDaddyHeader title="Career Daddy" />
       
-      {/* Tab Switcher */}
-      <TabSwitcher 
-        tabs={tabs}
-        activeTab={activeTab}
-        onTabChange={(tabId) => setActiveTab(tabId as 'dashboard' | 'ai')}
-      />
-      
       <View style={styles.contentContainer}>
-        {activeTab === 'dashboard' ? renderDashboardTab() : renderAIAssistantTab()}
-      </View>
-      
-      {activeTab === 'dashboard' && (
+        {renderDashboardTab()}
+        
+        {/* Add Job Button - Fixed position at bottom right */}
         <AddJobButton onPress={() => router.push('/trackpal-add-application')} />
-      )}
 
-      {/* Application Form Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <ApplicationForm 
-          onCancel={() => setModalVisible(false)}
-          onSubmit={handleAddJob}
-        />
-      </Modal>
+        {/* Application Form Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <ApplicationForm 
+            onCancel={() => setModalVisible(false)}
+            onSubmit={handleAddJob}
+          />
+        </Modal>
+      </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  responseContainer: {
-    backgroundColor: '#f9f9ff',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 10,
-  },
-
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-
-  scrollContainer: {
-    flex: 1,
-    paddingTop: 16,
-  },
-
-  applicationSectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 12,
-    color: '#333',
-  },
-  
-
-  contentContainer: {
-    flex: 1,
-  },
-  
-  // Original header style kept for reference
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-
-  // AI tab styles
-  aiTabContainer: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-
-  sectionSubtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 16,
-  },
-  
-  aiSectionContainer: {
-    padding: 16,
-    backgroundColor: '#fff',
-    margin: 16,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  
-  aiSectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  
-  aiResponseText: {
-    marginTop: 12,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#f9f9f9',
-  },
-  
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#5D5B8D',
-    borderBottomWidth: 0,
-  },
-  
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: 'white',
-  },
-  
-  separator: {
-    marginVertical: 20,
-    height: 1,
-    width: '80%',
-    backgroundColor: '#ccc',
-  },
-  
-  result: {
-    marginTop: 20,
-    fontSize: 16,
-    paddingHorizontal: 20,
-    textAlign: 'center',
-  },
-
-  // Existing styles
-  addButton: {
-    backgroundColor: CAREER_COLORS.nightSky,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  addButtonWithText: {
-    backgroundColor: CAREER_COLORS.nightSky,
-    height: 50,
-    borderRadius: 25,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  addButtonText: {
-    color: CAREER_COLORS.white,
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-
-  placeholderFix: {
-    width: 0,
-    height: 0,
-  }
-});
+// Styles moved to the top of the file
