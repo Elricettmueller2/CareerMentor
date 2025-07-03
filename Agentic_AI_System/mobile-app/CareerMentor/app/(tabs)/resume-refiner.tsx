@@ -1312,7 +1312,7 @@ export default function ResumeRefinerScreen() {
                   onPress={() => setShowUploadOptions(true)}
                 >
                   <View style={styles.currentCVContent}>
-                    <Ionicons name="document-text" size={20} color={COLORS.nightSky} />
+                    <Ionicons name="document" size={20} color={COLORS.nightSky} />
                     <View style={styles.currentCVTextContainer}>
                       <Text style={styles.currentCVTitle}>Current Resume</Text>
                       <Text style={styles.currentCVFilename} numberOfLines={1} ellipsizeMode="middle">
@@ -1341,7 +1341,7 @@ export default function ResumeRefinerScreen() {
                   title="Upload Resume"
                   onPress={() => setShowUploadOptions(true)}
                   style={styles.gradientUploadButton}
-                  icon={<Ionicons name="cloud-upload-outline" size={24} color={COLORS.white} />}
+                  icon={<Ionicons name="cloud-upload" size={24} color={COLORS.white} />}
                 />
                 <Text style={styles.uploadDescription}>
                   Upload your resume to get feedback and to match it to job descriptions
@@ -1362,7 +1362,7 @@ export default function ResumeRefinerScreen() {
                     title="Upload Resume"
                     onPress={() => setShowUploadOptions(true)}
                     style={styles.gradientUploadButton}
-                    icon={<Ionicons name="cloud-upload-outline" size={24} color={COLORS.white} />}
+                    icon={<Ionicons name="cloud-upload" size={24} color={COLORS.white} />}
                   />
                   <Text style={styles.uploadDescription}>
                     Upload your resume to match it with job descriptions
@@ -1390,7 +1390,7 @@ export default function ResumeRefinerScreen() {
                     onPress={() => setShowUploadOptions(true)}
                   >
                     <View style={styles.currentCVContent}>
-                      <Ionicons name="document-text" size={20} color={COLORS.nightSky} />
+                      <Ionicons name="document" size={20} color={COLORS.nightSky} />
                       <View style={styles.currentCVTextContainer}>
                         <Text style={styles.currentCVTitle}>Current Resume</Text>
                         <Text style={styles.currentCVFilename} numberOfLines={1} ellipsizeMode="middle">

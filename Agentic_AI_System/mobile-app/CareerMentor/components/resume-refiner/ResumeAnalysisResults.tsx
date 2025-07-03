@@ -30,10 +30,10 @@ const ResumeAnalysisResults: React.FC<ResumeAnalysisResultsProps> = ({
 
   // Define the specific categories we want to display
   const categories = [
-    { id: 'format_layout', title: 'Format & Layout', icon: 'document-text' },
-    { id: 'inhalt_struktur', title: 'Content & Structure', icon: 'text' },
-    { id: 'sprache_stil', title: 'Language & Style', icon: 'chatbubble-outline' },
-    { id: 'ergebnis_orientierung', title: 'Results Orientation', icon: 'trending-up' }
+    { id: 'format_layout', title: 'Format & Layout', icon: 'grid' },
+    { id: 'inhalt_struktur', title: 'Content & Structure', icon: 'albums' },
+    { id: 'sprache_stil', title: 'Language & Style', icon: 'chatbubbles' },
+    { id: 'ergebnis_orientierung', title: 'Results Orientation', icon: 'bar-chart' }
   ];
 
   // Group feedback messages by section
@@ -127,14 +127,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: CAREER_COLORS.white,
+    margin: -12
   },
   mainScrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: 8,
     paddingTop: 8,
-    paddingBottom: 24,
+    paddingBottom: 0,
   },
   title: {
     fontSize: 18,
