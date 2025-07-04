@@ -701,16 +701,18 @@ const styles = StyleSheet.create({
   },
   floatingMatchButton: {
     position: 'absolute',
-    bottom: 20,
-    alignSelf: 'center',
+    bottom: 12,
+    alignSelf: 'flex-end',
     borderRadius: 30,
     overflow: 'hidden',
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.3,
     shadowRadius: 3.84,
-    zIndex: 100,
+    zIndex: 1000,
+    width: '50%',
+    maxWidth: 500,
   },
   matchButtonGradient: {
     flexDirection: 'row',
@@ -1580,7 +1582,7 @@ export default function ResumeRefinerScreen() {
                           style={{ flexDirection: 'row', alignItems: 'center' }}
                         >
                           <Ionicons name="git-compare" size={20} color={COLORS.white} />
-                          <Text style={styles.matchButtonText}>Match Resume with {selectedJob.title}</Text>
+                          <Text style={styles.matchButtonText}>Match Resume</Text>
                         </TouchableOpacity>
                       </LinearGradient>
                     </View>

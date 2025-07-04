@@ -5,6 +5,7 @@ import { CAREER_COLORS } from '@/constants/Colors';
 import { Job } from '@/utils/dataLoader';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import CircularProgress from '@/components/resume-refiner/CircularProgress';
 
 interface TrackpalStyleJobCardProps {
   job: Job;
@@ -43,8 +44,8 @@ const TrackpalStyleJobCard: React.FC<TrackpalStyleJobCardProps> = ({
       <View style={styles.applicationFooter}>
         {job.skills && job.skills.length > 0 && (
           <Text style={styles.dateText}>
-            Skills: {job.skills.slice(0, 4).join(', ')}
-            {job.skills.length > 4 ? '...' : ''}
+            Skills: {job.skills.slice(0, 3).join(', ')}
+            {job.skills.length > 3 ? '...' : ''}
           </Text>
         )}
       </View>
@@ -52,7 +53,15 @@ const TrackpalStyleJobCard: React.FC<TrackpalStyleJobCardProps> = ({
       {/* Match score badge */}
       {showMatchScore && job.match && (
         <View style={styles.matchScoreBadge}>
-          <Text style={styles.matchScoreText}>{job.match}%</Text>
+          <CircularProgress 
+            percentage={job.match} 
+            size={48} 
+            strokeWidth={4} 
+            textSize={14}
+            textColor={CAREER_COLORS.white}
+            progressColor={job.match > 70 ? CAREER_COLORS.green : job.match > 40 ? CAREER_COLORS.yellow : CAREER_COLORS.red}
+            backgroundColor={CAREER_COLORS.salt}
+          />
         </View>
       )}
       
@@ -150,7 +159,7 @@ const styles = StyleSheet.create({
   
   viewButtonContainer: {
     position: 'absolute',
-    top: 12,
+    bottom: 16,
     right: 12,
     zIndex: 10,
   },
@@ -160,7 +169,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: 20,
   },
   
   viewButtonText: {
@@ -173,14 +182,8 @@ const styles = StyleSheet.create({
   matchScoreBadge: {
     position: 'absolute',
     right: 16,
-    top: '70%',
+    top: 32,
     transform: [{ translateY: -20 }],
-    backgroundColor: CAREER_COLORS.salt,
-    borderRadius: 20,
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   
   matchScoreText: {
