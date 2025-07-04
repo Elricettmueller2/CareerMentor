@@ -36,16 +36,6 @@ const TrackpalStyleJobCard: React.FC<TrackpalStyleJobCardProps> = ({
     >
       <View style={styles.applicationHeader}>
         <Text style={styles.jobTitle}>{job.title}</Text>
-        {isSelected && (
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>Selected</Text>
-          </View>
-        )}
-        {showMatchScore && job.match && (
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>{job.match}% Match</Text>
-          </View>
-        )}
       </View>
       <Text style={styles.companyText}>{job.company}</Text>
       <Text style={styles.locationText}>{job.location || 'Location not specified'}</Text>
@@ -53,11 +43,18 @@ const TrackpalStyleJobCard: React.FC<TrackpalStyleJobCardProps> = ({
       <View style={styles.applicationFooter}>
         {job.skills && job.skills.length > 0 && (
           <Text style={styles.dateText}>
-            Skills: {job.skills.slice(0, 5).join(', ')}
-            {job.skills.length > 5 ? '...' : ''}
+            Skills: {job.skills.slice(0, 4).join(', ')}
+            {job.skills.length > 4 ? '...' : ''}
           </Text>
         )}
       </View>
+      
+      {/* Match score badge */}
+      {showMatchScore && job.match && (
+        <View style={styles.matchScoreBadge}>
+          <Text style={styles.matchScoreText}>{job.match}%</Text>
+        </View>
+      )}
       
       {/* View button with gradient in top right corner */}
       <TouchableOpacity 
@@ -82,6 +79,8 @@ const TrackpalStyleJobCard: React.FC<TrackpalStyleJobCardProps> = ({
 const styles = StyleSheet.create({
   applicationItem: {
     backgroundColor: CAREER_COLORS.nightSky,
+    borderColor: CAREER_COLORS.nightSky,
+    borderWidth: 2,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -169,6 +168,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 4,
+  },
+  
+  matchScoreBadge: {
+    position: 'absolute',
+    right: 16,
+    top: '70%',
+    transform: [{ translateY: -20 }],
+    backgroundColor: CAREER_COLORS.salt,
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  
+  matchScoreText: {
+    color: CAREER_COLORS.midnight,
+    fontWeight: 'bold',
+    fontSize: 14,
   },
 });
 
