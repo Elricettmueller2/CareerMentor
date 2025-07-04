@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   jobList: {
-    marginTop: 20,
+    marginTop: 8,
   },
   matchButton: {
     backgroundColor: COLORS.nightSky,
@@ -567,6 +567,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.midnight,
     marginBottom: 12,
+    width: '100%',
+    textAlign: 'left',
   },
   sectionHeader: { 
     fontSize: 18, 
@@ -601,7 +603,7 @@ const styles = StyleSheet.create({
   },
   jobListScrollView: {
     maxHeight: 800,
-    marginBottom: 0,
+    marginBottom: -12,
     backgroundColor: 'transparent',
   },
   jobSelectionHeader: {
@@ -710,7 +712,7 @@ const styles = StyleSheet.create({
   },
   floatingMatchButton: {
     position: 'absolute',
-    bottom: 12,
+    bottom: 0,
     alignSelf: 'flex-end',
     borderRadius: 30,
     overflow: 'hidden',
