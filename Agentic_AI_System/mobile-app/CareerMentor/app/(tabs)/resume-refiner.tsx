@@ -754,8 +754,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: 16,
     padding: 24,
+    marginTop: 100,
     width: '90%',
-    maxHeight: '80%',
+    maxHeight: '90%',
   },
   modalCloseButton: {
     position: 'absolute',
