@@ -13,6 +13,7 @@ import { truncateText, formatPercentage } from '@/utils/formatters';
 import GradientButton from '@/components/trackpal/GradientButton';
 import { LinearGradient } from 'expo-linear-gradient';
 import { mockGlobalStateService } from '@/services/MockGlobalStateService';
+import { useRouter } from 'expo-router';
 
 // Import resume-refiner components
 import UploadOptionsModal from '@/components/resume-refiner/UploadOptionsModal';
@@ -613,10 +614,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  addCustomJobText: {
-    marginLeft: 4,
-    color: COLORS.sky,
+  addJobButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 30,
+  },
+  addJobButtonText: {
+    color: COLORS.white,
+    fontSize: 14,
     fontWeight: '600',
+    marginLeft: 10,
   },
   customJobForm: {
     backgroundColor: COLORS.salt,
@@ -764,6 +773,8 @@ const getMatchColor = (match: number): string => {
 
 export default function ResumeRefinerScreen() {
   console.log(" ResumeRefinerScreen rendered");
+  
+  const router = useRouter();
   
   // State for job data
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -1500,16 +1511,17 @@ export default function ResumeRefinerScreen() {
                     <Text style={styles.sectionHeader}>Select a Job to Match</Text>
                     <TouchableOpacity 
                       style={styles.addCustomJobButton}
-                      onPress={() => setShowCustomJobInput(!showCustomJobInput)}
+                      onPress={() => router.push('/trackpal-add-application')}
                     >
-                      <Ionicons 
-                        name={showCustomJobInput ? "remove-circle" : "add-circle"} 
-                        size={24} 
-                        color={COLORS.sky} 
-                      />
-                      <Text style={styles.addCustomJobText}>
-                        {showCustomJobInput ? "Cancel" : "Add Custom Job"}
-                      </Text>
+                      <LinearGradient
+                        colors={[COLORS.rose, COLORS.sky]}
+                        style={styles.addJobButtonGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                      >
+                        <Ionicons name="add-circle" size={18} color={COLORS.white} />
+                        <Text style={styles.addJobButtonText}>Add Job</Text>
+                      </LinearGradient>
                     </TouchableOpacity>
                   </View>
                   
