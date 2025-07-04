@@ -17,6 +17,7 @@ load_dotenv()
 API_PORT = int(os.getenv("API_PORT", "8000"))
 API_HOST = os.getenv("API_HOST", "0.0.0.0")
 NGROK_AUTH_TOKEN = os.getenv("NGROK_AUTH_TOKEN")
+NGROK_STATIC_DOMAIN = os.getenv("NGROK_STATIC_DOMAIN")
 
 def start_ngrok():
     """Start ngrok and return the public URL"""
@@ -50,14 +51,42 @@ def start_ngrok():
         print("ERROR: ngrok command not found. Is ngrok installed?")
         return None
     
-    # Start ngrok in background
+    # Start ngrok in background with static domain if available
     print(f"Starting ngrok http tunnel on {API_HOST}:{API_PORT}...")
     try:
-        ngrok_process = subprocess.Popen(
-            ["ngrok", "http", f"{API_HOST}:{API_PORT}"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
+        if NGROK_STATIC_DOMAIN:
+            print(f"Using static domain: {NGROK_STATIC_DOMAIN}")
+            ngrok_process = subprocess.Popen(
+                ["ngrok", "http", f"{API_HOST}:{API_PORT}", "--domain", NGROK_STATIC_DOMAIN],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+            # If static domain is set, we can return the URL immediately
+            static_url = f"https://{NGROK_STATIC_DOMAIN}"
+            print(f"ngrok tunnel established with static domain: {static_url}")
+            
+            # Save URL to file for reference
+            with open("ngrok_url.txt", "w") as f:
+                f.write(static_url)
+                
+            # Still wait a bit to ensure ngrok is properly started
+            time.sleep(5)
+            
+            # Check if ngrok process is still running
+            if ngrok_process.poll() is not None:
+                print(f"ERROR: ngrok process exited immediately with code {ngrok_process.returncode}")
+                stdout, stderr = ngrok_process.communicate()
+                print(f"ngrok stdout: {stdout.decode('utf-8')}")
+                print(f"ngrok stderr: {stderr.decode('utf-8')}")
+                return None
+                
+            return static_url
+        else:
+            ngrok_process = subprocess.Popen(
+                ["ngrok", "http", f"{API_HOST}:{API_PORT}"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
         
         # Check if ngrok process is running
         if ngrok_process.poll() is not None:
@@ -72,82 +101,84 @@ def start_ngrok():
         print(f"ERROR: Failed to start ngrok process: {e}")
         return None
     
-    # Wait for ngrok to start
-    print("Waiting for ngrok to start...")
-    time.sleep(10)  # Increased wait time
-    
-    # Get the public URL from ngrok API
-    max_attempts = 10
-    for attempt in range(1, max_attempts + 1):
-        try:
-            print(f"Fetching ngrok tunnel URL from API (attempt {attempt}/{max_attempts})...")
-            response = requests.get("http://localhost:4040/api/tunnels", timeout=5)
-            
-            if response.status_code != 200:
-                print(f"ERROR: ngrok API returned status code {response.status_code}")
-                time.sleep(2)
-                continue
+    # If not using static domain, wait for ngrok to start and get URL from API
+    if not NGROK_STATIC_DOMAIN:
+        # Wait for ngrok to start
+        print("Waiting for ngrok to start...")
+        time.sleep(10)  # Increased wait time
+        
+        # Get the public URL from ngrok API
+        max_attempts = 10
+        for attempt in range(1, max_attempts + 1):
+            try:
+                print(f"Fetching ngrok tunnel URL from API (attempt {attempt}/{max_attempts})...")
+                response = requests.get("http://localhost:4040/api/tunnels", timeout=5)
                 
-            tunnels_data = response.json()
-            if "tunnels" not in tunnels_data:
-                print(f"ERROR: Unexpected response from ngrok API: {tunnels_data}")
-                time.sleep(2)
-                continue
-                
-            tunnels = tunnels_data["tunnels"]
-            
-            print(f"Found {len(tunnels)} ngrok tunnels")
-            
-            if not tunnels:
-                print("No ngrok tunnels found. Retrying...")
-                time.sleep(2)
-                continue
-                
-            # Prefer HTTPS URL
-            for tunnel in tunnels:
-                if tunnel["proto"] == "https":
-                    public_url = tunnel["public_url"]
-                    print(f"ngrok tunnel established: {public_url}")
+                if response.status_code != 200:
+                    print(f"ERROR: ngrok API returned status code {response.status_code}")
+                    time.sleep(2)
+                    continue
                     
-                    # Save URL to file for reference
-                    with open("ngrok_url.txt", "w") as f:
-                        f.write(public_url)
+                tunnels_data = response.json()
+                if "tunnels" not in tunnels_data:
+                    print(f"ERROR: Unexpected response from ngrok API: {tunnels_data}")
+                    time.sleep(2)
+                    continue
+                    
+                tunnels = tunnels_data["tunnels"]
+                
+                print(f"Found {len(tunnels)} ngrok tunnels")
+                
+                if not tunnels:
+                    print("No ngrok tunnels found. Retrying...")
+                    time.sleep(2)
+                    continue
+                    
+                # Prefer HTTPS URL
+                for tunnel in tunnels:
+                    if tunnel["proto"] == "https":
+                        public_url = tunnel["public_url"]
+                        print(f"ngrok tunnel established: {public_url}")
                         
-                    return public_url
+                        # Save URL to file for reference
+                        with open("ngrok_url.txt", "w") as f:
+                            f.write(public_url)
+                            
+                        return public_url
+                        
+                # Fallback to first tunnel if no HTTPS
+                public_url = tunnels[0]["public_url"]
+                print(f"ngrok tunnel established: {public_url}")
+                
+                # Save URL to file for reference
+                with open("ngrok_url.txt", "w") as f:
+                    f.write(public_url)
                     
-            # Fallback to first tunnel if no HTTPS
-            public_url = tunnels[0]["public_url"]
-            print(f"ngrok tunnel established: {public_url}")
-            
-            # Save URL to file for reference
-            with open("ngrok_url.txt", "w") as f:
-                f.write(public_url)
+                return public_url
+                    
+            except requests.exceptions.ConnectionError:
+                print(f"ERROR on attempt {attempt}: Failed to connect to ngrok API. Is ngrok running?")
+                # Try to check if ngrok process is still running
+                if ngrok_process.poll() is not None:
+                    print(f"ngrok process exited with code {ngrok_process.returncode}")
+                    stdout, stderr = ngrok_process.communicate()
+                    print(f"ngrok stdout: {stdout.decode('utf-8')}")
+                    print(f"ngrok stderr: {stderr.decode('utf-8')}")
                 
-            return public_url
-                
-        except requests.exceptions.ConnectionError:
-            print(f"ERROR on attempt {attempt}: Failed to connect to ngrok API. Is ngrok running?")
-            # Try to check if ngrok process is still running
-            if ngrok_process.poll() is not None:
-                print(f"ngrok process exited with code {ngrok_process.returncode}")
-                stdout, stderr = ngrok_process.communicate()
-                print(f"ngrok stdout: {stdout.decode('utf-8')}")
-                print(f"ngrok stderr: {stderr.decode('utf-8')}")
-            
-            if attempt < max_attempts:
-                print(f"Retrying in 2 seconds...")
-                time.sleep(2)
-            else:
-                print("Maximum attempts reached. Continuing without ngrok URL.")
-                return None
-        except Exception as e:
-            print(f"ERROR on attempt {attempt}: Failed to get ngrok URL: {e}")
-            if attempt < max_attempts:
-                print(f"Retrying in 2 seconds...")
-                time.sleep(2)
-            else:
-                print("Maximum attempts reached. Continuing without ngrok URL.")
-                return None
+                if attempt < max_attempts:
+                    print(f"Retrying in 2 seconds...")
+                    time.sleep(2)
+                else:
+                    print("Maximum attempts reached. Continuing without ngrok URL.")
+                    return None
+            except Exception as e:
+                print(f"ERROR on attempt {attempt}: Failed to get ngrok URL: {e}")
+                if attempt < max_attempts:
+                    print(f"Retrying in 2 seconds...")
+                    time.sleep(2)
+                else:
+                    print("Maximum attempts reached. Continuing without ngrok URL.")
+                    return None
 
 def start_fastapi_server():
     """Start the FastAPI server using uvicorn"""

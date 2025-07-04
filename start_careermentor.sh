@@ -6,6 +6,7 @@
 # Configuration
 CONTAINER_NAME="careermentor-backend"
 NGROK_AUTH_TOKEN="2zDpejeNtHCsBDVnn5zPPVjEsli_6GNhAU5z8syBUcpceWJZY"
+NGROK_STATIC_DOMAIN="evident-hyena-lately.ngrok-free.app"
 MOBILE_APP_ENDPOINTS_PATH="Agentic_AI_System/mobile-app/CareerMentor/constants/ApiEndpoints.ts"
 BACKEND_DIR="Agentic_AI_System/backend-api"
 
@@ -48,43 +49,22 @@ docker run -d --name $CONTAINER_NAME -p 8000:8000 \
     -e ADZUNA_APP_ID=ac7d329d \
     -e ADZUNA_API_KEY=fd74aa940604de795dcd178d167fc279 \
     -e NGROK_AUTH_TOKEN=$NGROK_AUTH_TOKEN \
+    -e NGROK_STATIC_DOMAIN=$NGROK_STATIC_DOMAIN \
     $CONTAINER_NAME
 
-# Wait for ngrok to start
-echo -e "${YELLOW}Waiting for ngrok to start...${NC}"
-sleep 10  # Increased wait time
+# Using static domain for ngrok
+echo -e "${YELLOW}Using static ngrok domain: $NGROK_STATIC_DOMAIN${NC}"
+NGROK_URL="https://$NGROK_STATIC_DOMAIN"
 
-# Get the ngrok URL from the container logs
-echo -e "${YELLOW}Getting ngrok URL from container logs...${NC}"
-NGROK_URL=""
-MAX_ATTEMPTS=15  # Increased attempts
-ATTEMPT=1
+# Wait a moment for the container to start
+sleep 5
 
-while [ -z "$NGROK_URL" ] && [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-    echo -e "${YELLOW}Attempt $ATTEMPT of $MAX_ATTEMPTS...${NC}"
-    NGROK_URL=$(docker logs $CONTAINER_NAME 2>&1 | grep "ngrok tunnel established:" | head -1 | sed 's/.*ngrok tunnel established: //')
+# Check if the container is running
+if ! docker ps | grep -q $CONTAINER_NAME; then
+    echo -e "${RED}Container failed to start. Checking logs:${NC}"
+    docker logs $CONTAINER_NAME
     
-    if [ -z "$NGROK_URL" ]; then
-        echo -e "${YELLOW}Waiting for ngrok URL...${NC}"
-        
-        # Check for specific ngrok errors in logs
-        NGROK_ERROR=$(docker logs $CONTAINER_NAME 2>&1 | grep -E "ERROR.*ngrok|ngrok.*ERROR" | tail -5)
-        if [ ! -z "$NGROK_ERROR" ]; then
-            echo -e "${RED}Detected ngrok errors:${NC}"
-            echo "$NGROK_ERROR"
-        fi
-        
-        sleep 3
-        ATTEMPT=$((ATTEMPT+1))
-    fi
-done
-
-if [ -z "$NGROK_URL" ]; then
-    echo -e "${RED}Failed to get ngrok URL after $MAX_ATTEMPTS attempts${NC}"
-    echo -e "${YELLOW}Showing last 20 lines of container logs:${NC}"
-    docker logs $CONTAINER_NAME | tail -20
-    
-    echo -e "\n${YELLOW}The backend server is still running at http://localhost:8000${NC}"
+    echo -e "\n${YELLOW}The backend server may not be running correctly.${NC}"
     echo -e "${YELLOW}You'll need to manually update the mobile app's API endpoints.${NC}"
     
     # Ask if user wants to continue with manual update
@@ -99,7 +79,7 @@ if [ -z "$NGROK_URL" ]; then
     fi
 fi
 
-echo -e "${GREEN}Found ngrok URL: $NGROK_URL${NC}"
+echo -e "${GREEN}Using ngrok URL: $NGROK_URL${NC}"
 
 # Update the mobile app's API endpoints
 echo -e "${YELLOW}Updating mobile app API endpoints...${NC}"
