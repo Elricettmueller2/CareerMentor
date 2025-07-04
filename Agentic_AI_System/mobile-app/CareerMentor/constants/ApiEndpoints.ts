@@ -6,42 +6,10 @@ export const API_BASE_URL = 'https://evident-hyena-lately.ngrok-free.app'; // Us
 // Simplified fallback URLs
 export const API_FALLBACK_URLS = [
   "https://evident-hyena-lately.ngrok-free.app",
-  "https://evident-hyena-lately.ngrok-free.app",
-  "https://evident-hyena-lately.ngrok-free.app",
   'http://localhost:8000',
   'http://127.0.0.1:8000',
   'http://192.168.178.24:8000', // Your actual IP address
-  // Previous ephemeral domains kept as fallbacks
-  "https://03c0-138-246-3-178.ngrok-free.app",
-  "https://5ef5-138-246-3-178.ngrok-free.app",
-  "https://d65a-138-246-3-178.ngrok-free.app",
-  "https://dfc8-138-246-3-178.ngrok-free.app",
-  "https://dc02-138-246-3-178.ngrok-free.app",
-  "https://fe70-138-246-3-178.ngrok-free.app",
-  "https://3992-138-246-3-178.ngrok-free.app",
-  "https://a313-138-246-3-178.ngrok-free.app",
-  "https://7ffe-88-217-180-20.ngrok-free.app",
-  "https://ed03-88-217-180-20.ngrok-free.app",
-  "https://7547-88-217-180-20.ngrok-free.app",
-  "https://a04b-88-217-180-20.ngrok-free.app",
-  "https://75c8-88-217-180-20.ngrok-free.app",
-  "https://4819-88-217-180-20.ngrok-free.app",
-  "https://4a91-88-217-180-20.ngrok-free.app",
-  "https://3d91-88-217-180-20.ngrok-free.app",
-  "https://44dd-88-217-180-20.ngrok-free.app",
-  "https://ccb3-88-217-180-20.ngrok-free.app",
-  "https://34d9-88-217-180-20.ngrok-free.app",
-  "https://fa23-88-217-180-20.ngrok-free.app",
-  "https://b421-88-217-180-20.ngrok-free.app",
-  "https://a97c-88-217-180-20.ngrok-free.app",
-  "https://112b-88-217-180-20.ngrok-free.app",
-  "https://4f43-88-217-180-20.ngrok-free.app",
-  "https://ef73-88-217-180-20.ngrok-free.app",
-  "https://773c-88-217-180-20.ngrok-free.app",
-  "https://fb83-88-217-180-20.ngrok-free.app",
-  "https://5eba-88-217-180-20.ngrok-free.app",
-  "https://f925-88-217-180-20.ngrok-free.app",
-  'https://47a9-2001-a61-1117-e601-256b-16bc-10d2-1d40.ngrok-free.app',
+
 ];
 
 export const ENDPOINTS = {
