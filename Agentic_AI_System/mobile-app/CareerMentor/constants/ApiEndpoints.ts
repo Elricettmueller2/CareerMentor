@@ -1,10 +1,18 @@
 import { Platform } from 'react-native';
 
 // API Base URL - Update this to your backend server URL
-export const API_BASE_URL = 'https://7ffe-88-217-180-20.ngrok-free.app'; // Using ngrok for physical device access
+export const API_BASE_URL = 'https://03c0-138-246-3-178.ngrok-free.app'; // Using ngrok for physical device access
 
 // Simplified fallback URLs
 export const API_FALLBACK_URLS = [
+  "https://03c0-138-246-3-178.ngrok-free.app",
+  "https://5ef5-138-246-3-178.ngrok-free.app",
+  "https://d65a-138-246-3-178.ngrok-free.app",
+  "https://dfc8-138-246-3-178.ngrok-free.app",
+  "https://dc02-138-246-3-178.ngrok-free.app",
+  "https://fe70-138-246-3-178.ngrok-free.app",
+  "https://3992-138-246-3-178.ngrok-free.app",
+  "https://a313-138-246-3-178.ngrok-free.app",
   "https://7ffe-88-217-180-20.ngrok-free.app",
   "https://ed03-88-217-180-20.ngrok-free.app",
   "https://7547-88-217-180-20.ngrok-free.app",

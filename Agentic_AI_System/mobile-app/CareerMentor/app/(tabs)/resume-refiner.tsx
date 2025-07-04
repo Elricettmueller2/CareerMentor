@@ -859,7 +859,7 @@ export default function ResumeRefinerScreen() {
     fetchJobs();
   }, []);
 
-  // Animation for loading dots
+  // Animation for loading dots (used for resume analysis)
   const startLoadingAnimation = () => {
     // Clear any existing animation
     if (loadingAnimationCleanupRef.current) {
@@ -889,6 +889,47 @@ export default function ResumeRefinerScreen() {
         return newProgress;
       });
     }, 500); // Increased interval from 300ms to 500ms
+    
+    // Store cleanup function in ref
+    const cleanup = () => {
+      clearInterval(interval);
+      clearInterval(progressInterval);
+    };
+    
+    loadingAnimationCleanupRef.current = cleanup;
+    return cleanup;
+  };
+  
+  // Faster animation for job matching
+  const startJobMatchingAnimation = () => {
+    // Clear any existing animation
+    if (loadingAnimationCleanupRef.current) {
+      loadingAnimationCleanupRef.current();
+      loadingAnimationCleanupRef.current = null;
+    }
+    
+    // Reset loading progress to 0% when starting a new animation
+    setLoadingProgress(0);
+    
+    const interval = setInterval(() => {
+      setLoadingDots(prev => {
+        if (prev.length >= 3) return '';
+        return prev + '.';
+      });
+    }, 150); // Even faster dot animation (reduced from 250ms to 150ms)
+    
+    // Simulate progress for demo purposes - much faster increase
+    const progressInterval = setInterval(() => {
+      setLoadingProgress(prev => {
+        // Much faster increment for job matching
+        const newProgress = prev + (Math.random() * 8 + 5); // Add minimum 5% each time, up to 13%
+        if (newProgress >= 100) {
+          clearInterval(progressInterval);
+          return 100;
+        }
+        return newProgress;
+      });
+    }, 100); // Even faster progress updates (reduced from 200ms to 100ms)
     
     // Store cleanup function in ref
     const cleanup = () => {
@@ -1242,7 +1283,7 @@ export default function ResumeRefinerScreen() {
     
     setLoading(true);
     setLoadingStage('matching');
-    startLoadingAnimation();
+    startJobMatchingAnimation(); // Use faster animation for job matching
     
     try {
       console.log(`Matching resume ${uploadId} with job ${selectedJob.id}`);
