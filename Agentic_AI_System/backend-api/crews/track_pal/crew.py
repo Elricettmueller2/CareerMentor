@@ -6,6 +6,7 @@ import os
 import json
 from datetime import datetime, timedelta
 import litellm
+from services.mongodb.global_state_service import global_state
 
 # Enable debug mode for litellm
 litellm._turn_on_debug()
@@ -19,125 +20,102 @@ REJECTED = "REJECTED"
 ACCEPTED = "ACCEPTED"
 DECLINED = "DECLINED"
 
-# Application data storage and retrieval
+# Application data storage and retrieval using MongoDB
 class ApplicationManager:
-    def __init__(self, storage_dir="./data"):
-        self.storage_dir = storage_dir
-        os.makedirs(storage_dir, exist_ok=True)
-    
-    def _get_user_file_path(self, user_id: str) -> str:
-        return os.path.join(self.storage_dir, f"{user_id}_applications.json")
+    def __init__(self):
+        """Initialize the application manager using MongoDB global state service"""
+        pass
     
     def get_applications(self, user_id: str) -> List[Dict[str, Any]]:
-        """Get all applications for a user"""
-        file_path = self._get_user_file_path(user_id)
-        
-        # Create default data if file doesn't exist
-        if not os.path.exists(file_path):
-            return self._get_dummy_data()
-        
+        """Get all applications for a user from MongoDB"""
         try:
-            with open(file_path, 'r') as f:
-                return json.load(f)
+            # Get the global state for the user
+            state = global_state.get_state(user_id)
+            
+            # Extract applications from agent_knowledge
+            applications = state.get('agent_knowledge', {}).get('applications', {})
+            
+            # Convert from dict to list if needed (MongoDB stores as dict with ID keys)
+            if isinstance(applications, dict):
+                return list(applications.values())
+            elif isinstance(applications, list):
+                return applications
+            else:
+                return []
+                
         except Exception as e:
-            print(f"Error loading applications: {e}")
-            return self._get_dummy_data()
+            print(f"Error loading applications from MongoDB: {e}")
+            return []
     
     def save_application(self, user_id: str, application: Dict[str, Any]) -> Dict[str, Any]:
-        """Save a new application"""
-        applications = self.get_applications(user_id)
-        
-        # Generate ID if not provided
-        if "id" not in application:
-            application["id"] = str(len(applications) + 1)
-        
-        # Set default status if not provided
-        if "status" not in application:
-            application["status"] = SAVED
-        
-        # Add timestamp
-        application["created_at"] = datetime.now().isoformat()
-        application["updated_at"] = application["created_at"]
-        
-        # Add to list
-        applications.append(application)
-        
-        # Save to file
-        self._save_applications(user_id, applications)
-        
-        return application
+        """Save a new application to MongoDB"""
+        try:
+            # Get current state and applications
+            state = global_state.get_state(user_id)
+            
+            # Ensure agent_knowledge and applications exist
+            if 'agent_knowledge' not in state:
+                state['agent_knowledge'] = {}
+            
+            if 'applications' not in state['agent_knowledge']:
+                state['agent_knowledge']['applications'] = {}
+            
+            # Generate ID if not provided
+            if "id" not in application:
+                # Use timestamp-based ID to ensure uniqueness
+                application["id"] = f"app_{int(datetime.now().timestamp())}"
+            
+            # Set default status if not provided
+            if "status" not in application:
+                application["status"] = SAVED
+            
+            # Add timestamp
+            application["created_at"] = datetime.now().isoformat()
+            application["updated_at"] = application["created_at"]
+            
+            # Add to applications dict with ID as key
+            state['agent_knowledge']['applications'][application["id"]] = application
+            
+            # Save updated state
+            global_state.set_state(state, user_id)
+            
+            return application
+            
+        except Exception as e:
+            print(f"Error saving application to MongoDB: {e}")
+            return application  # Return the application anyway for client-side use
     
     def update_application(self, user_id: str, app_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Update an existing application"""
-        applications = self.get_applications(user_id)
-        
-        for i, app in enumerate(applications):
-            if app.get("id") == app_id:
-                # Update fields
-                for key, value in updates.items():
-                    applications[i][key] = value
-                
-                # Update timestamp
-                applications[i]["updated_at"] = datetime.now().isoformat()
-                
-                # Save to file
-                self._save_applications(user_id, applications)
-                
-                return applications[i]
-        
-        return None  # Application not found
-    
-    def _save_applications(self, user_id: str, applications: List[Dict[str, Any]]):
-        """Save applications to file"""
-        file_path = self._get_user_file_path(user_id)
-        
+        """Update an existing application in MongoDB"""
         try:
-            with open(file_path, 'w') as f:
-                json.dump(applications, f, indent=2)
+            # Get current state
+            state = global_state.get_state(user_id)
+            
+            # Check if applications exist
+            if 'agent_knowledge' not in state or 'applications' not in state['agent_knowledge']:
+                return None
+                
+            applications = state['agent_knowledge']['applications']
+            
+            # Check if application exists
+            if app_id not in applications:
+                return None
+                
+            # Update fields
+            for key, value in updates.items():
+                applications[app_id][key] = value
+            
+            # Update timestamp
+            applications[app_id]["updated_at"] = datetime.now().isoformat()
+            
+            # Save updated state
+            global_state.set_state(state, user_id)
+            
+            return applications[app_id]
+            
         except Exception as e:
-            print(f"Error saving applications: {e}")
-    
-    def _get_dummy_data(self) -> List[Dict[str, Any]]:
-        """Return dummy data for testing"""
-        now = datetime.now()
-        
-        return [
-            {
-                "id": "1",
-                "company": "Acme Corp",
-                "position": "UI Designer",
-                "status": APPLIED,
-                "location": "San Francisco, CA",
-                "days_since_applied": 12,
-                "days_until_followup": 2,
-                "notes": "Applied through company website",
-                "created_at": (now - timedelta(days=12)).isoformat(),
-                "updated_at": (now - timedelta(days=12)).isoformat()
-            },
-            {
-                "id": "2",
-                "company": "TechStart",
-                "position": "Frontend Developer",
-                "status": INTERVIEW,
-                "location": "Remote",
-                "days_since_applied": 5,
-                "interview_date": (now + timedelta(days=1)).isoformat(),
-                "notes": "First interview scheduled",
-                "created_at": (now - timedelta(days=5)).isoformat(),
-                "updated_at": (now - timedelta(days=1)).isoformat()
-            },
-            {
-                "id": "3",
-                "company": "BigCorp",
-                "position": "UX Researcher",
-                "status": REJECTED,
-                "location": "New York, NY",
-                "days_since_applied": 20,
-                "notes": "Rejected after initial screening",
-                "created_at": (now - timedelta(days=20)).isoformat(),
-                "updated_at": (now - timedelta(days=15)).isoformat()
-            }
-        ]
+            print(f"Error updating application in MongoDB: {e}")
+            return None
 
 # Initialize LLM with Ollama
 llm = LLM(
@@ -152,9 +130,9 @@ class TrackPalCrew():
     agents_config_path = "config/agents.yaml"
     tasks_config_path = "config/tasks.yaml"
     
-    def __init__(self, storage_dir="./data"):
-        # Initialize application manager
-        self.application_manager = ApplicationManager(storage_dir)
+    def __init__(self):
+        # Initialize application manager with MongoDB backend
+        self.application_manager = ApplicationManager()
         
         # Load configuration files
         import yaml
@@ -446,9 +424,12 @@ def respond(message):
     YOUR RESPONSE MUST FOLLOW THIS EXACT FORMAT WITH 3 INSIGHTS.
     """
     
+    # Use the same environment variable as the CrewAI LLM
+    ollama_base_url = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
+    
     response = litellm.completion(
         model="ollama/llama3.2",
-        api_base="http://host.docker.internal:11434",
+        api_base=ollama_base_url,
         messages=[{"role": "user", "content": formatted_message}],
         temperature=0.5  # Lower temperature for more consistent outputs
     )

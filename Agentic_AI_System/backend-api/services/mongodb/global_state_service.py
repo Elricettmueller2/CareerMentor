@@ -13,7 +13,7 @@ import uuid
 
 from .client import MongoDBClient
 
-# Default state structure
+# Default state 
 DEFAULT_STATE = {
     "user": {
         "id": "default_user",
