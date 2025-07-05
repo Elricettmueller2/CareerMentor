@@ -1,7 +1,5 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import mockData from '../assets/data/mock_global_state.json';
-import { mockGlobalStateService } from './MockGlobalStateService';
 
 // API base URLs - try different options based on environment
 const API_URLS = {
@@ -87,18 +85,14 @@ export const TrackPalService = {
       const userId = await TrackPalService.getUserId();
       console.log('Calling check_reminders with userId:', userId);
       
-      // Get applications from mock global state
-      const applications = mockGlobalStateService.getApplications();
-      
-      // First try to send the applications to the backend for AI analysis
+      // First try to send the request to the backend for AI analysis
       return await tryAPIUrls(async (baseUrl) => {
         console.log('API URL:', `${baseUrl}/check_reminders`);
         
-        // Send the applications data from mock_global_state.json to the backend
+        // Send the user ID to the backend (backend will fetch applications from MongoDB)
         const response = await axios.post(`${baseUrl}/check_reminders`, {
           data: { 
-            user_id: userId,
-            applications: applications // Send the actual applications data
+            user_id: userId
           }
         });
         
@@ -191,17 +185,13 @@ export const TrackPalService = {
       const userId = await TrackPalService.getUserId();
       console.log('Calling analyze_patterns with userId:', userId);
       
-      // Get applications from mock global state
-      const applications = mockGlobalStateService.getApplications();
-      
       return await tryAPIUrls(async (baseUrl) => {
         console.log('API URL:', `${baseUrl}/analyze_patterns`);
         
-        // Send the applications data from mock_global_state.json to the backend
+        // Send the user ID to the backend (backend will fetch applications from MongoDB)
         const response = await axios.post(`${baseUrl}/analyze_patterns`, {
           data: { 
-            user_id: userId,
-            applications: applications // Send the actual applications data
+            user_id: userId
           }
         });
         

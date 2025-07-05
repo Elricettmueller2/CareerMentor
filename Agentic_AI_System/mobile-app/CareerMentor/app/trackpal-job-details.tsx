@@ -57,14 +57,19 @@ export default function TrackPalJobDetailsScreen() {
       if (!id) return;
       
       try {
+        // Fetch jobs from MongoDB via the JobService
         const jobs = await JobService.getJobs();
         const foundJob = jobs.find(job => job.id === id);
         
         if (foundJob) {
           setApplication(foundJob);
+        } else {
+          Alert.alert('Error', 'Job application not found');
+          router.back();
         }
       } catch (error) {
         console.error('Error fetching job details:', error);
+        Alert.alert('Error', 'Failed to load job details');
       } finally {
         setLoading(false);
       }
