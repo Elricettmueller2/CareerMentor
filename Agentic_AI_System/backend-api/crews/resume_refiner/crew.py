@@ -1,125 +1,157 @@
-# crews/resume_refiner/crew.py
-from crewai import Agent, Task, Crew, LLM
-from crewai.project import CrewBase, agent, task, crew
-from crewai.agents.agent_builder.base_agent import BaseAgent
-import litellm
-import os
-import pathlib
-
-# Import the agent implementations
-from .layout_agent import LayoutAgent
+from typing import Dict, List, Any, Optional
+from crewai import Agent, Crew, Task
 from .parser_agent import ParserAgent
+from .layout_agent import LayoutAgent
 from .quality_agent import QualityAgent
 from .match_agent import MatchAgent
-
-litellm._turn_on_debug()
-
-llm = LLM(
-    model="ollama/llama3.2",
-    base_url=os.getenv("OLLAMA_BASE_URL"),
+from services.mongodb.mongodb_resume_utils import (
+    save_parsed_resume,
+    save_resume_feedback,
+    save_job_matching_results,
+    get_saved_jobs_for_matching
 )
 
-@CrewBase
-class ResumeRefinerCrew():
-
-    agents: list[BaseAgent]
-    tasks: list[Task]
-    base_dir = pathlib.Path(__file__).parent.absolute()
-    agents_config = os.path.join(base_dir, "config/agents.yaml")
-    tasks_config = os.path.join(base_dir, "config/tasks.yaml")
-    
-    # Agent instances
-    _layout_agent = None
-    _parser_agent = None
-    _quality_agent = None
-    _match_agent = None
+class ResumeRefinerCrew:
+    """
+    Crew for resume refinement tasks including parsing, layout analysis,
+    quality evaluation, and job matching.
+    """
     
     def __init__(self):
-        """Initialize agent instances"""
-        self._layout_agent = LayoutAgent()
-        self._parser_agent = ParserAgent()
-        self._quality_agent = QualityAgent()
-        self._match_agent = MatchAgent()
-
-    @agent
-    def layout_agent(self) -> Agent:
-        return Agent(
-            config=self.agents_config['layout_agent'],
-            llm=llm,
-            verbose=True
-        )
+        """Initialize agents for resume processing"""
+        self.parser = ParserAgent()
+        self.layout_agent = LayoutAgent()
+        self.quality_agent = QualityAgent()
+        self.match_agent = MatchAgent()
     
-    @agent
-    def parser_agent(self) -> Agent:
-        return Agent(
-            config=self.agents_config['parser_agent'],
-            llm=llm,
-            verbose=True
-        )
+    def parse_document(self, upload_file, user_id: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Parse an uploaded resume document and save to MongoDB if user_id is provided.
+        
+        Args:
+            upload_file: FastAPI UploadFile object
+            user_id: Optional user ID for saving to MongoDB
+            
+        Returns:
+            Dictionary with parsed resume data
+        """
+        # Save the uploaded file
+        upload_id = self.parser.save_upload(upload_file)
+        
+        # Parse the document with sections
+        parsed_data = self.parser.parse_with_sections(upload_id)
+        
+        # Save to MongoDB if user_id is provided
+        if user_id:
+            save_parsed_resume(user_id, upload_id, parsed_data)
+        
+        # Return the parsed data and upload_id
+        return {
+            "upload_id": upload_id,
+            "parsed_data": parsed_data
+        }
     
-    @agent
-    def quality_agent(self) -> Agent:
-        return Agent(
-            config=self.agents_config['quality_agent'],
-            llm=llm,
-            verbose=True
-        )
+    def analyze_layout(self, upload_id: str, user_id: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Analyze the layout of a parsed resume and save feedback to MongoDB if user_id is provided.
+        
+        Args:
+            upload_id: ID of the uploaded file
+            user_id: Optional user ID for saving to MongoDB
+            
+        Returns:
+            Dictionary with layout analysis results
+        """
+        # Get the parsed data
+        parsed_data = self.parser.parse_with_sections(upload_id)
+        
+        # Analyze the layout
+        layout_analysis = self.layout_agent.analyze_layout(parsed_data)
+        
+        # Save to MongoDB if user_id is provided
+        if user_id:
+            feedback_data = {
+                "layout_analysis": layout_analysis
+            }
+            save_resume_feedback(user_id, upload_id, feedback_data)
+        
+        return layout_analysis
     
-    @agent
-    def match_agent(self) -> Agent:
-        return Agent(
-            config=self.agents_config['match_agent'],
-            llm=llm,
-            verbose=True
-        )
-
-    @task
-    def analyze_layout(self) -> Task:
-        return Task(config=self.tasks_config['analyze_layout'])
-
-    @task
-    def parse_resume(self) -> Task:
-        return Task(config=self.tasks_config['parse_resume'])
-
-    @task
-    def evaluate_resume(self) -> Task:
-        return Task(config=self.tasks_config['evaluate_resume'])
-
-    @task
-    def match_resume(self) -> Task:
-        return Task(config=self.tasks_config['match_resume'])
-
-    @crew
-    def crew(self) -> Crew:
-        return Crew(agents=self.agents, tasks=self.tasks, verbose=True)
+    def evaluate_quality(self, upload_id: str, user_id: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Evaluate the quality of a parsed resume and save feedback to MongoDB if user_id is provided.
+        
+        Args:
+            upload_id: ID of the uploaded file
+            user_id: Optional user ID for saving to MongoDB
+            
+        Returns:
+            Dictionary with quality evaluation results
+        """
+        # Get the parsed data
+        parsed_data = self.parser.parse_with_sections(upload_id)
+        
+        # Evaluate the quality
+        quality_evaluation = self.quality_agent.evaluate_resume(parsed_data)
+        
+        # Save to MongoDB if user_id is provided
+        if user_id:
+            # Get existing feedback if any
+            feedback_data = {}
+            if user_id:
+                from services.mongodb.mongodb_resume_utils import get_parsed_resume
+                resume_data = get_parsed_resume(user_id, upload_id)
+                if resume_data and "feedback" in resume_data:
+                    feedback_data = resume_data["feedback"]
+            
+            # Add quality evaluation to feedback
+            feedback_data["quality_evaluation"] = quality_evaluation
+            save_resume_feedback(user_id, upload_id, feedback_data)
+        
+        return quality_evaluation
     
-    # Helper methods to expose agent functionality directly
+    def match_jobs(self, upload_id: str, job_descriptions: List[Dict[str, Any]], user_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Match a resume against job descriptions and save results to MongoDB if user_id is provided.
+        
+        Args:
+            upload_id: ID of the uploaded file
+            job_descriptions: List of job description dictionaries
+            user_id: Optional user ID for saving to MongoDB
+            
+        Returns:
+            List of job matches with similarity scores
+        """
+        # Get the parsed data
+        parsed_data = self.parser.parse_with_sections(upload_id)
+        
+        # Match against jobs
+        job_matches = self.match_agent.match_jobs(parsed_data, job_descriptions)
+        
+        # Save to MongoDB if user_id is provided
+        if user_id:
+            for job_match in job_matches:
+                job_id = job_match.get("job_id", job_match.get("id", "unknown"))
+                save_job_matching_results(user_id, upload_id, job_id, job_match)
+        
+        return job_matches
     
-    def save_upload(self, upload_file):
-        """Save uploaded file and return upload_id"""
-        return self._parser_agent.save_upload(upload_file)
-    
-    def analyze_document_layout(self, upload_id):
-        """Analyze document layout (PDF or image) using LayoutAgent"""
-        return self._layout_agent.analyze_layout(upload_id)
-    
-    def parse_document(self, upload_id):
-        """Parse document (PDF or image) and extract sections using ParserAgent"""
-        return self._parser_agent.parse_with_sections(upload_id)
-    
-    def evaluate_quality(self, resume_data, layout_data=None):
-        """Evaluate resume quality using QualityAgent"""
-        return self._quality_agent.evaluate_resume(resume_data, layout_data)
-    
-    def match_jobs(self, resume_data, job_descriptions):
-        """Match resume against job descriptions using MatchAgent"""
-        return self._match_agent.match_jobs(resume_data, job_descriptions)
-    
-    # Keep old method names for backward compatibility
-    def analyze_pdf_layout(self, upload_id):
-        """Legacy method - use analyze_document_layout instead"""
-        return self.analyze_document_layout(upload_id)
-    
-    def parse_pdf(self, upload_id):
-        """Legacy method - use parse_document instead"""
-        return self.parse_document(upload_id)
+    def match_with_saved_jobs(self, upload_id: str, user_id: str) -> List[Dict[str, Any]]:
+        """
+        Match a resume against user's saved jobs from MongoDB.
+        
+        Args:
+            upload_id: ID of the uploaded file
+            user_id: User ID for retrieving saved jobs
+            
+        Returns:
+            List of job matches with similarity scores
+        """
+        # Get saved jobs for the user
+        saved_jobs = get_saved_jobs_for_matching(user_id)
+        
+        if not saved_jobs:
+            return []
+        
+        # Match against saved jobs
+        return self.match_jobs(upload_id, saved_jobs, user_id)

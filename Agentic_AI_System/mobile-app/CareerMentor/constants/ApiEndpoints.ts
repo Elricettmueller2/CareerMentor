@@ -6,6 +6,13 @@ export const API_BASE_URL = 'https://evident-hyena-lately.ngrok-free.app'; // Us
 // Simplified fallback URLs
 export const API_FALLBACK_URLS = [
   "https://evident-hyena-lately.ngrok-free.app",
+  "https://evident-hyena-lately.ngrok-free.app",
+  "https://evident-hyena-lately.ngrok-free.app",
+  "https://evident-hyena-lately.ngrok-free.app",
+  "https://evident-hyena-lately.ngrok-free.app",
+  "https://evident-hyena-lately.ngrok-free.app",
+  "https://evident-hyena-lately.ngrok-free.app",
+  "https://evident-hyena-lately.ngrok-free.app",
   'http://localhost:8000',
   'http://127.0.0.1:8000',
   'http://192.168.178.24:8000', // Your actual IP address
