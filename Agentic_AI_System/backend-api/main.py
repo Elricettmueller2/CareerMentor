@@ -483,7 +483,7 @@ async def get_resume_job_matches(user_id: str, upload_id: str, job_id: Optional[
 
 # Legacy Resume Refiner endpoints for mobile app compatibility
 @app.post("/resumes/upload", tags=["ResumeRefiner"])
-async def legacy_upload_resume(file: UploadFile = File(...)):
+async def legacy_upload_resume(file: UploadFile = File(...), user_id: Optional[str] = None):
     """Legacy endpoint for uploading a resume PDF or image (JPEG, PNG, HEIC)"""
     try:
         # Check if the file is a supported type (PDF, JPEG, PNG, HEIC)
@@ -498,8 +498,11 @@ async def legacy_upload_resume(file: UploadFile = File(...)):
         if not (is_pdf or is_jpeg or is_png or is_heic):
             raise HTTPException(400, "Only PDF, JPEG, PNG, and HEIC files are supported")
         
+        # Use default user ID if none provided
+        effective_user_id = user_id if user_id else "default_user"
+        
         # Use our new implementation but format the response to match the old format
-        result = refiner_upload_and_parse(file)
+        result = refiner_upload_and_parse(file, effective_user_id)
         return {"upload_id": result["upload_id"]}
     except Exception as e:
         logger.error(f"Error in legacy_upload_resume: {str(e)}")
