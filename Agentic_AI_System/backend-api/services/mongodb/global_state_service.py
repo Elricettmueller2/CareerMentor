@@ -39,7 +39,31 @@ DEFAULT_STATE = {
             "resumes": {}
         },
         "job_search": {
-            "saved_jobs": [],
+            "saved_jobs": [
+                # Beispiel für die Struktur eines gespeicherten Jobs
+                # {
+                #     "id": "",                  # Job-ID von der Quelle (z.B. Adzuna)
+                #     "position": "",            # Jobtitel/Position
+                #     "company": "",             # Firmenname
+                #     "location": "",            # Standort
+                #     "application_link": "",    # Link zur Bewerbung
+                #     "description": "",         # Jobbeschreibung
+                #     "match_score": 0,          # Übereinstimmungswert (0-100)
+                #     "distance": 0,             # Entfernung (falls verfügbar)
+                #     "education_required": "",  # Erforderliche Ausbildung
+                #     "experience_required": 0,  # Erforderliche Erfahrung in Jahren
+                #     "salary": "",              # Gehaltsangabe (falls verfügbar)
+                #     "skills": [],              # Liste der erforderlichen Fähigkeiten
+                #     "requirements": "",        # Weitere Anforderungen
+                #     "source": "",              # Quelle des Jobs (z.B. "Adzuna")
+                #     "status": "",              # Bewerbungsstatus (falls verfolgt)
+                #     "days_since_applied": "",  # Tage seit Bewerbung (falls verfolgt)
+                #     "days_until_followup": "", # Tage bis zum Follow-up (falls verfolgt)
+                #     "notes": "",               # Notizen zum Job
+                #     "created_at": "",          # Erstellungsdatum
+                #     "updated_at": ""           # Aktualisierungsdatum
+                # }
+            ],
             "search_history": [],
             "recent_searches": []
         },
