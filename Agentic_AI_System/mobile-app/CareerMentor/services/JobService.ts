@@ -54,21 +54,27 @@ const convertSavedJobToApplication = (savedJob: SavedJob): JobApplication => {
       followUpDate = date.toISOString();
     }
   }
+  
+  // Ensure we have a valid date for appliedDate
+  let appliedDate = savedJob.created_at;
+  if (!appliedDate || appliedDate === 'Invalid Date' || !Date.parse(appliedDate)) {
+    appliedDate = new Date().toISOString();
+  }
 
   return {
     id: savedJob.id,
-    jobTitle: savedJob.position,
-    company: savedJob.company,
-    location: savedJob.location,
-    description: savedJob.description,
+    jobTitle: savedJob.position || 'Unknown Title', // Ensure we always have a title
+    company: savedJob.company || 'Unknown Company',
+    location: savedJob.location || '',
+    description: savedJob.description || '',
     applicationDeadline: null, // Not available in saved job format
     applicationDeadlineReminder: null,
-    status: savedJob.status.toLowerCase(),
+    status: savedJob.status?.toLowerCase() || 'saved',
     followUpDate,
     followUpTime: '10:00', // Default time
     notes: savedJob.notes || '',
-    jobUrl: savedJob.application_link,
-    appliedDate: savedJob.created_at,
+    jobUrl: savedJob.application_link || '',
+    appliedDate: appliedDate,
     interviewReminder: null
   };
 };
@@ -188,7 +194,8 @@ export const JobService = {
         console.log('Get applications response:', response.data);
         
         if (response.data && response.data.applications) {
-          return response.data.applications;
+          // Convert each saved job to JobApplication format
+          return response.data.applications.map((job: SavedJob) => convertSavedJobToApplication(job));
         }
         
         return [];

@@ -123,8 +123,8 @@ docker build -t careermentor-backend .
 docker run -d --name careermentor-backend -p 8000:8000 --add-host=host.docker.internal:host-gateway -e OLLAMA_BASE_URL=http://host.docker.internal:11434 -e ADZUNA_APP_ID=ac7d329d -e ADZUNA_API_KEY=fd74aa940604de795dcd178d167fc279 careermentor-backend
 
 ===== Start MongoDB =====
-docker run -d --name career-mentor-mongodb -p 27017:27017 mongo:latest
-docker start career-mentor-mongodb
+docker run -d --name careermentor-mongodb -p 27017:27017 mongo:latest
+docker start careermentor-mongodb
 
 ===== Windsurf Prompts =====
 Remove everything in docker

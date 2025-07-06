@@ -26,6 +26,9 @@ def save_job_for_user(user_id: str, job_data: Dict[str, Any]) -> Dict[str, Any]:
         The saved job data
     """
     # Format the job data according to our schema
+    # Ensure we have a valid created_at date
+    current_time = datetime.now().isoformat()
+    
     formatted_job = {
         "id": job_data.get("id", str(uuid.uuid4())),
         "position": job_data.get("position", job_data.get("title", "Unknown Title")),
@@ -40,14 +43,14 @@ def save_job_for_user(user_id: str, job_data: Dict[str, Any]) -> Dict[str, Any]:
         "salary": job_data.get("salary", ""),
         "skills": job_data.get("skills", []),
         "requirements": job_data.get("requirements", ""),
-        "source": job_data.get("source", "Adzuna"),
-        "status": job_data.get("status", ""),
+        "source": job_data.get("source", "PathFinder"),  # Changed default from Adzuna to PathFinder
+        "status": job_data.get("status", "saved"),  # Set a default status
         "days_since_applied": job_data.get("days_since_applied", ""),
         "days_until_followup": job_data.get("days_until_followup", ""),
         "notes": job_data.get("notes", ""),
         "application_status": job_data.get("application_status", "not applied"),
-        "created_at": datetime.now().isoformat(),
-        "updated_at": datetime.now().isoformat()
+        "created_at": job_data.get("created_at", current_time),  # Use provided date or current time
+        "updated_at": current_time
     }
     
     # Check if the job is already saved

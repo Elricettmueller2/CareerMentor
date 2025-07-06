@@ -13,7 +13,8 @@ from services.mongodb.client import mongo_client
 from crews.mock_mate.run_mock_mate_crew import run_respond_to_answer, run_start_interview, run_review_interview, run_prepare_custom_interview
 from crews.track_pal.run_track_pal_crew import run_check_reminders, run_analyze_patterns, get_applications, save_application, update_application
 from crews.track_pal.crew import respond
-from crews.test.run_test_crew import run_test_crew
+# Commented out missing module
+# from crews.test.run_test_crew import run_test_crew
 from services.session_manager import add_message_to_history, get_conversation_history, set_session_metadata, get_session_metadata
 from crews.path_finder.run_path_finder_crew import run_path_finder_crew, run_path_finder_direct
 from crews.path_finder.search_path import get_job_details, get_job_recommendations, save_job, unsave_job, get_saved_jobs
@@ -219,19 +220,20 @@ async def mock_mate_endpoint(action: str, request: AgentRequest):
         raise HTTPException(status_code=500, detail=error_msg)
 
 
-@app.post("/agents/test", tags=["Agents", "Test"])
-async def test_agent(request: AgentRequest):
-    """Test endpoint for the agent"""
-    try:
-        # Extract request data
-        data = request.data
-        
-        result = run_test_crew(
-            text=data.get("text")
-        )
-        return {"response": result}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+# Test endpoint commented out due to missing module
+# @app.post("/agents/test", tags=["Agents", "Test"])
+# async def test_agent(request: AgentRequest):
+#     """Test endpoint for the agent"""
+#     try:
+#         # Extract request data
+#         data = request.data
+#         
+#         result = run_test_crew(
+#             text=data.get("text")
+#         )
+#         return {"response": result}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
 
 # Note: The direct_test endpoint has been removed as part of the chat feature removal
 
