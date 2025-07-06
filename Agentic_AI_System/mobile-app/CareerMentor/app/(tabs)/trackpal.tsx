@@ -21,6 +21,7 @@ import AIInsightsSection from '../../components/trackpal/AIInsightsSection';
 import AddJobButton from '../../components/trackpal/AddApplicationButton';
 import EmptyState from '../../components/trackpal/EmptyState';
 import ApplicationsList from '../../components/trackpal/ApplicationsList';
+import AnimatedLoadingText from '../../components/trackpal/AnimatedLoadingText';
 
 // Import common components
 import CareerDaddyHeader from '../../components/common/CareerDaddyHeader';
@@ -48,7 +49,6 @@ export default function TrackPalScreen() {
   const [loadingInsights, setLoadingInsights] = useState(false);
 
   // Auto-loading of insights when the component mounts
-  // (comment out if you don't want to load insights on initial load)
   useEffect(() => {
     loadPatternInsights();
   }, []);
@@ -205,7 +205,7 @@ export default function TrackPalScreen() {
       return (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={CAREER_COLORS.nightSky} />
-          <Text style={styles.loadingText}>Loading your applications...</Text>
+          <AnimatedLoadingText type="jobs" />
         </View>
       );
     }
@@ -282,11 +282,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: CAREER_COLORS.nightSky,
   },
   scrollContainer: {
     flex: 1,

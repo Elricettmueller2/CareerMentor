@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import InsightCard from './InsightCard';
+import AnimatedLoadingText from './AnimatedLoadingText';
 import { PatternInsight } from '../../services/TrackPalService';
 
 interface AIInsightsSectionProps {
@@ -25,7 +26,10 @@ const AIInsightsSection: React.FC<AIInsightsSectionProps> = ({
       </View>
       
       {loading ? (
-        <ActivityIndicator size="small" color="#4a6da7" style={{marginVertical: 20}} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color="#4a6da7" />
+          <AnimatedLoadingText style={styles.insightLoadingText} type="insights" />
+        </View>
       ) : (
         <View style={styles.insightsContainer}>
           {insights.map((insight) => (
@@ -39,7 +43,7 @@ const AIInsightsSection: React.FC<AIInsightsSectionProps> = ({
           
           {insights.length === 0 && (
             <Text style={styles.noInsightsText}>
-              No insights available. Add more applications to get personalized insights.
+              No insights available. Please refresh.
             </Text>
           )}
         </View>
@@ -54,6 +58,15 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 8,
     backgroundColor: 'transparent',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  insightLoadingText: {
+    fontSize: 14,
+    marginTop: 8,
   },
   sectionHeader: {
     flexDirection: 'row',
