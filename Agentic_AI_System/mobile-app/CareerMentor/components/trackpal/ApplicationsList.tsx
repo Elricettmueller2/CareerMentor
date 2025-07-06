@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { JobApplication } from '../../services/ApplicationService';
+import { JobApplication } from '../../services/JobService';
 import EmptyState from './EmptyState';
 import { CAREER_COLORS } from '../../constants/Colors';
 
@@ -87,8 +87,8 @@ const ApplicationsList = ({
     return (
       <EmptyState 
         icon="document-text-outline"
-        title="No Applications Yet"
-        subtitle="Add your first job application to start tracking"
+        title="No Saved Jobs Yet"
+        subtitle="Add your first job to start tracking"
       />
     );
   }

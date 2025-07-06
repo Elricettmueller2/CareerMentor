@@ -21,10 +21,9 @@ const CategoryProgressBar: React.FC<CategoryProgressBarProps> = ({
   
   // Get color based on score
   const getScoreColor = (score: number): string => {
-    if (score >= 90) return CAREER_COLORS.sky;
-    if (score >= 75) return CAREER_COLORS.rose;
-    if (score >= 60) return CAREER_COLORS.lightRose;
-    return CAREER_COLORS.nightSky;
+    if (score >= 75) return CAREER_COLORS.green;  // Good score - green
+    if (score >= 50) return CAREER_COLORS.yellow; // Medium score - yellow
+    return CAREER_COLORS.red;                     // Poor score - red
   };
   
   const dynamicFillColor = fillColor === CAREER_COLORS.sky ? getScoreColor(safeScore) : fillColor;

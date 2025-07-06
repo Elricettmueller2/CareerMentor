@@ -1,6 +1,6 @@
-# CareerMentor
+# CareerDaddy
 
-CareerMentor is an AI-powered career development platform that helps users navigate their professional journey through specialized AI agents. The platform offers mock interviews, career path recommendations, resume refinement, and application tracking in a mobile-friendly interface.
+CareerDaddy is an AI-powered career development platform that helps users navigate their professional journey through specialized AI agents. The platform offers mock interviews, career path recommendations, resume refinement, and application tracking in a mobile-friendly interface.
 
 ## 🌟 Features
 
@@ -11,7 +11,7 @@ CareerMentor is an AI-powered career development platform that helps users navig
 
 ## 🏗️ Architecture
 
-CareerMentor follows an agent-based architecture using CrewAI:
+CareerDaddy follows an agent-based architecture using CrewAI:
 
 ```
 ┌─────────────────┐     ┌─────────────────┐
@@ -70,6 +70,19 @@ cp .env.example .env
 ```bash
 docker build -t careermentor-backend .
 docker run -p 8000:8000 --env-file .env careermentor-backend
+```
+
+#### Option 3: Quick Setup Script
+
+A shell script for instant setup is there. This script does automate the entire backend setup process, including environment configuration, dependency installation, and service startup.
+
+to use it run:
+
+
+```bash
+# From the project root directory
+chmod +x start_careermentor.sh  # Make the script executable (first time only)
+./start_careermentor.sh
 ```
 
 #### Option 2: Local Development Setup
@@ -181,7 +194,7 @@ The backend implements multiple AI agents, each with specific capabilities:
 - **Framework**: FastAPI
 - **Agent Framework**: CrewAI
 - **Language Model**: Ollama with Llama 3.2
-- **Database**: SQLite
+- **Database**: MongoDB
 - **Key Dependencies**:
   - `crewai`: Framework for building AI agent systems
   - `langchain`: Framework for LLM applications

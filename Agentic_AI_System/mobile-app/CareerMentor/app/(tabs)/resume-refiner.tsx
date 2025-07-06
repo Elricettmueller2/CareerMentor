@@ -11,13 +11,17 @@ import { ResumeService } from '@/services/ResumeService';
 import { loadJobs } from '@/utils/dataLoader';
 import { truncateText, formatPercentage } from '@/utils/formatters';
 import GradientButton from '@/components/trackpal/GradientButton';
+import { LinearGradient } from 'expo-linear-gradient';
+import { mockGlobalStateService } from '@/services/MockGlobalStateService';
+import { useRouter } from 'expo-router';
 
 // Import resume-refiner components
 import UploadOptionsModal from '@/components/resume-refiner/UploadOptionsModal';
 import ResumeAnalysisResults from '@/components/resume-refiner/ResumeAnalysisResults';
 import FileUploadStatus from '@/components/resume-refiner/FileUploadStatus';
 import CircularProgress from '@/components/resume-refiner/CircularProgress';
-import JobCard from '@/components/resume-refiner/JobCard';
+import TrackpalStyleJobCard from '@/components/resume-refiner/TrackpalStyleJobCard';
+import HeaderWithToggle from '@/components/common/HeaderWithToggle';
 
 // Import services
 import { FileUploadService } from '@/services/FileUploadService';
@@ -139,17 +143,25 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   loadingContainer: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 20,
+  },
+  loadingProgressContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 30,
   },
   loadingText: {
     fontSize: 16,
     marginTop: 10,
     color: COLORS.nightSky,
   },
-  jobList: {
+  loadingTextBelow: {
     marginTop: 20,
+  },
+  jobList: {
+    marginTop: 8,
   },
   matchButton: {
     backgroundColor: COLORS.nightSky,
@@ -421,9 +433,7 @@ const styles = StyleSheet.create({
     color: COLORS.midnight,
     textAlign: 'center',
   },
-  matchContainer: {
-    flex: 1,
-  },
+
   jobListSection: {
     marginBottom: 20,
   },
@@ -540,16 +550,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  replaceGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
   currentCVActionText: {
     fontSize: 13,
     fontWeight: '500',
-    color: COLORS.sky,
+    color: 'white',
     marginRight: 4,
   },
   matchInstructionText: {
     fontSize: 14,
     color: COLORS.midnight,
     marginBottom: 12,
+    width: '100%',
+    textAlign: 'left',
   },
   sectionHeader: { 
     fontSize: 18, 
@@ -583,8 +602,9 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   jobListScrollView: {
-    maxHeight: 300,
-    marginBottom: 16,
+    maxHeight: 800,
+    marginBottom: -12,
+    backgroundColor: 'transparent',
   },
   jobSelectionHeader: {
     flexDirection: 'row',
@@ -596,10 +616,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  addCustomJobText: {
-    marginLeft: 4,
-    color: COLORS.sky,
+  addJobButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 30,
+  },
+  addJobButtonText: {
+    color: COLORS.white,
+    fontSize: 14,
     fontWeight: '600',
+    marginLeft: 10,
   },
   customJobForm: {
     backgroundColor: COLORS.salt,
@@ -628,22 +656,6 @@ const styles = StyleSheet.create({
   addCustomJobSubmitText: {
     color: COLORS.white,
     fontWeight: 'bold',
-  },
-  stickyMessageContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: COLORS.salt,
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.lightGray,
-    alignItems: 'center',
-  },
-  stickyMessage: {
-    fontSize: 16,
-    color: COLORS.midnight,
-    textAlign: 'center',
   },
   missingKeywordsContainer: {
     marginTop: 16,
@@ -698,18 +710,108 @@ const styles = StyleSheet.create({
     width: '60%',
     marginBottom: 20,
   },
+  floatingMatchButton: {
+    position: 'absolute',
+    bottom: 0,
+    alignSelf: 'flex-end',
+    borderRadius: 30,
+    overflow: 'hidden',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3.84,
+    zIndex: 1000,
+    width: '50%',
+    maxWidth: 500,
+  },
+  matchButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 25,
+  },
+  matchButtonText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 10,
+  },
+  matchResultModal: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+    width: '100%',
+    height: '100%',
+  },
+  matchResultModalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 24,
+    marginTop: 100,
+    width: '90%',
+    maxHeight: '90%',
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    padding: 8,
+    zIndex: 10,
+  },
+  noJobsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  noJobsText: {
+    fontSize: 16,
+    color: COLORS.midnight,
+    textAlign: 'center',
+  },
+  findJobsButtonContainer: {
+    marginTop: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  findJobsButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 25,
+    borderRadius: 30,
+    maxWidth: '50%',
+  },
+  findJobsButtonText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 10,
+  },
+  findMoreJobsButtonContainer: {
+    marginTop: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
 
 // Helper function to determine the color based on match percentage
 const getMatchColor = (match: number): string => {
-  if (match >= 90) return COLORS.sky;
-  if (match >= 75) return COLORS.rose;
-  if (match >= 60) return COLORS.lightRose;
-  return COLORS.nightSky;
+  if (match >= 75) return COLORS.green;  // Good match - green
+  if (match >= 50) return COLORS.yellow; // Medium match - yellow
+  return COLORS.red;                     // Poor match - red
 };
 
 export default function ResumeRefinerScreen() {
   console.log(" ResumeRefinerScreen rendered");
+  
+  const router = useRouter();
   
   // State for job data
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -718,10 +820,9 @@ export default function ResumeRefinerScreen() {
   const [uploadStarted, setUploadStarted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const [loadingStage, setLoadingStage] = useState<'parsing' | 'analyzing' | 'matching'>('parsing');
+  const [loadingStage, setLoadingStage] = useState<'uploading' | 'parsing' | 'analyzing' | 'feedback' | 'matching'>('uploading');
   const [loadingDots, setLoadingDots] = useState('');
   const [currentFileName, setCurrentFileName] = useState<string>('');
-  const [fileSize, setFileSize] = useState<string>('');
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'processing' | 'success' | 'error'>('idle');
   const [uploadError, setUploadError] = useState<string | undefined>(undefined);
   const [uploadId, setUploadId] = useState<string>('');
@@ -759,6 +860,8 @@ export default function ResumeRefinerScreen() {
   const [customJobDescription, setCustomJobDescription] = useState('');
   const [customJobSkills, setCustomJobSkills] = useState('');
 
+  const [showMatchResultModal, setShowMatchResultModal] = useState(false);
+
   // Ref for loading animation cleanup
   const loadingAnimationCleanupRef = useRef<(() => void) | null>(null);
 
@@ -769,7 +872,8 @@ export default function ResumeRefinerScreen() {
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        const loadedJobs = await loadJobs();
+        // Use ResumeService.getSavedJobs() to fetch jobs from MongoDB
+        const loadedJobs = await ResumeService.getSavedJobs();
         // Convert loaded jobs to match our Job interface
         const convertedJobs: Job[] = loadedJobs.map(job => ({
           id: job.id || '',
@@ -790,13 +894,16 @@ export default function ResumeRefinerScreen() {
     fetchJobs();
   }, []);
 
-  // Animation for loading dots
+  // Animation for loading dots (used for resume analysis)
   const startLoadingAnimation = () => {
     // Clear any existing animation
     if (loadingAnimationCleanupRef.current) {
       loadingAnimationCleanupRef.current();
       loadingAnimationCleanupRef.current = null;
     }
+    
+    // Reset loading progress to 0% when starting a new animation
+    setLoadingProgress(0);
     
     const interval = setInterval(() => {
       setLoadingDots(prev => {
@@ -805,17 +912,59 @@ export default function ResumeRefinerScreen() {
       });
     }, 500);
     
-    // Simulate progress for demo purposes
+    // Simulate progress for demo purposes - slower increase
     const progressInterval = setInterval(() => {
       setLoadingProgress(prev => {
-        const newProgress = prev + (Math.random() * 5);
+        // Slower increment (reduced from 5 to 2)
+        const newProgress = prev + (Math.random() * 2);
         if (newProgress >= 100) {
           clearInterval(progressInterval);
           return 100;
         }
         return newProgress;
       });
-    }, 300);
+    }, 500); // Increased interval from 300ms to 500ms
+    
+    // Store cleanup function in ref
+    const cleanup = () => {
+      clearInterval(interval);
+      clearInterval(progressInterval);
+    };
+    
+    loadingAnimationCleanupRef.current = cleanup;
+    return cleanup;
+  };
+  
+  // Faster animation for job matching
+  const startJobMatchingAnimation = () => {
+    // Clear any existing animation
+    if (loadingAnimationCleanupRef.current) {
+      loadingAnimationCleanupRef.current();
+      loadingAnimationCleanupRef.current = null;
+    }
+    
+    // Reset loading progress to 0% when starting a new animation
+    setLoadingProgress(0);
+    
+    const interval = setInterval(() => {
+      setLoadingDots(prev => {
+        if (prev.length >= 3) return '';
+        return prev + '.';
+      });
+    }, 450); // Slowed down dot animation even more from 300ms to 450ms
+    
+    // Simulate progress for demo purposes - much faster increase
+    const progressInterval = setInterval(() => {
+      setLoadingProgress(prev => {
+        // Even slower increment for job matching
+        const newProgress = prev + (Math.random() * 2 + 1); // Add minimum 1% each time, up to 3%
+        if (newProgress >= 100) {
+          clearInterval(progressInterval);
+          return 100;
+        }
+        return newProgress;
+      });
+    }, 400); // Slowed down progress updates even more from 250ms to 400ms
     
     // Store cleanup function in ref
     const cleanup = () => {
@@ -831,12 +980,6 @@ export default function ResumeRefinerScreen() {
   const handleDocumentPick = async () => {
     console.log('Document pick handler triggered');
     
-    // We'll use a separate function to launch the picker after the modal is closed
-    setTimeout(launchDocumentPicker, 500);
-  };
-  
-  // Separate function to launch document picker
-  const launchDocumentPicker = async () => {
     try {
       console.log('Launching document picker...');
       
@@ -844,6 +987,9 @@ export default function ResumeRefinerScreen() {
       const result = await DocumentPicker.getDocumentAsync();
       
       console.log('Document picker result:', result);
+      
+      // Close modal immediately regardless of result
+      setShowUploadOptions(false);
       
       if (result.canceled || !result.assets || result.assets.length === 0) {
         console.log('Document picking was canceled or no file selected');
@@ -858,12 +1004,10 @@ export default function ResumeRefinerScreen() {
       console.log('Selected document:', { fileName, uri });
       
       setCurrentFileName(fileName);
-      const fileSizeInKB = (asset.size / 1024).toFixed(1);
-      setFileSize(`${fileSizeInKB} KB`);
       
       // Start upload process
       setLoading(true);
-      setLoadingStage('parsing');
+      setLoadingStage('uploading');
       setUploadStatus('uploading');
       startLoadingAnimation();
       
@@ -895,20 +1039,20 @@ export default function ResumeRefinerScreen() {
           loadingAnimationCleanupRef.current();
           loadingAnimationCleanupRef.current = null;
         }
+      } finally {
+        setShowUploadOptions(false);
       }
     } catch (pickerError) {
       console.error('Document picker error:', pickerError);
       setUploadError('Error selecting document. Please try again.');
       setUploadStatus('error');
+      setShowUploadOptions(false);
     }
   };
 
   // Function to handle camera capture
   const handleCameraCapture = async () => {
     console.log('Camera capture handler triggered');
-    
-    // Simple delay to ensure modal is closed
-    await new Promise(resolve => setTimeout(resolve, 300));
     
     try {
       console.log('Requesting camera permissions...');
@@ -918,15 +1062,19 @@ export default function ResumeRefinerScreen() {
         console.log('Camera permission denied');
         setUploadError('Camera permission not granted');
         setUploadStatus('error');
+        setShowUploadOptions(false);
         return;
       }
       
       console.log('Launching camera...');
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
+        allowsEditing: false, // Disable editing completely to avoid any cropping
         quality: 1,
       });
+      
+      // Close modal immediately regardless of result
+      setShowUploadOptions(false);
       
       console.log('Camera result:', result);
       
@@ -943,12 +1091,10 @@ export default function ResumeRefinerScreen() {
       console.log('Captured photo:', { fileName, uri });
       
       setCurrentFileName(fileName);
-      const fileSizeInKB = (asset.fileSize / 1024).toFixed(1);
-      setFileSize(`${fileSizeInKB} KB`);
       
       // Start upload process
       setLoading(true);
-      setLoadingStage('parsing');
+      setLoadingStage('uploading');
       setUploadStatus('uploading');
       startLoadingAnimation();
       
@@ -957,7 +1103,7 @@ export default function ResumeRefinerScreen() {
         const response = await ResumeService.uploadResume(uri, fileName, mimeType);
         console.log('Upload successful, response received:', response);
         
-        // Extract upload ID from response - backend returns { upload_id: string }
+        // Extract upload ID from response
         let uploadId = response?.upload_id;
         
         if (!uploadId) {
@@ -980,23 +1126,20 @@ export default function ResumeRefinerScreen() {
           loadingAnimationCleanupRef.current();
           loadingAnimationCleanupRef.current = null;
         }
+      } finally {
+        setShowUploadOptions(false);
       }
     } catch (cameraError) {
       console.error('Camera error:', cameraError);
       setUploadError('Error taking photo. Please try again.');
       setUploadStatus('error');
+      setShowUploadOptions(false);
     }
   };
 
   // Function to handle gallery image pick
   const handleGalleryPick = async () => {
     console.log('Gallery pick handler triggered');
-    
-    // Close the upload options modal first
-    setShowUploadOptions(false);
-    
-    // Simple delay to ensure modal is closed
-    await new Promise(resolve => setTimeout(resolve, 300));
     
     try {
       console.log('Requesting media library permissions...');
@@ -1006,6 +1149,7 @@ export default function ResumeRefinerScreen() {
         console.log('Media library permission denied');
         setUploadError('Gallery access denied. Please enable media access in your device settings.');
         setUploadStatus('error');
+        setShowUploadOptions(false);
         return;
       }
       
@@ -1013,8 +1157,11 @@ export default function ResumeRefinerScreen() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 0.8,
-        allowsEditing: true,
+        allowsEditing: false, // Disable editing completely to avoid any cropping
       });
+      
+      // Close modal immediately regardless of result
+      setShowUploadOptions(false);
       
       console.log('Gallery pick result:', result);
       
@@ -1026,37 +1173,38 @@ export default function ResumeRefinerScreen() {
       // Process the selected image
       const imageUri = result.assets[0].uri;
       const fileName = imageUri.split('/').pop() || 'resume_image.jpg';
+      const mimeType = result.assets[0].mimeType || FileUploadService.getMimeType(fileName);
       
       console.log(`Processing selected image: ${fileName}`);
       
+      // Set file metadata like in camera capture
+      setCurrentFileName(fileName);
+      
       // Start loading animation
       setLoading(true);
-      setLoadingText('Uploading and analyzing your resume...');
+      setLoadingStage('uploading');
       setUploadStatus('uploading');
+      startLoadingAnimation();
       
       try {
-        // Upload the file
-        const uploadResult = await FileUploadService.uploadFile(imageUri, fileName);
-        console.log('Upload result:', uploadResult);
+        // Upload the file using the correct method signature
+        console.log('Starting upload with ResumeService...');
+        const response = await ResumeService.uploadResume(imageUri, fileName, mimeType);
+        console.log('Upload successful, response received:', response);
         
-        if (uploadResult && uploadResult.upload_id) {
-          setUploadedFileName(fileName);
-          setUploadedFileId(uploadResult.upload_id);
-          setUploadStatus('success');
-          
-          // Get resume feedback
-          await fetchResumeFeedback(uploadResult.upload_id);
-        } else {
-          console.error('Upload failed, no upload_id returned');
-          setUploadError('Failed to upload image. Please try again.');
-          setUploadStatus('error');
-          setLoading(false);
-          
-          if (loadingAnimationCleanupRef.current) {
-            loadingAnimationCleanupRef.current();
-            loadingAnimationCleanupRef.current = null;
-          }
+        // Extract upload ID from response
+        let uploadId = response?.upload_id;
+        
+        if (!uploadId) {
+          console.log('No upload_id found in response, using fallback');
+          uploadId = `temp_${Date.now()}`;
         }
+        
+        console.log('Setting upload ID:', uploadId);
+        setUploadId(uploadId);
+        setUploadStarted(true);
+        setUploadStatus('processing'); // Added this line
+        analyzeResume(uploadId);
       } catch (uploadError) {
         console.error('Upload error:', uploadError);
         setUploadError('Failed to upload image. Please try again.');
@@ -1067,20 +1215,30 @@ export default function ResumeRefinerScreen() {
           loadingAnimationCleanupRef.current();
           loadingAnimationCleanupRef.current = null;
         }
+      } finally {
+        setShowUploadOptions(false);
       }
     } catch (galleryError) {
       console.error('Gallery error:', galleryError);
       setUploadError('Error selecting image. Please try again.');
       setUploadStatus('error');
+      setShowUploadOptions(false);
     }
   };
 
   // Function to analyze resume
   const analyzeResume = async (uploadId: string) => {
-    setLoadingStage('analyzing');
+    setLoadingStage('parsing');
     
     try {
+      console.log('Starting resume analysis with upload ID:', uploadId);
+      
+      // Simulate analysis delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       console.log('Requesting resume feedback for upload ID:', uploadId);
+      
+      // Make API call to analyze resume
       const response = await ResumeService.getResumeFeedback(uploadId);
       console.log('Resume feedback response from service:', JSON.stringify(response, null, 2));
       
@@ -1119,6 +1277,16 @@ export default function ResumeRefinerScreen() {
         setFeedbackMessages(feedbackArray);
       }
       
+      setLoadingStage('analyzing');
+      
+      // Simulate analysis delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setLoadingStage('feedback');
+      
+      // Simulate feedback delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       setLoading(false);
       setUploadStatus('success');
       
@@ -1150,15 +1318,70 @@ export default function ResumeRefinerScreen() {
     
     setLoading(true);
     setLoadingStage('matching');
-    startLoadingAnimation();
+    startJobMatchingAnimation(); // Use faster animation for job matching
     
     try {
       console.log(`Matching resume ${uploadId} with job ${selectedJob.id}`);
       const result = await ResumeService.matchResumeWithJob(uploadId, selectedJob.id);
+      
+      // Validate the result to ensure we have actual data
+      if (!result || typeof result.match_score !== 'number') {
+        throw new Error('Invalid match result received from server');
+      }
+      
+      console.log('Match result:', result);
+      
+      // Update the job in the jobs array with the match score
+      const updatedJobs = jobs.map(job => {
+        if (job.id === selectedJob.id) {
+          return { ...job, match: result.match_score };
+        }
+        return job;
+      });
+      
+      setJobs(updatedJobs);
       setMatchResult(result);
+      setShowMatchResultModal(true);
+      
+      // Update the match score in the mock global state
+      try {
+        // Get current saved jobs from mock global state
+        const savedJobs = mockGlobalStateService.getSavedJobs();
+        
+        // Find if this job exists in saved jobs
+        const savedJobIndex = savedJobs.findIndex(job => job.id === selectedJob.id);
+        
+        if (savedJobIndex >= 0) {
+          // Update existing job in saved jobs
+          const updatedJob = {
+            ...savedJobs[savedJobIndex],
+            match_score: result.match_score
+          };
+          mockGlobalStateService.saveJob(updatedJob);
+          console.log(`Updated job ${selectedJob.id} match score in global state`);
+        } else {
+          // If job isn't in saved jobs, we can optionally save it
+          // This is commented out as we may only want to update existing saved jobs
+          // const jobToSave = {
+          //   ...selectedJob,
+          //   match_score: result.match_score
+          // };
+          // mockGlobalStateService.saveJob(jobToSave);
+          console.log(`Job ${selectedJob.id} not found in saved jobs, skipping global state update`);
+        }
+      } catch (stateError) {
+        console.error('Error updating match score in global state:', stateError);
+        // We don't want to fail the whole operation if just the state update fails
+      }
     } catch (error) {
       console.error('Error matching resume with job:', error);
-      Alert.alert('Error', 'Failed to match resume with job. Please try again.');
+      
+      // Provide a more informative error message
+      const errorMessage = error.message || 'Unknown error';
+      Alert.alert(
+        'Resume Matching Failed', 
+        `Could not match your resume with this job. ${errorMessage}\n\nPlease check your internet connection and try again.`
+      );
     } finally {
       setLoading(false);
       
@@ -1220,42 +1443,21 @@ export default function ResumeRefinerScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <Image 
-            source={require('@/assets/images/logo.png')} 
-            style={styles.logo}
-            resizeMode="contain" 
-          />
-          <Text style={styles.headerTitle}>Career Daddy</Text>
-        </View>
-      </View>
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'analyse' ? styles.activeTab : {}]}
-          onPress={() => setActiveTab('analyse')}
-        >
-          <Text style={[styles.tabText, activeTab === 'analyse' ? styles.activeTabText : null]}>Analyse</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'match' ? styles.activeTab : {}]}
-          onPress={() => setActiveTab('match')}
-        >
-          <Text style={[styles.tabText, activeTab === 'match' ? styles.activeTabText : null]}>Match</Text>
-        </TouchableOpacity>
-      </View>
+      <HeaderWithToggle
+        title="CareerDaddy"
+        options={[
+          { id: 'analyse', label: 'Analyse' },
+          { id: 'match', label: 'Match' }
+        ]}
+        activeOptionId={activeTab}
+        onOptionChange={(id) => setActiveTab(id as 'analyse' | 'match')}
+      />
+      
       <View style={styles.content}>
         {activeTab === 'analyse' && (
           <View style={styles.analysisContainer}>
             {loading ? (
               <View style={styles.loadingContainer}>
-                <FileUploadStatus
-                  fileName={currentFileName}
-                  fileSize={fileSize}
-                  status={uploadStatus}
-                  progress={loadingProgress}
-                  errorMessage={uploadError}
-                />
                 <CircularProgress 
                   percentage={loadingProgress} 
                   size={100} 
@@ -1263,7 +1465,10 @@ export default function ResumeRefinerScreen() {
                   progressColor={COLORS.nightSky}
                 />
                 <Text style={styles.loadingText}>
-                  {loadingStage === 'parsing' ? `Parsing resume${loadingDots}` : `Analyzing resume${loadingDots}`}
+                  {loadingStage === 'uploading' && `Uploading Resume${loadingDots}`}
+                  {loadingStage === 'parsing' && `Parsing Resume${loadingDots}`}
+                  {loadingStage === 'analyzing' && `Analyzing Resume${loadingDots}`}
+                  {loadingStage === 'feedback' && `Creating Feedback${loadingDots}`}
                 </Text>
               </View>
             ) : categoryScores ? (
@@ -1271,10 +1476,10 @@ export default function ResumeRefinerScreen() {
                 {/* Current CV display */}
                 <TouchableOpacity 
                   style={styles.currentCVContainer}
-                  onPress={launchDocumentPicker}
+                  onPress={() => setShowUploadOptions(true)}
                 >
                   <View style={styles.currentCVContent}>
-                    <Ionicons name="document-text" size={20} color={COLORS.nightSky} />
+                    <Ionicons name="document" size={20} color={COLORS.nightSky} />
                     <View style={styles.currentCVTextContainer}>
                       <Text style={styles.currentCVTitle}>Current Resume</Text>
                       <Text style={styles.currentCVFilename} numberOfLines={1} ellipsizeMode="middle">
@@ -1283,8 +1488,15 @@ export default function ResumeRefinerScreen() {
                     </View>
                   </View>
                   <View style={styles.currentCVAction}>
-                    <Text style={styles.currentCVActionText}>Replace</Text>
-                    <Ionicons name="arrow-up-circle" size={16} color={COLORS.sky} />
+                    <LinearGradient
+                      colors={[COLORS.rose, COLORS.sky]}
+                      style={styles.replaceGradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                    >
+                      <Text style={styles.currentCVActionText}>Replace</Text>
+                      <Ionicons name="arrow-up-circle" size={16} color="white" />
+                    </LinearGradient>
                   </View>
                 </TouchableOpacity>
                 
@@ -1303,7 +1515,7 @@ export default function ResumeRefinerScreen() {
                   title="Upload Resume"
                   onPress={() => setShowUploadOptions(true)}
                   style={styles.gradientUploadButton}
-                  icon={<Ionicons name="cloud-upload-outline" size={24} color={COLORS.white} />}
+                  icon={<Ionicons name="cloud-upload" size={24} color={COLORS.white} />}
                 />
                 <Text style={styles.uploadDescription}>
                   Upload your resume to get feedback and to match it to job descriptions
@@ -1317,14 +1529,14 @@ export default function ResumeRefinerScreen() {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={{ flex: 1 }}
           >
-            <View style={styles.matchContainer}>
+            <View style={{ flex: 1 }}>
               {!uploadId ? (
                 <View style={styles.uploadContainer}>
                   <GradientButton
                     title="Upload Resume"
                     onPress={() => setShowUploadOptions(true)}
                     style={styles.gradientUploadButton}
-                    icon={<Ionicons name="cloud-upload-outline" size={24} color={COLORS.white} />}
+                    icon={<Ionicons name="cloud-upload" size={24} color={COLORS.white} />}
                   />
                   <Text style={styles.uploadDescription}>
                     Upload your resume to match it with job descriptions
@@ -1332,13 +1544,6 @@ export default function ResumeRefinerScreen() {
                 </View>
               ) : loading ? (
                 <View style={styles.loadingContainer}>
-                  <FileUploadStatus
-                    fileName={currentFileName}
-                    fileSize={fileSize}
-                    status={uploadStatus}
-                    progress={loadingProgress}
-                    errorMessage={uploadError}
-                  />
                   <CircularProgress 
                     percentage={loadingProgress} 
                     size={100} 
@@ -1346,7 +1551,10 @@ export default function ResumeRefinerScreen() {
                     progressColor={COLORS.nightSky}
                   />
                   <Text style={styles.loadingText}>
-                    {loadingStage === 'matching' ? `Matching resume with job${loadingDots}` : `Processing${loadingDots}`}
+                    {loadingStage === 'uploading' && `Uploading Resume${loadingDots}`}
+                    {loadingStage === 'parsing' && `Parsing Resume${loadingDots}`}
+                    {loadingStage === 'analyzing' && `Analyzing Resume${loadingDots}`}
+                    {loadingStage === 'feedback' && `Creating Feedback${loadingDots}`}
                   </Text>
                 </View>
               ) : (
@@ -1357,7 +1565,7 @@ export default function ResumeRefinerScreen() {
                     onPress={() => setShowUploadOptions(true)}
                   >
                     <View style={styles.currentCVContent}>
-                      <Ionicons name="document-text" size={20} color={COLORS.nightSky} />
+                      <Ionicons name="document" size={20} color={COLORS.nightSky} />
                       <View style={styles.currentCVTextContainer}>
                         <Text style={styles.currentCVTitle}>Current Resume</Text>
                         <Text style={styles.currentCVFilename} numberOfLines={1} ellipsizeMode="middle">
@@ -1366,8 +1574,15 @@ export default function ResumeRefinerScreen() {
                       </View>
                     </View>
                     <View style={styles.currentCVAction}>
-                      <Text style={styles.currentCVActionText}>Replace</Text>
-                      <Ionicons name="arrow-up-circle" size={16} color={COLORS.sky} />
+                      <LinearGradient
+                        colors={[COLORS.rose, COLORS.sky]}
+                        style={styles.replaceGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                      >
+                        <Text style={styles.currentCVActionText}>Replace</Text>
+                        <Ionicons name="arrow-up-circle" size={16} color="white" />
+                      </LinearGradient>
                     </View>
                   </TouchableOpacity>
                   
@@ -1375,16 +1590,17 @@ export default function ResumeRefinerScreen() {
                     <Text style={styles.sectionHeader}>Select a Job to Match</Text>
                     <TouchableOpacity 
                       style={styles.addCustomJobButton}
-                      onPress={() => setShowCustomJobInput(!showCustomJobInput)}
+                      onPress={() => router.push('/trackpal-add-application')}
                     >
-                      <Ionicons 
-                        name={showCustomJobInput ? "remove-circle" : "add-circle"} 
-                        size={24} 
-                        color={COLORS.sky} 
-                      />
-                      <Text style={styles.addCustomJobText}>
-                        {showCustomJobInput ? "Cancel" : "Add Custom Job"}
-                      </Text>
+                      <LinearGradient
+                        colors={[COLORS.rose, COLORS.sky]}
+                        style={styles.addJobButtonGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                      >
+                        <Ionicons name="add-circle" size={18} color={COLORS.white} />
+                        <Text style={styles.addJobButtonText}>Add Job</Text>
+                      </LinearGradient>
                     </TouchableOpacity>
                   </View>
                   
@@ -1431,81 +1647,81 @@ export default function ResumeRefinerScreen() {
                   )}
                   
                   <ScrollView style={styles.jobListScrollView}>
-                    <View style={styles.jobListSection}>
-                      {jobs.map((job) => (
-                        <JobCard
-                          key={job.id}
-                          job={job}
-                          onPress={handleJobSelect}
-                          isSelected={selectedJob?.id === job.id}
-                          showMatchScore={false}
-                        />
-                      ))}
+                    <View style={styles.jobList}>
+                      {jobs.length === 0 ? (
+                        <View style={styles.noJobsContainer}>
+                          <Text style={styles.noJobsText}>No saved jobs found to match with your resume.</Text>
+                          <View style={styles.findJobsButtonContainer}>
+                            <LinearGradient
+                              colors={[COLORS.rose, COLORS.sky]}
+                              style={styles.findJobsButtonGradient}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 0 }}
+                            >
+                              <TouchableOpacity 
+                                onPress={() => router.push('/pathfinder')}
+                                style={{ flexDirection: 'row', alignItems: 'center' }}
+                              >
+                                <Ionicons name="search" size={20} color={COLORS.white} />
+                                <Text style={styles.findJobsButtonText}>Find Jobs</Text>
+                              </TouchableOpacity>
+                            </LinearGradient>
+                          </View>
+                        </View>
+                      ) : (
+                        <>
+                          {jobs.map((job) => (
+                            <TrackpalStyleJobCard
+                              key={job.id}
+                              job={job}
+                              onPress={handleJobSelect}
+                              isSelected={selectedJob?.id === job.id}
+                              showMatchScore={job.match ? true : false}
+                            />
+                          ))}
+                          
+                          {jobs.length < 3 && (
+                            <View style={styles.findMoreJobsButtonContainer}>
+                              <LinearGradient
+                                colors={[COLORS.rose, COLORS.sky]}
+                                style={styles.findJobsButtonGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                              >
+                                <TouchableOpacity 
+                                  onPress={() => router.push('/pathfinder')}
+                                  style={{ flexDirection: 'row', alignItems: 'center' }}
+                                >
+                                  <Ionicons name="search" size={20} color={COLORS.white} />
+                                  <Text style={styles.findJobsButtonText}>Find More Jobs</Text>
+                                </TouchableOpacity>
+                              </LinearGradient>
+                            </View>
+                          )}
+                        </>
+                      )}
                     </View>
                   </ScrollView>
                   
                   {selectedJob && !matchResult && (
-                    <TouchableOpacity 
-                      style={styles.matchButton}
-                      onPress={matchResumeWithJob}
-                    >
-                      <Ionicons name="git-compare" size={20} color={COLORS.white} />
-                      <Text style={styles.matchButtonText}>Match Resume with {selectedJob.title}</Text>
-                    </TouchableOpacity>
-                  )}
-                  
-                  {selectedJob && matchResult && (
-                    <View style={styles.resultContainer}>
-                      <Text style={styles.resultTitle}>Match Results</Text>
-                      <View style={styles.matchScoreContainer}>
-                        <CircularProgress 
-                          percentage={matchResult.match_score} 
-                          size={80} 
-                          strokeWidth={8}
-                          progressColor={getMatchColor(matchResult.match_score)}
-                          textSize={20}
-                        />
-                        <View style={styles.matchScoreTextContainer}>
-                          <Text style={styles.matchScoreLabel}>Your resume matches</Text>
-                          <Text style={styles.matchScoreValue}>{formatPercentage(matchResult.match_score)}</Text>
-                          <Text style={styles.matchScoreJob}>of requirements for {selectedJob.title}</Text>
-                        </View>
-                      </View>
-                      
-                      {matchResult.missing_keywords && matchResult.missing_keywords.length > 0 && (
-                        <View style={styles.missingKeywordsContainer}>
-                          <Text style={styles.missingKeywordsTitle}>Missing Keywords</Text>
-                          <View style={styles.keywordTagsContainer}>
-                            {matchResult.missing_keywords.map((keyword, index) => (
-                              <View key={index} style={styles.keywordTag}>
-                                <Text style={styles.keywordTagText}>{keyword}</Text>
-                              </View>
-                            ))}
-                          </View>
-                        </View>
-                      )}
-                      
-                      {matchResult.improvement_suggestions && matchResult.improvement_suggestions.length > 0 && (
-                        <View style={styles.suggestionsContainer}>
-                          <Text style={styles.suggestionsTitle}>Improvement Suggestions</Text>
-                          {matchResult.improvement_suggestions.map((suggestion, index) => (
-                            <View key={index} style={styles.suggestionItem}>
-                              <Text style={styles.suggestionBullet}>•</Text>
-                              <Text style={styles.suggestionText}>{suggestion}</Text>
-                            </View>
-                          ))}
-                        </View>
-                      )}
+                    <View style={styles.floatingMatchButton}>
+                      <LinearGradient
+                        colors={[COLORS.rose, COLORS.sky]}
+                        style={styles.matchButtonGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                      >
+                        <TouchableOpacity 
+                          onPress={matchResumeWithJob}
+                          style={{ flexDirection: 'row', alignItems: 'center' }}
+                        >
+                          <Ionicons name="git-compare" size={20} color={COLORS.white} />
+                          <Text style={styles.matchButtonText}>Match Resume</Text>
+                        </TouchableOpacity>
+                      </LinearGradient>
                     </View>
                   )}
                 </>
-              )}
-              
-              {/* Sticky message at bottom when no job is selected */}
-              {uploadId && jobs.length > 0 && !selectedJob && !loading && (
-                <View style={styles.stickyMessageContainer}>
-                  <Text style={styles.stickyMessage}>Select a job above to match with your resume</Text>
-                </View>
               )}
             </View>
           </KeyboardAvoidingView>
@@ -1519,6 +1735,68 @@ export default function ResumeRefinerScreen() {
           onCameraSelect={handleCameraCapture}
           onGallerySelect={handleGalleryPick}
         />
+      )}
+      {showMatchResultModal && matchResult && (
+        <View style={styles.matchResultModal}>
+          <View style={styles.matchResultModalContent}>
+            <TouchableOpacity 
+              style={styles.modalCloseButton}
+              onPress={() => setShowMatchResultModal(false)}
+            >
+              <Ionicons name="close-circle" size={24} color={COLORS.nightSky} />
+            </TouchableOpacity>
+            
+            <Text style={styles.resultTitle}>Match Results</Text>
+            <View style={styles.matchScoreContainer}>
+              <CircularProgress 
+                percentage={matchResult.match_score} 
+                size={80} 
+                strokeWidth={8}
+                progressColor={getMatchColor(matchResult.match_score)}
+                textColor={COLORS.nightSky}
+                textSize={20}
+              />
+              <View style={styles.matchScoreTextContainer}>
+                <Text style={styles.matchScoreLabel}>Your resume matches</Text>
+                <Text style={styles.matchScoreValue}>{formatPercentage(matchResult.match_score)}</Text>
+                <Text style={styles.matchScoreJob}>of requirements for {selectedJob.title}</Text>
+              </View>
+            </View>
+            
+            <ScrollView style={{ maxHeight: 300 }}>
+              {matchResult.missing_keywords && matchResult.missing_keywords.length > 0 && (
+                <View style={styles.missingKeywordsContainer}>
+                  <Text style={styles.missingKeywordsTitle}>Missing Keywords</Text>
+                  <View style={styles.keywordTagsContainer}>
+                    {matchResult.missing_keywords.map((keyword, index) => (
+                      <View key={index} style={styles.keywordTag}>
+                        <Text style={styles.keywordTagText}>{keyword}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+              
+              {matchResult.improvement_suggestions && matchResult.improvement_suggestions.length > 0 && (
+                <View style={styles.suggestionsContainer}>
+                  <Text style={styles.suggestionsTitle}>Improvement Suggestions</Text>
+                  {matchResult.improvement_suggestions.map((suggestion, index) => (
+                    <View key={index} style={styles.suggestionItem}>
+                      <Text style={styles.suggestionBullet}>•</Text>
+                      <Text style={styles.suggestionText}>{suggestion}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </ScrollView>
+            
+            <GradientButton
+              title="Close"
+              onPress={() => setShowMatchResultModal(false)}
+              style={{ marginTop: 20 }}
+            />
+          </View>
+        </View>
       )}
     </View>
   );

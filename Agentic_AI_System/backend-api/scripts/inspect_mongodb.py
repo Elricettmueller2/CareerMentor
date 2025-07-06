@@ -8,7 +8,7 @@ Dieses Skript untersucht die MongoDB-Datenbank und zeigt die Struktur und Inhalt
 import os
 import sys
 import json
-from dotenv import load_dotenv
+# Entferne dotenv-Import, da nicht installiert
 from pprint import pprint
 
 # Add the parent directory to the path so we can import the services
@@ -58,8 +58,7 @@ def inspect_mongodb():
             print(f"- {index['name']}: {index['key']}")
 
 if __name__ == "__main__":
-    # Load environment variables
-    load_dotenv()
+    # Entferne load_dotenv-Aufruf
     
     # Inspect MongoDB
     inspect_mongodb()

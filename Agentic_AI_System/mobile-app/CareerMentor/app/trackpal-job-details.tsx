@@ -1,14 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, ScrollView, TouchableOpacity, View, Alert, Platform, ActionSheetIOS, Modal, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Text } from '@/components/Themed';
-import { useLocalSearchParams, useRouter, Link, Stack } from 'expo-router';
+import { useLocalSearchParams, useRouter, Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CAREER_COLORS } from '../constants/Colors';
-import { ApplicationService, JobApplication } from '@/services/ApplicationService';
+import JobService, { JobApplication } from '@/services/JobService';
 import NotificationService from '@/services/NotificationService';
-import { useState, useEffect } from 'react';
 
 // Import custom components
 import GradientButton from '@/components/trackpal/GradientButton';
@@ -43,7 +43,7 @@ export default function TrackPalJobDetailsScreen() {
   const [showReminderTimePicker, setShowReminderTimePicker] = useState(false);
   const [settingReminder, setSettingReminder] = useState(false);
   const [reminderType, setReminderType] = useState<'application' | 'follow-up' | 'interview'>('follow-up');
-  const [reminderTitle, setReminderTitle] = useState('Set Follow-up Reminder');
+  const [reminderTitle, setReminderTitle] = useState('Set Reminder');
   const [reminderMessage, setReminderMessage] = useState('');
 
   useEffect(() => {
@@ -53,24 +53,29 @@ export default function TrackPalJobDetailsScreen() {
   }, [application]);
 
   useEffect(() => {
-    const fetchApplication = async () => {
+    const fetchJob = async () => {
       if (!id) return;
       
       try {
-        const applications = await ApplicationService.getApplications();
-        const foundApp = applications.find(app => app.id === id);
+        // Fetch jobs from MongoDB via the JobService
+        const jobs = await JobService.getJobs();
+        const foundJob = jobs.find(job => job.id === id);
         
-        if (foundApp) {
-          setApplication(foundApp);
+        if (foundJob) {
+          setApplication(foundJob);
+        } else {
+          Alert.alert('Error', 'Job application not found');
+          router.back();
         }
       } catch (error) {
-        console.error('Error fetching application details:', error);
+        console.error('Error fetching job details:', error);
+        Alert.alert('Error', 'Failed to load job details');
       } finally {
         setLoading(false);
       }
     };
     
-    fetchApplication();
+    fetchJob();
   }, [id]);
   
   const formatDate = (date: Date | null) => {
@@ -117,68 +122,71 @@ export default function TrackPalJobDetailsScreen() {
     if (!application) return;
     
     setSettingReminder(true);
-    
     try {
-      // Combine date and time into a single Date object
+      // Combine date and time
       const combinedDate = new Date(reminderDate);
-      combinedDate.setHours(reminderTime.getHours());
-      combinedDate.setMinutes(reminderTime.getMinutes());
+      const timeParts = reminderTime.toTimeString().split(':');
+      combinedDate.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), 0, 0);
       
-      // Schedule the notification
-      const notificationId = await NotificationService.scheduleFollowUpReminder(
-        application.id,
-        application.company,
-        application.jobTitle,
-        combinedDate
-      );
+      let updatedJob: JobApplication | null = null;
       
-      if (notificationId) {
-        // Update application based on reminder type
-        let updateData: any = {};
-        let successMessage = '';
-        const isEditing = (
-          (reminderType === 'application' && application.applicationDeadlineReminder) ||
-          (reminderType === 'follow-up' && application.followUpDate) ||
-          (reminderType === 'interview' && application.interviewReminder)
+      // Update the appropriate field based on reminder type
+      if (reminderType === 'application') {
+        // Update job with deadline reminder
+        updatedJob = await JobService.updateJob(
+          application.id,
+          { applicationDeadlineReminder: combinedDate.toISOString() }
         );
         
-        switch (reminderType) {
-          case 'application':
-            updateData = {
-              applicationDeadlineReminder: combinedDate.toISOString()
-            };
-            successMessage = isEditing ? 'Application deadline reminder updated successfully!' : 'Application deadline reminder set successfully!';
-            break;
-            
-          case 'follow-up':
-            updateData = {
-              followUpDate: combinedDate.toISOString(),
-              followUpTime: `${combinedDate.getHours().toString().padStart(2, '0')}:${combinedDate.getMinutes().toString().padStart(2, '0')}`
-            };
-            successMessage = isEditing ? 'Follow-up reminder updated successfully!' : 'Follow-up reminder set successfully!';
-            break;
-            
-          case 'interview':
-            updateData = {
-              interviewReminder: combinedDate.toISOString()
-            };
-            successMessage = isEditing ? 'Interview reminder updated successfully!' : 'Interview reminder set successfully!';
-            break;
-        }
+        // Schedule notification
+        await NotificationService.scheduleFollowUpReminder(
+          application.id,
+          application.company,
+          application.jobTitle,
+          combinedDate
+        );
+      } else if (reminderType === 'follow-up') {
+        // Update job with follow-up date
+        updatedJob = await JobService.updateJob(
+          application.id,
+          { 
+            followUpDate: combinedDate.toISOString(),
+            followUpTime: `${combinedDate.getHours()}:${combinedDate.getMinutes().toString().padStart(2, '0')}` 
+          }
+        );
         
-        const updatedApp = await ApplicationService.updateApplication(application.id, updateData);
+        // Schedule notification
+        await NotificationService.scheduleFollowUpReminder(
+          application.id,
+          application.company,
+          application.jobTitle,
+          combinedDate
+        );
+      } else if (reminderType === 'interview') {
+        // Update job with interview reminder
+        updatedJob = await JobService.updateJob(
+          application.id,
+          { interviewReminder: combinedDate.toISOString() }
+        );
         
-        if (updatedApp) {
-          setApplication(updatedApp);
-          Alert.alert('Success', successMessage);
-          setShowReminderModal(false);
-        }
-      } else {
-        Alert.alert('Error', 'Failed to schedule notification. Please check notification permissions.');
+        // Schedule notification
+        await NotificationService.scheduleFollowUpReminder(
+          application.id,
+          application.company,
+          application.jobTitle,
+          combinedDate
+        );
       }
+      
+      if (updatedJob) {
+        setApplication(updatedJob);
+      }
+      
+      setShowReminderModal(false);
+      Alert.alert('Success', 'Reminder set successfully');
     } catch (error) {
       console.error('Error setting reminder:', error);
-      Alert.alert('Error', 'An error occurred while setting the reminder');
+      Alert.alert('Error', 'Failed to set reminder');
     } finally {
       setSettingReminder(false);
     }
@@ -188,13 +196,13 @@ export default function TrackPalJobDetailsScreen() {
     if (!application || application.status === newStatus) return;
     
     setUpdating(true);
-    ApplicationService.updateApplication(application.id, { status: newStatus })
-      .then(updatedApp => {
-        if (updatedApp) {
-          setApplication(updatedApp);
+    JobService.updateJob(application.id, { status: newStatus })
+      .then(updatedJob => {
+        if (updatedJob) {
+          setApplication(updatedJob);
           Alert.alert('Success', `Status updated to ${formatStatusText(newStatus)}`);
         } else {
-          Alert.alert('Error', 'Failed to update application status');
+          Alert.alert('Error', 'Failed to update job status');
         }
       })
       .catch(error => {
@@ -212,10 +220,10 @@ export default function TrackPalJobDetailsScreen() {
     if (Platform.OS === 'ios') {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'Saved', 'Applied', 'Interview', 'Rejected', 'Accepted'],
+          options: ['Saved', 'Applied', 'Interview', 'Rejected', 'Accepted'],
           cancelButtonIndex: 0,
           title: 'Update Status',
-          message: 'Select a new status for this application'
+          message: 'Select a new status for this job'
         },
         (buttonIndex) => {
           if (buttonIndex === 0) return; // Cancel
@@ -226,7 +234,6 @@ export default function TrackPalJobDetailsScreen() {
         }
       );
     } else {
-      // For Android, show a custom modal picker instead of Alert
       setShowAndroidStatusPicker(true);
     }
   };
@@ -238,58 +245,55 @@ export default function TrackPalJobDetailsScreen() {
     setShowAndroidStatusPicker(false);
   };
 
-  const saveChanges = () => {
+  const saveChanges = async () => {
     if (!editedApplication) return;
     
-    // Validate required fields
-    if (!editedApplication.jobTitle.trim() || !editedApplication.company.trim()) {
-      Alert.alert('Error', 'Job title and company are required');
-      return;
-    }
-    
     setUpdating(true);
-    ApplicationService.updateApplication(editedApplication.id, editedApplication)
-      .then(updatedApp => {
-        if (updatedApp) {
-          setApplication(updatedApp);
-          setShowEditModal(false);
-          // Alert.alert('Success', 'Job application updated successfully');
-        } else {
-          Alert.alert('Error', 'Failed to update job application');
-        }
-      })
-      .catch(error => {
-        console.error('Error updating application:', error);
-        Alert.alert('Error', 'An error occurred while updating the job application');
-      })
-      .finally(() => {
-        setUpdating(false);
-      });
+    try {
+      const updatedJob = await JobService.updateJob(
+        editedApplication.id,
+        editedApplication
+      );
+      
+      if (updatedJob) {
+        setApplication(updatedJob);
+        setShowEditModal(false);
+      }
+    } catch (error) {
+      console.error('Error updating job:', error);
+      Alert.alert('Error', 'Failed to update job');
+    } finally {
+      setUpdating(false);
+    }
   };
 
   const handleDeletePress = () => {
+    if (!application) return;
+    
     Alert.alert(
-      'Delete Application',
-      'Are you sure you want to delete this job application?',
+      'Delete Job',
+      `Are you sure you want to delete your job for ${application.jobTitle} at ${application.company}?`,
       [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            setDeleting(true);
             try {
-              setDeleting(true);
-              const success = await ApplicationService.deleteApplication(id as string);
-              
+              const success = await JobService.deleteJob(application.id);
               if (success) {
-                router.replace('/(tabs)/trackpal');
+                router.back();
               } else {
-                Alert.alert('Error', 'Failed to delete job application');
-                setDeleting(false);
+                Alert.alert('Error', 'Failed to delete job');
               }
             } catch (error) {
-              console.error('Error deleting application:', error);
-              Alert.alert('Error', 'An error occurred while deleting the job application');
+              console.error('Error deleting job:', error);
+              Alert.alert('Error', 'An error occurred while deleting the job');
+            } finally {
               setDeleting(false);
             }
           }
@@ -312,21 +316,20 @@ export default function TrackPalJobDetailsScreen() {
   const getStatusColor = (status: string): string => {
     // Use different colors for rejected and accepted statuses
     if (status.toLowerCase() === 'rejected') {
-      return CAREER_COLORS.red; // Red for rejected
+      return CAREER_COLORS.red;
     } else if (status.toLowerCase() === 'accepted') {
-      return CAREER_COLORS.green; // Green for accepted
+      return CAREER_COLORS.green;
     } else {
-      return CAREER_COLORS.nightSky; // Brand purple for all other statuses
+      return CAREER_COLORS.nightSky;
     }
   };
 
   const getTimelineSteps = () => {
-    // Base steps with dates
     const steps = [
       { 
         status: 'saved', 
         label: 'Saved',
-        dates: [] // Saved status doesn't typically have dates
+        dates: []
       },
       { 
         status: 'applied', 
@@ -337,10 +340,9 @@ export default function TrackPalJobDetailsScreen() {
             value: new Date(application.appliedDate).toLocaleDateString(),
             icon: 'calendar-outline' as const
           },
-          // Add application deadline if it exists
           ...(application.applicationDeadline ? [
             { 
-              label: 'Application Deadline:', 
+              label: 'Job Deadline:', 
               value: new Date(application.applicationDeadline).toLocaleDateString(),
               icon: 'hourglass-outline' as const
             }
@@ -468,7 +470,7 @@ export default function TrackPalJobDetailsScreen() {
             </Link>
             {application.applicationDeadlineReminder ? (
               <SmartActionCard
-                title="Application Reminder"
+                title="Job Deadline Reminder"
                 description={`Reminder set for: ${formatReminderForDisplay(application.applicationDeadlineReminder)}`}
                 iconName="notifications"
                 onPress={() => prepareReminderModal('application', application.applicationDeadlineReminder)}
@@ -579,7 +581,7 @@ export default function TrackPalJobDetailsScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Text>Loading application details...</Text>
+        <Text>Loading job details...</Text>
       </View>
     );
   }
@@ -587,7 +589,7 @@ export default function TrackPalJobDetailsScreen() {
   if (!application) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Application not found</Text>
+        <Text style={styles.errorText}>Job not found</Text>
         <TouchableOpacity 
           style={{ padding: 10, backgroundColor: '#5D5B8D', borderRadius: 8, marginTop: 10 }} 
           onPress={() => router.back()}
@@ -600,30 +602,22 @@ export default function TrackPalJobDetailsScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen 
-        options={{
-          title: "",  // Empty title to remove the job name from header
-          headerTintColor: '#5D5B8D',
-          headerTitleStyle: {
-            color: '#5D5B8D',
-          },
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 10 }}>
-              <Ionicons name="arrow-back" size={24} color="#5D5B8D" />
-            </TouchableOpacity>
-          ),
-          headerRight: () => (
-            <View style={styles.headerButtonContainer}>
-              <GradientButton
-                title="Edit Job"
-                onPress={() => setShowEditModal(true)}
-                small={true}
-                style={styles.headerEditButton}
-              />
-            </View>
-          )
-        }} 
-      />
+      <SafeAreaView style={styles.safeAreaHeader} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color={CAREER_COLORS.nightSky} />
+          </TouchableOpacity>
+          
+          <View style={styles.headerButtonContainer}>
+            <GradientButton
+              title="Edit Job"
+              onPress={() => setShowEditModal(true)}
+              small={true}
+              style={styles.headerEditButton}
+            />
+          </View>
+        </View>
+      </SafeAreaView>
       
       <ScrollView style={styles.scrollContainer} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Job Info Section */}
@@ -631,17 +625,33 @@ export default function TrackPalJobDetailsScreen() {
           <Text style={styles.jobTitle}>{application.jobTitle}</Text>
           <Text style={styles.companyName}>{application.company}</Text>
           
-          {application.location && (
-            <View style={styles.infoRow}>
-              <Ionicons name="location-outline" size={16} color="#666" />
-              <Text style={styles.infoText}>{application.location}</Text>
-            </View>
-          )}
-          <StatusBadge status={application.status} style={styles.statusBadge} />
-          
-          {/* Job Link Button */}
-          <JobLinkButton url={application.jobUrl} />
+          {/* Location and Status Row */}
+          <View style={styles.infoStatusRow}>
+            {application.location && (
+              <View style={styles.infoRow}>
+                <Ionicons name="location-outline" size={16} color={CAREER_COLORS.nightSky} />
+                <Text style={styles.infoText}>{application.location}</Text>
+              </View>
+            )}
+            <StatusBadge status={application.status} style={styles.statusBadge} />
+          </View>
         </View>
+
+        {/* Separator */}
+        <View style={styles.separator} />
+        
+        {/* Description Section */}
+        {application.description && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Description</Text>
+            <View style={styles.notesContainer}>
+              <Text style={styles.notesText}>{application.description}</Text>
+            </View>
+          </View>
+        )}
+        
+        {/* Separator */}
+        <View style={styles.separator} />
         
         {/* Smart Actions Section */}
         <View style={styles.section}>
@@ -651,9 +661,12 @@ export default function TrackPalJobDetailsScreen() {
           </View>
         </View>
         
+        {/* Separator */}
+        <View style={styles.separator} />
+        
         {/* Timeline Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Application Timeline</Text>
+          <Text style={styles.sectionTitle}>Job Timeline</Text>
           <View style={styles.timeline}>
             {getTimelineSteps().map((step, index) => {
               const currentIndex = getCurrentStepIndex();
@@ -714,6 +727,9 @@ export default function TrackPalJobDetailsScreen() {
           </View>
         </View>
         
+        {/* Separator */}
+        <View style={styles.separator} />
+        
         {/* Notes Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notes</Text>
@@ -724,7 +740,8 @@ export default function TrackPalJobDetailsScreen() {
           </View>
         </View>
         
-        {/* Important dates have been moved to the timeline */}
+        {/* Separator */}
+        <View style={styles.separator} />
         
         {/* Resume Section (placeholder for future) */}
         <View style={styles.section}>
@@ -746,11 +763,19 @@ export default function TrackPalJobDetailsScreen() {
           >
             <Ionicons name="trash-outline" size={20} color="white" />
             <Text style={styles.deleteButtonText}>
-              {deleting ? 'Deleting...' : 'Delete Application'}
+              {deleting ? 'Deleting...' : 'Delete Job'}
             </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Floating Job Link Button */}
+      <View style={styles.floatingButtonContainer}>
+        <JobLinkButton 
+          url={application.jobUrl} 
+          style={styles.floatingButton}
+        />
+      </View>
 
       {/* Follow-up Reminder Modal */}
       <Modal
@@ -805,7 +830,7 @@ export default function TrackPalJobDetailsScreen() {
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <ModalHeader
-              title="Edit Job Application"
+              title="Edit Saved Job"
               onDone={saveChanges}
               loading={updating}
               loadingText="Saving..."
@@ -840,8 +865,30 @@ export default function TrackPalJobDetailsScreen() {
                     iconName="location-outline"
                   />
 
+                  {/* Custom Description Field */}
+                  <View style={styles.descriptionContainer}>
+                    <Text style={styles.label}>Description</Text>
+                    <View style={styles.descriptionInputContainer}>
+                      <TextInput
+                        style={styles.descriptionInput}
+                        value={editedApplication.description}
+                        onChangeText={(text) => setEditedApplication({...editedApplication, description: text})}
+                        placeholder="Enter job description"
+                        multiline
+                        numberOfLines={5}
+                      />
+                      <View style={styles.iconTopLeft}>
+                        <Ionicons 
+                          name="document-text-outline" 
+                          size={20} 
+                          color={CAREER_COLORS.nightSky} 
+                        />
+                      </View>
+                    </View>
+                  </View>
+
                   <DatePickerField
-                    label={editedApplication.status === 'saved' ? 'Application Deadline' : 
+                    label={editedApplication.status === 'saved' ? 'Job Deadline' : 
                           editedApplication.status === 'applied' ? 'Date Applied' : 
                           editedApplication.status === 'interview' ? 'Interview Date' : 
                           'Important Date'}
@@ -863,15 +910,27 @@ export default function TrackPalJobDetailsScreen() {
                     mode="date"
                   />
 
-                  <FormInput
-                    label="Notes"
-                    value={editedApplication.notes}
-                    onChangeText={(text) => setEditedApplication({...editedApplication, notes: text})}
-                    placeholder="Add your notes here..."
-                    multiline
-                    numberOfLines={4}
-                    iconName="document-text-outline"
-                  />
+                  {/* Custom Notes Field */}
+                  <View style={styles.descriptionContainer}>
+                    <Text style={styles.label}>Notes</Text>
+                    <View style={styles.descriptionInputContainer}>
+                      <TextInput
+                        style={styles.descriptionInput}
+                        value={editedApplication.notes}
+                        onChangeText={(text) => setEditedApplication({...editedApplication, notes: text})}
+                        placeholder="Add your notes here..."
+                        multiline
+                        numberOfLines={5}
+                      />
+                      <View style={styles.iconTopLeft}>
+                        <Ionicons 
+                          name="document-text-outline" 
+                          size={20} 
+                          color={CAREER_COLORS.nightSky} 
+                        />
+                      </View>
+                    </View>
+                  </View>
                 </>
               )}
             </ScrollView>
@@ -916,7 +975,7 @@ export default function TrackPalJobDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: CAREER_COLORS.white,
   },
   loadingContainer: {
     flex: 1,
@@ -940,47 +999,44 @@ const styles = StyleSheet.create({
   jobInfoContainer: {
     backgroundColor: '#fff',
     padding: 16,
-    marginBottom: 8,
+    marginTop: 32,
+    marginBottom: 10,
+    alignItems: 'center',
   },
   jobTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#212529',
     marginBottom: 8,
+    textAlign: 'center',
   },
   companyName: {
     fontSize: 18,
     color: '#495057',
     marginBottom: 12,
+    textAlign: 'center',
+  },
+  infoStatusRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    flexWrap: 'wrap',
+    gap: 12,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
   },
   infoText: {
     marginLeft: 6,
     fontSize: 14,
     color: '#6c757d',
   },
-  statusBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginTop: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
   section: {
     backgroundColor: '#fff',
     padding: 16,
-    marginBottom: 8,
+    marginBottom: 0,
   },
   sectionTitle: {
     fontSize: 18,
@@ -1314,6 +1370,25 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 15,
   },
+  safeAreaHeader: {
+    backgroundColor: CAREER_COLORS.white,
+    zIndex: 10,
+    shadowColor: CAREER_COLORS.midnight,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  backButton: {
+    padding: 8,
+  },
   headerButtonContainer: {
     marginRight: 10,
   },
@@ -1323,5 +1398,58 @@ const styles = StyleSheet.create({
     width: 100,
     borderRadius: 18,
     marginVertical: 0,
-  }
+  },
+  floatingButtonContainer: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    zIndex: 999,
+  },
+  floatingButton: {
+    width: 200,
+    height: 50,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 8,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: CAREER_COLORS.salt,
+    marginVertical: 20,
+    width: '100%',
+  },
+  statusBadge: {
+    marginLeft: 'auto',
+  },
+  descriptionContainer: {
+    marginBottom: 16,
+  },
+  descriptionInputContainer: {
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
+    height: 5 * 24,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  descriptionInput: {
+    flex: 1,
+    height: '100%',
+    color: '#000',
+    fontSize: 16,
+    textAlignVertical: 'top',
+    paddingLeft: 30,
+  },
+  iconTopLeft: {
+    position: 'absolute',
+    top: 12,
+    left: 10,
+  },
+
 });

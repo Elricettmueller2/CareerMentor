@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, ScrollView, Alert, TouchableOpacity, Text, TextInput } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,13 +9,13 @@ import FormInput from '@/components/trackpal/FormInput';
 import DatePickerField from '@/components/trackpal/DatePickerField';
 import StatusPicker from '@/components/trackpal/StatusPicker';
 import GradientButton from '@/components/trackpal/GradientButton';
-import { Text } from '@/components/Themed';
 
 // Import services
-import ApplicationService from '@/services/ApplicationService';
+import JobService from '@/services/JobService';
 import NotificationService from '@/services/NotificationService';
+import { CAREER_COLORS } from '@/constants/Colors';
 
-export default function TrackPalAddApplicationScreen() {
+export default function TrackPalAddJobScreen() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   
@@ -24,11 +24,14 @@ export default function TrackPalAddApplicationScreen() {
     jobTitle: '',
     company: '',
     location: '',
+    description: '', 
     applicationDeadline: null as Date | null,
+    applicationDeadlineReminder: null as string | null,
     status: 'saved',
     followUpDate: null as Date | null,
-    followUpTime: '12:00', // Adding missing property
-    appliedDate: new Date().toISOString(), // Adding missing property
+    followUpTime: '12:00',
+    appliedDate: new Date().toISOString(),
+    interviewReminder: null as string | null,
     notes: '',
   });
 
@@ -40,8 +43,8 @@ export default function TrackPalAddApplicationScreen() {
     }));
   };
 
-  // Handle save application
-  const handleSaveApplication = async () => {
+  // Handle save job
+  const handleSaveJob = async () => {
     // Validate required fields
     if (!application.jobTitle.trim()) {
       Alert.alert('Missing Information', 'Please enter a job title');
@@ -63,31 +66,32 @@ export default function TrackPalAddApplicationScreen() {
           application.applicationDeadline.toISOString() : null,
         followUpDate: application.followUpDate ? 
           application.followUpDate.toISOString() : null,
+        applicationDeadlineReminder: null,
+        interviewReminder: null
       };
       
-      // Add the application
-      const newApplication = await ApplicationService.addApplication(applicationData);
+      // Add the job
+      const newJob = await JobService.addJob(applicationData);
       
       // Schedule follow-up reminder if needed
       if (application.followUpDate && application.status !== 'rejected' && application.status !== 'accepted') {
         try {
           await NotificationService.scheduleFollowUpReminder(
-            newApplication.id,
+            newJob.id,
             application.jobTitle,
             application.company,
             application.followUpDate
           );
         } catch (notificationError) {
           console.error('Error scheduling notification:', notificationError);
-          // Don't alert the user about notification errors, just log them
         }
       }
       
-      Alert.alert('Success', 'Application added successfully');
+      Alert.alert('Success', 'Job added successfully');
       router.back();
     } catch (error) {
       console.error('Error adding application:', error);
-      Alert.alert('Error', 'Failed to add application');
+      Alert.alert('Error', 'Failed to add job');
     } finally {
       setSaving(false);
     }
@@ -96,7 +100,7 @@ export default function TrackPalAddApplicationScreen() {
   // Get label for deadline field based on status
   const getDeadlineLabel = () => {
     switch (application.status) {
-      case 'saved': return 'Application Deadline';
+      case 'saved': return 'Job Deadline';
       case 'applied': return 'Date Applied';
       case 'interview': return 'Interview Date';
       default: return 'Important Date';
@@ -105,32 +109,26 @@ export default function TrackPalAddApplicationScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen 
-        options={{
-          title: "Add New Application",
-          headerTintColor: '#5D5B8D',
-          headerTitleStyle: {
-            color: '#5D5B8D',
-          },
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => router.back()} style={{ marginLeft: 10 }}>
-              <Ionicons name="arrow-back" size={24} color="#5D5B8D" />
-            </TouchableOpacity>
-          ),
-          headerRight: () => (
-            <View style={styles.headerButtonContainer}>
-              <GradientButton
-                title="Save"
-                onPress={handleSaveApplication}
-                small={true}
-                loading={saving}
-                loadingText="Saving..."
-                style={styles.headerSaveButton}
-              />
-            </View>
-          )
-        }} 
-      />
+      <SafeAreaView style={styles.safeAreaHeader} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color={CAREER_COLORS.nightSky} />
+          </TouchableOpacity>
+          
+          <Text style={styles.headerTitle}>Add New Job</Text>
+          
+          <View style={styles.headerButtonContainer}>
+            <GradientButton
+              title="Save"
+              onPress={handleSaveJob}
+              small={true}
+              loading={saving}
+              loadingText="Saving..."
+              style={styles.headerSaveButton}
+            />
+          </View>
+        </View>
+      </SafeAreaView>
       
       <ScrollView style={styles.scrollContainer} contentContainerStyle={{ paddingBottom: 100 }}>
         <View style={styles.formContainer}>
@@ -160,6 +158,28 @@ export default function TrackPalAddApplicationScreen() {
             iconName="location-outline"
           />
           
+          {/* Custom Description Field */}
+          <View style={styles.descriptionContainer}>
+            <Text style={styles.label}>Description</Text>
+            <View style={styles.descriptionInputContainer}>
+              <TextInput
+                style={styles.descriptionInput}
+                value={application.description}
+                onChangeText={(text) => updateField('description', text)}
+                placeholder="Enter job description"
+                multiline
+                numberOfLines={5}
+              />
+              <View style={styles.iconTopLeft}>
+                <Ionicons 
+                  name="document-text-outline" 
+                  size={20} 
+                  color="#5D5B8D" 
+                />
+              </View>
+            </View>
+          </View>
+          
           <DatePickerField
             label={getDeadlineLabel()}
             value={application.applicationDeadline}
@@ -180,15 +200,27 @@ export default function TrackPalAddApplicationScreen() {
             mode="date"
           />
           
-          <FormInput
-            label="Notes"
-            value={application.notes}
-            onChangeText={(text) => updateField('notes', text)}
-            placeholder="Add your notes here..."
-            multiline
-            numberOfLines={4}
-            iconName="document-text-outline"
-          />
+          {/* Custom Notes Field */}
+          <View style={styles.descriptionContainer}>
+            <Text style={styles.label}>Notes</Text>
+            <View style={styles.descriptionInputContainer}>
+              <TextInput
+                style={styles.descriptionInput}
+                value={application.notes}
+                onChangeText={(text) => updateField('notes', text)}
+                placeholder="Add your notes here..."
+                multiline
+                numberOfLines={5}
+              />
+              <View style={styles.iconTopLeft}>
+                <Ionicons 
+                  name="document-text-outline" 
+                  size={20} 
+                  color="#5D5B8D" 
+                />
+              </View>
+            </View>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -198,7 +230,33 @@ export default function TrackPalAddApplicationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: CAREER_COLORS.white,
+  },
+  safeAreaHeader: {
+    backgroundColor: CAREER_COLORS.white,
+    zIndex: 10,
+    shadowColor: CAREER_COLORS.midnight,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#5D5B8D',
+    flex: 1,
+    textAlign: 'center',
+  },
+  backButton: {
+    padding: 5,
   },
   scrollContainer: {
     flex: 1,
@@ -221,13 +279,40 @@ const styles = StyleSheet.create({
     color: '#5D5B8D',
   },
   headerButtonContainer: {
-    marginRight: 10,
+    marginRight: 0,
   },
   headerSaveButton: {
     height: 36,
-    minWidth: 100,
-    width: 100,
+    minWidth: 80,
+    paddingHorizontal: 12,
     borderRadius: 18,
     marginVertical: 0,
+  },
+  descriptionContainer: {
+    marginBottom: 16,
+  },
+  descriptionInputContainer: {
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
+    height: 5 * 24,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  descriptionInput: {
+    flex: 1,
+    height: '100%',
+    color: '#000',
+    fontSize: 16,
+    textAlignVertical: 'top',
+    paddingLeft: 30,
+  },
+  iconTopLeft: {
+    position: 'absolute',
+    top: 12,
+    left: 10,
   }
 });

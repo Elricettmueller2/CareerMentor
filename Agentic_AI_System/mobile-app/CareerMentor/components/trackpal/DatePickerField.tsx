@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { StyleSheet, TouchableOpacity, View, Platform, ViewStyle } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, Platform, ViewStyle, useColorScheme } from 'react-native';
 import { Text } from '@/components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Colors from '@/constants/Colors';
+import { CAREER_COLORS } from '../../constants/Colors';
 
 interface DatePickerFieldProps {
   label: string;
@@ -24,6 +26,8 @@ const DatePickerField: React.FC<DatePickerFieldProps> = ({
   mode = 'date'
 }) => {
   const [showPicker, setShowPicker] = useState(false);
+  const colorScheme = useColorScheme() || 'light';
+  const isDark = colorScheme === 'dark';
   
   const handleChange = (event: any, selectedDate?: Date) => {
     setShowPicker(Platform.OS === 'ios');
@@ -45,7 +49,7 @@ const DatePickerField: React.FC<DatePickerFieldProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, isDark && styles.darkLabel]}>{label}</Text>
       <TouchableOpacity 
         style={[styles.dateInput, style]} 
         onPress={() => setShowPicker(!showPicker)}
@@ -69,6 +73,8 @@ const DatePickerField: React.FC<DatePickerFieldProps> = ({
           onChange={handleChange}
           minimumDate={minimumDate}
           style={Platform.OS === 'ios' ? styles.picker : undefined}
+          textColor={isDark ? '#000' : undefined}
+          themeVariant={isDark ? 'dark' : 'light'}
         />
       )}
     </View>

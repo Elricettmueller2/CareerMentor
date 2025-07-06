@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Text } from '@/components/Themed';
 import { CAREER_COLORS as COLORS } from '@/constants/Colors';
 import { InterviewSummaryData } from '@/types/interview';
@@ -9,6 +9,10 @@ interface ReviewCardProps {
 }
 
 const ReviewCard: React.FC<ReviewCardProps> = ({ data }) => {
+  // Debug logging for iOS display issues
+  console.log('[DEBUG-REVIEWCARD] Platform:', Platform.OS);
+  console.log('[DEBUG-REVIEWCARD] Received data structure:', Object.keys(data));
+  console.log('[DEBUG-REVIEWCARD] Scores available:', data.scores ? Object.keys(data.scores) : 'No scores');
   // Ensure data has all required properties with fallbacks
   const safeData = {
     scores: {
@@ -23,6 +27,13 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ data }) => {
     specific_feedback: typeof data.specific_feedback === 'string' ? data.specific_feedback : '',
     recommendation: data.recommendation || 'Consider'
   };
+  
+  // Additional debugging for specific sections
+  console.log('[DEBUG-REVIEWCARD] Safe data created with:');
+  console.log('[DEBUG-REVIEWCARD] - Strengths:', safeData.strengths.length ? 'Has items' : 'Empty array');
+  console.log('[DEBUG-REVIEWCARD] - Improvement areas:', safeData.improvement_areas.length ? 'Has items' : 'Empty array');
+  console.log('[DEBUG-REVIEWCARD] - Specific feedback:', safeData.specific_feedback ? 'Has content' : 'Empty string');
+  console.log('[DEBUG-REVIEWCARD] - Recommendation:', safeData.recommendation);
   // Helper function to get color based on score
   const getScoreColor = (score: number) => {
     if (score >= 85) return COLORS.sky; // High score - sky
@@ -42,7 +53,10 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ data }) => {
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      style={styles.container} 
+      contentContainerStyle={Platform.OS === 'ios' ? { flexGrow: 1 } : undefined}
+      showsVerticalScrollIndicator={false}>
       {/* Recommendation Banner */}
       <View style={[
         styles.recommendationBanner, 
@@ -165,23 +179,58 @@ const ReviewCard: React.FC<ReviewCardProps> = ({ data }) => {
       {/* Specific Feedback */}
       <View style={styles.feedbackSection}>
         <Text style={styles.sectionTitle}>Detailed Feedback</Text>
-        <Text style={styles.feedbackText}>{safeData.specific_feedback || 'No detailed feedback available'}</Text>
+        {safeData.specific_feedback && safeData.specific_feedback.length > 0 ? (
+          <Text style={[styles.feedbackText, Platform.OS === 'ios' ? { marginBottom: 10 } : {}]}>
+            {safeData.specific_feedback}
+          </Text>
+        ) : (
+          <Text style={styles.noDataText}>No detailed feedback available</Text>
+        )}
+        {Platform.OS === 'ios' && (
+          <Text style={{ height: 1, opacity: 0 }}>{/* iOS rendering fix */}</Text>
+        )}
       </View>
     </ScrollView>
   );
 };
+
+// Platform-specific styles
+// Define platform-specific styles as proper ViewStyle objects
+const containerStyle: any = Platform.OS === 'ios' 
+  ? {
+      // iOS-specific container styles
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    }
+  : {
+      // Android-specific container styles
+      elevation: 3,
+    };
+
+const scoreBarStyle: any = Platform.OS === 'ios'
+  ? {
+      // iOS-specific score bar styles
+      height: '100%',
+      borderRadius: 4,
+      overflow: 'hidden',
+    }
+  : {
+      // Android-specific score bar styles
+      height: '100%',
+      borderRadius: 4,
+    };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
     marginBottom: 20,
+    width: '100%', // Ensure full width on iOS
+    alignSelf: 'stretch', // Fix iOS layout issues
+    ...containerStyle,
   },
   recommendationBanner: {
     padding: 12,
@@ -243,8 +292,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   scoreBar: {
-    height: '100%',
-    borderRadius: 4,
+    ...scoreBarStyle,
   },
   scoreValue: {
     flex: 1,

@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Alert, Platform, Keyboard } from 'react-native';
-import { Text } from '@/components/Themed';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Platform, Alert, Keyboard } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import { DEFAULT_API_BASE_URL, API_ENDPOINTS, getApiUrl, getAllApiUrls } from '../../config/api';
+import { LinearGradient } from 'expo-linear-gradient';
+import { DEFAULT_API_BASE_URL, API_ENDPOINTS, getApiUrl, getAllApiUrls, fetchWithFallback } from '../../config/api';
+import HeaderWithToggle from '../../components/common/HeaderWithToggle';
+import { CAREER_COLORS } from '../../constants/Colors';
+import GradientButton from '../../components/trackpal/GradientButton';
 
-// Typendefinition für die Slider-Props
+// Type definition for Slider props
 type CustomSliderProps = {
   value: number;
   minimumValue?: number;
@@ -19,7 +22,7 @@ type CustomSliderProps = {
   thumbTintColor?: string;
 };
 
-// Web-kompatible Slider-Komponente
+// Web-compatible Slider component
 const CustomSlider = (props: CustomSliderProps) => {
   // Verwende Platform.OS um zu prüfen, ob wir auf Web sind
   if (Platform.OS === 'web') {
@@ -34,7 +37,7 @@ const CustomSlider = (props: CustomSliderProps) => {
         style={{
           width: '100%',
           height: 40,
-          accentColor: '#2f95dc',
+          accentColor: '#5A5D80',
           cursor: 'pointer',
           ...props.style
         }}
@@ -47,6 +50,236 @@ const CustomSlider = (props: CustomSliderProps) => {
     return <NativeSlider {...props} />;
   }
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  sliderContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  slider: {
+    flex: 1,
+    height: 40, 
+  },
+  sliderValue: {
+    width: 30,
+    textAlign: 'right',
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#5A5D80',
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    backgroundColor: '#f0f0f0',
+    padding: 12,
+    borderRadius: 8,
+  },
+  locationStatus: {
+    flex: 1,
+    fontSize: 14,
+    color: '#666',
+  },
+  locationButton: {
+    backgroundColor: '#5A5D80',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  locationButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  inputHint: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: -8,
+    marginBottom: 15,
+  },
+  searchButton: {
+    backgroundColor: '#5A5D80',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    marginTop: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  searchButtonDisabled: {
+    backgroundColor: '#cccccc',
+  },
+  searchButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  searchScrollView: {
+    flex: 1,
+  },
+  detailedSearchContainer: {
+    marginBottom: 20,
+    paddingHorizontal: 16, 
+    paddingTop: 16,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#5A5D80',
+    marginBottom: 8,
+    marginTop: 16, 
+  },
+  requiredStar: {
+    color: '#F14156',
+    fontWeight: '500',
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    backgroundColor: '#f9f9f9',
+    marginBottom: 10, 
+  },
+  textArea: {
+    height: 80, 
+    textAlignVertical: 'top', 
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 12,
+    marginTop: 30,
+    paddingHorizontal: 16,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
+  },
+  errorText: {
+    color: '#ff3b30',
+    marginVertical: 16,
+    textAlign: 'center',
+    paddingHorizontal: 16, 
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    marginTop: 20,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#888',
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#aaa',
+    textAlign: 'center',
+  },
+  browseButton: {
+    marginTop: 20,
+    backgroundColor: '#5A5D80',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  browseButtonText: {
+    color: '#fff',
+    fontWeight: '500',
+    fontSize: 16,
+  },
+  savedJobsContainer: {
+    flex: 1,
+    paddingTop: 10,
+  },
+  resultCard: {
+    backgroundColor: '#5A5D80',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    position: 'relative',
+  },
+  saveButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    zIndex: 10,
+  },
+  saveButtonGradient: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  jobCardContent: {
+    flex: 1,
+    paddingRight: 30,
+  },
+  resultTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 6,
+  },
+  resultCompany: {
+    fontSize: 14,
+    color: '#e0e0e0',
+    marginBottom: 8,
+  },
+  resultDescription: {
+    fontSize: 14,
+    color: '#e0e0e0',
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  resultSkills: {
+    fontSize: 13,
+    color: '#d0d0d0',
+    fontStyle: 'italic',
+  },
+  tabSwitcherContainer: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    display: 'flex',
+  },
+});
 
 export default function PathFinderScreen() {
   const router = useRouter();
@@ -66,23 +299,89 @@ export default function PathFinderScreen() {
   const [recommendations, setRecommendations] = useState<Array<any>>([]);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-
-  // API-URLs werden jetzt zentral in config/api.ts verwaltet
+  
+  // Using a temporary userId for testing/demo purposes
+  // In a real app, this would come from authentication
   const userId = 'default_user';
-
-  const fetchSavedJobs = async () => {
-    setLoading(true);
+  
+  // Function to navigate to job details
+  const navigateToJobDetails = (jobId: string) => {
+    // Navigate to job details page when implemented
+    router.push(`/job-details?id=${jobId}`);
+  };
+  
+  // Function to request location permission
+  const requestLocationPermission = async () => {
     try {
-      const url = getApiUrl(`${API_ENDPOINTS.pathFinder.savedJobs}/${userId}`);
-      console.log('Fetching saved jobs from:', url);
-      const response = await fetch(url);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      setLocationPermission(status === 'granted');
+      
+      if (status === 'granted') {
+        const location = await Location.getCurrentPositionAsync({});
+        setUserLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude
+        });
+      }
+    } catch (err) {
+      console.error('Error getting location permission:', err);
+      Alert.alert('Location Access', 'Unable to access your location. Some features may be limited.');
+    }
+  };
+
+  // Tabs for the HeaderWithToggle
+  const toggleOptions = [
+    { id: 'search', label: 'Search' },
+    { id: 'saved', label: 'Saved' }
+  ];
+  
+  // Reload data when activeTab changes to 'saved'
+  useEffect(() => {
+    if (activeTab === 'saved') {
+      loadSavedJobsData();
+    }
+  }, [activeTab]);
+  
+  // Function to fetch recommended jobs
+  const fetchRecommendations = async () => {
+    try {
+      const response = await fetchWithFallback(
+        getApiUrl(API_ENDPOINTS.pathFinder.recommendJobs),
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: { user_id: userId } }),
+        }
+      );
+      
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
       }
+      
+      const data = await response.json();
+      setRecommendations(data.recommendations || []);
+    } catch (err: any) {
+      console.error('Error fetching recommendations:', err);
+      setError('Could not load job recommendations. Please check your network connection.');
+    }
+  };
+  
+  // Function to fetch saved jobs
+  const fetchSavedJobs = async () => {
+    setLoading(true);
+    try {
+      const response = await fetchWithFallback(
+        getApiUrl(`${API_ENDPOINTS.pathFinder.savedJobs}/${userId}`)
+      );
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
       const data = await response.json();
       setSavedJobs(data.saved_jobs || []);
-    } catch (error) {
-      console.error('Error fetching saved jobs:', error);
+    } catch (err: any) {
+      console.error('Error fetching saved jobs:', err);
       setSavedJobs([]);
     } finally {
       setLoading(false);
@@ -90,248 +389,150 @@ export default function PathFinderScreen() {
     }
   };
 
-  const fetchRecommendations = async () => {
-    try {
-      const url = getApiUrl(API_ENDPOINTS.pathFinder.recommendJobs);
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: { user_id: userId } }),
-      });
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-      const data = await response.json();
-      setRecommendations(data.recommendations || []);
-    } catch (err) {
-      console.error('Error fetching recommendations:', err);
-    }
-  };
-  
-  const loadSavedJobsData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      await Promise.all([fetchSavedJobs(), fetchRecommendations()]);
-    } catch (err: any) {
-      setError('Failed to load data. Please try again.');
-    } finally {
-      setLoading(false);
+const loadSavedJobsData = async () => {
+  setLoading(true);
+  setError(null);
+  try {
+    await Promise.all([fetchSavedJobs(), fetchRecommendations()]);
+  } catch (err: any) {
+    setError('Failed to load data. Please try again.');
+  } finally {
+    setLoading(false);
+    setRefreshing(false);
+  }
+};
+
+const handleRefresh = () => {
+  setRefreshing(true);
+  if (activeTab === 'search') {
+    if (jobTitle || degree || interests) {
+      handleSearch();
+    } else {
       setRefreshing(false);
     }
-  };
+  } else {
+    loadSavedJobsData();
+  }
+};
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    if (activeTab === 'search') {
-      if (jobTitle || degree || interests) {
-        handleSearch();
-      } else {
-        setRefreshing(false);
-      }
-    } else {
-      loadSavedJobsData();
-    }
-  };
+const handleSearch = async () => {
+  if (!jobTitle || jobTitle.trim().length < 2) {
+    setError('Bitte geben Sie einen Jobtitel ein (mindestens 2 Zeichen).');
+    return;
+  }
 
-  useEffect(() => {
-    if (activeTab === 'saved') {
-      loadSavedJobsData();
-    }
-    
-    // Request location permission when component mounts
-    requestLocationPermission();
-  }, [activeTab]);
+  Keyboard.dismiss();
+  setLoading(true);
+  setError(null);
+  setResults([]);
 
-  const requestLocationPermission = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        setLocationPermission(true);
-        const location = await Location.getCurrentPositionAsync({});
-        setUserLocation({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        });
-        return true;
-      } else {
-        Alert.alert(
-          "Standortberechtigung erforderlich",
-          "Für die Entfernungssuche wird Ihre Standortberechtigung benötigt."
-        );
-        return false;
-      }
-    } catch (err) {
-      console.error('Error requesting location permission:', err);
-      return false;
-    }
-  };
+  try {
+    // Prepare data for the API request
+    const interestsList = interests
+      .split(',')
+      .map(item => item.trim())
+      .filter(item => item.length > 0);
 
-  const handleSearch = async () => {
-    if (!jobTitle) {
-      setError('Bitte geben Sie einen Job-Titel ein.');
-      return;
-    }
-    
-    if (!degree) {
-      setError('Bitte geben Sie Ihren höchsten Abschluss ein.');
-      return;
-    }
-    
-    if (!interests) {
-      setError('Bitte geben Sie Interessenpunkte ein.');
-      return;
-    }
-    
-    // Request location permission if not already granted
-    if (!locationPermission) {
-      const granted = await requestLocationPermission();
-      if (!granted) {
-        setError('Standortberechtigung wird für die Entfernungssuche benötigt.');
-        return;
-      }
-    }
-    
-    setLoading(true);
-    setError(null);
-    setResults([]);
-    Keyboard.dismiss();
-    
-    const searchCriteria = {
-      user_id: userId,
-      job_title: jobTitle.trim(),
-      education_level: degree.trim(),
-      years_experience: yearsExperience,
+    // Simplify job title for better results (as in test_path_finder.py)
+    const simplifiedJobTitle = jobTitle.includes(' ') ? 
+      jobTitle.split(' ')[0] : // Nimm nur das erste Wort, wenn es Leerzeichen gibt
+      jobTitle;
+
+    const requestData = {
+      job_title: simplifiedJobTitle, // Simplified job title for better results
+      education_level: degree || "Bachelor", // Standardwert, falls leer
+      years_experience: yearsExperience || 3, // Standardwert von 3 wie im Test-Script
       location_radius: locationRadius,
-      interest_points: interests.trim().split(',').map(item => item.trim()),
-      location: userLocation ? {
-        latitude: userLocation.latitude,
-        longitude: userLocation.longitude
-      } : undefined
+      interest_points: interestsList.length > 0 ? interestsList : ["Python", "JavaScript"], // Standardwerte, falls leer
+      user_id: userId,
+      top_n: 10
     };
 
-    try {
-      console.log('Searching for jobs with criteria:', searchCriteria);
-      
-      // Verwende die getAllApiUrls-Funktion, um alle möglichen API-URLs zu erhalten
-      const apiUrls = getAllApiUrls(API_ENDPOINTS.pathFinder.search);
-      
-      let lastError = null;
-      let successfulUrl = null;
-      
-      // Versuche nacheinander alle URLs
-      for (const url of apiUrls) {
-        try {
-          console.log(`Versuche API-URL: ${url}`);
-          
-          const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ data: searchCriteria }),
-          });
-          
-          console.log(`URL ${url} gab Status ${response.status} zurück`);
-          
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`Fehler mit URL ${url}:`, errorText);
-            continue; // Versuche die nächste URL
-          }
-          
-          const responseText = await response.text();
-          console.log('Raw response text:', responseText);
-          
-          try {
-            const data = JSON.parse(responseText);
-            console.log('Parsed search results:', data);
-            
-            // Überprüfe verschiedene mögliche Antwortformate
-            if (data && data.top_jobs && Array.isArray(data.top_jobs)) {
-              console.log('Ergebnisse gefunden in data.top_jobs');
-              setResults(data.top_jobs);
-              successfulUrl = url;
-              break;
-            } else if (data && Array.isArray(data)) {
-              console.log('Ergebnisse gefunden als Array');
-              setResults(data);
-              successfulUrl = url;
-              break;
-            } else if (data && data.jobs && Array.isArray(data.jobs)) {
-              console.log('Ergebnisse gefunden in data.jobs');
-              setResults(data.jobs);
-              successfulUrl = url;
-              break;
-            } else {
-              console.warn('Unerwartetes Antwortformat:', data);
-              // Versuche die nächste URL
-            }
-          } catch (parseError) {
-            console.error('JSON parse error:', parseError);
-            // Versuche die nächste URL
-          }
-        } catch (error: any) {
-          console.error(`Fehler mit URL ${url}:`, error);
-          lastError = error;
-          // Versuche die nächste URL
+    // Add location data if available
+    if (userLocation) {
+      // Using type assertion to add dynamic properties
+      (requestData as any)['latitude'] = userLocation.latitude;
+      (requestData as any)['longitude'] = userLocation.longitude;
+    }
+
+    console.log('Sending search request:', requestData);
+    console.log('API URL:', getApiUrl(API_ENDPOINTS.pathFinder.search));
+
+    // Sende die Anfrage an das Backend
+    const response = await fetchWithFallback(getApiUrl(API_ENDPOINTS.pathFinder.search), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ data: requestData }), // Nest request data under "data" field
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API error response:', errorText);
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Search results:', data);
+
+    // Prüfe verschiedene mögliche Antwortformate
+    if (data && data.jobs && Array.isArray(data.jobs)) {
+      setResults(data.jobs);
+    } else if (data && data.top_jobs && Array.isArray(data.top_jobs)) {
+      setResults(data.top_jobs);
+    } else if (Array.isArray(data)) {
+      setResults(data);
+    } else {
+      console.warn('Unerwartetes Antwortformat:', data);
+      setResults([]);
+      setError('Die API-Antwort hat ein unerwartetes Format. Bitte versuchen Sie es später erneut.');
+    }
+  } catch (err: any) {
+    console.error('Error searching jobs:', err);
+    setError(`An error occurred during search: ${err.message || 'Unknown error'}`);
+    setResults([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
+const toggleSaveJob = async (job: any) => {
+  try {
+    const endpoint = job.is_saved 
+      ? getApiUrl(API_ENDPOINTS.pathFinder.unsaveJob)
+      : getApiUrl(API_ENDPOINTS.pathFinder.saveJob);
+    
+    const payload = job.is_saved
+      ? { data: { user_id: userId, job_id: job.id } }
+      : { data: { user_id: userId, job_data: { ...job, id: job.id || undefined } } }; 
+    
+    const response = await fetchWithFallback(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    
+    if (!response.ok) throw new Error(`API error: ${response.status}`);
+    
+    if (activeTab === 'search') {
+      setResults(results.map(item => 
+        item.id === job.id ? { ...item, is_saved: !item.is_saved } : item
+      ));
+    } else {
+      if (job.is_saved) {
+        setSavedJobs(savedJobs.filter(item => item.id !== job.id));
+      } else {
+        if (!savedJobs.find(sj => sj.id === job.id)) {
+          setSavedJobs([job, ...savedJobs]);
         }
       }
-      
-      if (successfulUrl) {
-        console.log(`Suche erfolgreich mit URL: ${successfulUrl}`);
-      } else {
-        // Wenn wir hier ankommen, haben alle URLs fehlgeschlagen
-        throw new Error(lastError ? lastError.message : 'Keine Verbindung zum Server möglich');
-      }
-    } catch (err: any) {
-      console.error('Search error:', err);
-      setError(`Fehler beim Laden der Jobs: ${err.message}. Stellen Sie sicher, dass das Backend läuft und die API-Route die neuen Kriterien verarbeiten kann.`);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
     }
-  };
-
-  const navigateToJobDetails = (jobId: string) => {
-    router.push(`/job-details?jobId=${jobId}`);
-  };
-
-  const toggleSaveJob = async (job: any) => {
-    try {
-      const endpoint = job.is_saved 
-        ? getApiUrl(API_ENDPOINTS.pathFinder.unsaveJob)
-        : getApiUrl(API_ENDPOINTS.pathFinder.saveJob);
-      
-      const payload = job.is_saved
-        ? { data: { user_id: userId, job_id: job.id } }
-        : { data: { user_id: userId, job_data: { ...job, id: job.id || undefined } } }; 
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
-      
-      if (activeTab === 'search') {
-        setResults(results.map(item => 
-          item.id === job.id ? { ...item, is_saved: !item.is_saved } : item
-        ));
-      } else {
-        if (job.is_saved) {
-          setSavedJobs(savedJobs.filter(item => item.id !== job.id));
-        } else {
-          if (!savedJobs.find(sj => sj.id === job.id)) {
-            setSavedJobs([job, ...savedJobs]);
-          }
-        }
-      }
-      if (activeTab === 'saved') loadSavedJobsData();
-
-    } catch (err) {
-      console.error('Error saving/unsaving job:', err);
-    }
-  };
+  } catch (err: any) {
+    console.error('Error saving/unsaving job:', err);
+    Alert.alert('Error', `Could not ${job.is_saved ? 'unsave' : 'save'} job: ${err.message || 'Network error'}`);
+  }
+};
 
   const renderJobCard = (job: any) => (
     <View style={styles.resultCard}>
@@ -339,18 +540,25 @@ export default function PathFinderScreen() {
         style={styles.saveButton} 
         onPress={() => toggleSaveJob(job)}
       >
-        <Ionicons 
-          name={job.is_saved ? "bookmark" : "bookmark-outline"} 
-          size={24} 
-          color={job.is_saved ? "#2f95dc" : "#888"} 
-        />
+        <LinearGradient
+          colors={[CAREER_COLORS.rose, CAREER_COLORS.sky]}
+          style={styles.saveButtonGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          <Ionicons 
+            name={job.is_saved ? "bookmark" : "bookmark-outline"} 
+            size={24} 
+            color="white" 
+          />
+        </LinearGradient>
       </TouchableOpacity>
       
       <TouchableOpacity 
         style={styles.jobCardContent}
         onPress={() => navigateToJobDetails(job.id)}
       >
-        <Text style={styles.resultTitle}>{job.title || 'Job Title'}</Text>
+        <Text style={styles.resultTitle}>{job.position || job.title || 'Job Title'}</Text>
         <Text style={styles.resultCompany}>
           {job.company || ''}
           {job.location ? ` | ${job.location}` : ''}
@@ -372,97 +580,115 @@ export default function PathFinderScreen() {
   );
 
   const renderSearchContent = () => (
-    <ScrollView keyboardShouldPersistTaps="handled" style={styles.searchScrollView}>
+    <ScrollView 
+      style={styles.searchScrollView}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+      }
+    >
       <View style={styles.detailedSearchContainer}>
-        <Text style={styles.inputLabel}>Job-Titel (Pflichtfeld)</Text>
+        <Text style={styles.inputLabel}>
+          Job Title <Text style={styles.requiredStar}>*</Text>
+        </Text>
         <TextInput
           style={styles.textInput}
-          placeholder="z.B. Software Entwickler"
+          placeholder="e.g. Software Developer"
           value={jobTitle}
           onChangeText={setJobTitle}
         />
-
-        <Text style={styles.inputLabel}>Höchster erreichter Abschluss (Pflichtfeld)</Text>
+        
+        <Text style={styles.inputLabel}>
+          Degree <Text style={styles.requiredStar}>*</Text>
+        </Text>
         <TextInput
           style={styles.textInput}
-          placeholder="z.B. Bachelor"
+          placeholder="e.g. Bachelor"
           value={degree}
           onChangeText={setDegree}
         />
-
+        
+        <Text style={styles.inputLabel}>
+          Work Experience (Years) <Text style={styles.requiredStar}>*</Text>
+        </Text>
         <View style={styles.sliderContainer}>
-          <Text style={styles.inputLabel}>Job Erfahrung (Jahre)</Text>
-          <View style={styles.sliderValueContainer}>
-            <CustomSlider
-              style={styles.slider}
-              minimumValue={0}
-              maximumValue={10}
-              step={1}
-              value={yearsExperience}
-              onValueChange={setYearsExperience}
-              minimumTrackTintColor="#2f95dc"
-              maximumTrackTintColor="#d3d3d3"
-              thumbTintColor="#2f95dc"
-            />
-            <Text style={styles.sliderValue}>{yearsExperience === 10 ? "10+" : yearsExperience} Jahre</Text>
-          </View>
+          <CustomSlider
+            style={styles.slider}
+            minimumValue={0}
+            maximumValue={10}
+            step={1}
+            value={yearsExperience}
+            onValueChange={setYearsExperience}
+            minimumTrackTintColor="#5A5D80"
+            maximumTrackTintColor="#d3d3d3"
+            thumbTintColor="#5A5D80"
+          />
+          <Text style={styles.sliderValue}>{yearsExperience}</Text>
         </View>
-
+        
+        <Text style={styles.inputLabel}>
+          Search Radius (km) <Text style={styles.requiredStar}>*</Text>
+        </Text>
         <View style={styles.sliderContainer}>
-          <Text style={styles.inputLabel}>Entfernung (km)</Text>
-          <View style={styles.sliderValueContainer}>
-            <CustomSlider
-              style={styles.slider}
-              minimumValue={10}
-              maximumValue={200}
-              step={10}
-              value={locationRadius}
-              onValueChange={setLocationRadius}
-              minimumTrackTintColor="#2f95dc"
-              maximumTrackTintColor="#d3d3d3"
-              thumbTintColor="#2f95dc"
-            />
-            <Text style={styles.sliderValue}>{locationRadius} km</Text>
-          </View>
+          <CustomSlider
+            style={styles.slider}
+            minimumValue={5}
+            maximumValue={100}
+            step={5}
+            value={locationRadius}
+            onValueChange={setLocationRadius}
+            minimumTrackTintColor="#5A5D80"
+            maximumTrackTintColor="#d3d3d3"
+            thumbTintColor="#5A5D80"
+          />
+          <Text style={styles.sliderValue}>{locationRadius}</Text>
         </View>
         
         <View style={styles.locationContainer}>
           <Text style={styles.locationStatus}>
-            {locationPermission ? "✓ Standort verfügbar" : "⚠️ Standort wird benötigt"}
+            {locationPermission 
+              ? userLocation 
+                ? 'Location available' 
+                : 'Determining location...'
+              : 'Location not available'
+            }
           </Text>
-          {!locationPermission && (
-            <TouchableOpacity style={styles.locationButton} onPress={requestLocationPermission}>
-              <Text style={styles.locationButtonText}>Standort freigeben</Text>
-            </TouchableOpacity>
-          )}
+          <GradientButton
+            title={locationPermission ? 'Update' : 'Allow'}
+            onPress={requestLocationPermission}
+            small={true}
+            style={{ minWidth: 100 }}
+          />
         </View>
-
-        <Text style={styles.inputLabel}>Interessenpunkte (Pflichtfeld)</Text>
+        
+        <Text style={styles.inputLabel}>
+          Interests (comma separated) <Text style={styles.requiredStar}>*</Text>
+        </Text>
         <TextInput
           style={[styles.textInput, styles.textArea]}
-          placeholder="z.B. Nachhaltigkeit, KI, Remote Work"
+          placeholder="z.B. Python, JavaScript, React"
           value={interests}
           onChangeText={setInterests}
           multiline
-          numberOfLines={3}
         />
-        <Text style={styles.inputHint}>Mehrere Punkte durch Komma trennen</Text>
-
-        <TouchableOpacity 
-          style={[styles.searchButton, (!jobTitle || !degree || !interests) && styles.searchButtonDisabled]} 
+        <Text style={styles.inputHint}>
+          Enter your skills and interests to get more relevant results.
+        </Text>
+        
+        <GradientButton
+          title="Search"
           onPress={handleSearch}
-          disabled={!jobTitle || !degree || !interests || loading}
-        >
-          <Text style={styles.searchButtonText}>Suchen</Text>
-        </TouchableOpacity>
+          disabled={!jobTitle || jobTitle.trim().length < 2}
+          icon={<Ionicons name="search" size={20} color="#fff" />}
+          style={{ marginTop: 16 }}
+        />
       </View>
-
-      <Text style={styles.sectionTitle}>Job Ergebnisse</Text>
+      
+      <Text style={styles.sectionTitle}>Job Results</Text>
       
       {loading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2f95dc" />
-          <Text style={styles.loadingText}>Jobs werden gesucht...</Text>
+          <ActivityIndicator size="large" color="#5A5D80" />
+          <Text style={styles.loadingText}>Searching for jobs...</Text>
         </View>
       )}
       
@@ -472,7 +698,7 @@ export default function PathFinderScreen() {
         <View style={styles.emptyContainer}>
           <Ionicons name="search" size={48} color="#ccc" />
           <Text style={styles.emptyText}>
-            Führen Sie eine Suche durch, um Ergebnisse zu sehen.
+            Perform a search to see results.
           </Text>
         </View>
       )}
@@ -489,7 +715,7 @@ export default function PathFinderScreen() {
     <>
       {loading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2f95dc" />
+          <ActivityIndicator size="large" color="#5A5D80" />
           <Text style={styles.loadingText}>Loading saved jobs...</Text>
         </View>
       )}
@@ -513,12 +739,11 @@ export default function PathFinderScreen() {
             <Text style={styles.emptySubtext}>
               Jobs you save will appear here.
             </Text>
-            <TouchableOpacity 
-              style={styles.browseButton}
+            <GradientButton
+              title="Browse Jobs"
               onPress={() => setActiveTab('search')}
-            >
-              <Text style={styles.browseButtonText}>Browse Jobs</Text>
-            </TouchableOpacity>
+              style={{ marginTop: 8, alignSelf: 'center' }}
+            />
           </View>
         )}
 
@@ -544,257 +769,14 @@ export default function PathFinderScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Path Finder</Text>
+      <HeaderWithToggle
+        title="CareerDaddy"
+        options={toggleOptions}
+        activeOptionId={activeTab}
+        onOptionChange={(tabId) => setActiveTab(tabId)}
+      />
       
-      <View style={styles.tabsContainer}>
-        <TouchableOpacity 
-          style={[styles.tabButton, activeTab === 'search' ? styles.activeTab : null]}
-          onPress={() => setActiveTab('search')}
-        >
-          <Text style={[styles.tabButtonText, activeTab === 'search' ? styles.activeTabText : null]}>Suche</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.tabButton, activeTab === 'saved' ? styles.activeTab : null]}
-          onPress={() => setActiveTab('saved')}
-        >
-          <Text style={[styles.tabButtonText, activeTab === 'saved' ? styles.activeTabText : null]}>Gespeichert</Text>
-        </TouchableOpacity>
-      </View>
-
       {activeTab === 'search' ? renderSearchContent() : renderSavedJobsContent()}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  sliderContainer: {
-    marginBottom: 15,
-  },
-  sliderValueContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  sliderValue: {
-    width: 60,
-    textAlign: 'right',
-    fontSize: 14,
-    color: '#555',
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-    padding: 10,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 5,
-  },
-  locationStatus: {
-    fontSize: 14,
-    color: '#555',
-  },
-  locationButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 4,
-  },
-  locationButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  inputHint: {
-    fontSize: 12,
-    color: '#777',
-    marginTop: 5,
-    marginBottom: 15,
-  },
-  searchButtonDisabled: {
-    backgroundColor: '#cccccc',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16, 
-    textAlign: 'center',
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 16,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
-    padding: 4,
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 10, 
-    paddingHorizontal: 12, 
-    borderRadius: 6,
-    alignItems: 'center',
-    marginHorizontal: 2, 
-  },
-  activeTab: {
-    backgroundColor: '#2f95dc',
-  },
-  tabButtonText: {
-    fontSize: 15, 
-    fontWeight: '500',
-    color: '#555',
-  },
-  activeTabText: {
-    color: '#fff',
-  },
-  searchScrollView: {
-    flex: 1,
-  },
-  detailedSearchContainer: {
-    marginBottom: 20,
-    paddingHorizontal: 8, 
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-    marginBottom: 6,
-    marginTop: 12, 
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 15,
-    backgroundColor: '#f9f9f9',
-    marginBottom: 10, 
-  },
-  textArea: {
-    height: 80, 
-    textAlignVertical: 'top', 
-  },
-  slider: {
-    width: '100%',
-    height: 40, 
-    marginBottom: 10, 
-  },
-  searchButton: {
-    marginTop: 20, 
-    backgroundColor: '#2f95dc',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  searchButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 12,
-    marginTop: 16, 
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#666',
-  },
-  errorText: {
-    color: '#ff3b30',
-    marginVertical: 16,
-    textAlign: 'center',
-    paddingHorizontal: 10, 
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    marginTop: 20,
-  },
-  emptyText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#888',
-    textAlign: 'center',
-  },
-  emptySubtext: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#aaa',
-    textAlign: 'center',
-  },
-  browseButton: {
-    marginTop: 20,
-    backgroundColor: '#2f95dc',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  browseButtonText: {
-    color: '#fff',
-    fontWeight: '500',
-    fontSize: 16,
-  },
-  resultsContainer: { 
-    flex: 1,
-  },
-  savedJobsContainer: {
-    flex: 1,
-  },
-  resultCard: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    marginBottom: 16,
-    backgroundColor: '#fafafa',
-    overflow: 'hidden',
-  },
-  saveButton: {
-    width: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRightWidth: 1,
-    borderRightColor: '#eee',
-  },
-  jobCardContent: {
-    flex: 1,
-    padding: 16,
-  },
-  resultTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
-    color: '#222',
-  },
-  resultCompany: {
-    fontSize: 15,
-    color: '#666',
-    marginBottom: 8,
-  },
-  resultDescription: {
-    fontSize: 15,
-    color: '#444',
-    marginBottom: 6,
-  },
-  resultSkills: {
-    fontSize: 14,
-    color: '#2f95dc',
-  },
-});

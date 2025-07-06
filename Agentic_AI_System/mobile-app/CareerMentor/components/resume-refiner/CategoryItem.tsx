@@ -4,6 +4,7 @@ import { Text } from '@/components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { CAREER_COLORS } from '@/constants/Colors';
 import CategoryProgressBar from './CategoryProgressBar';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface CategoryItemProps {
   title: string;
@@ -24,14 +25,16 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
 }) => {
   // Determine color based on score
   const getScoreColor = (score: number): string => {
-    if (score >= 90) return CAREER_COLORS.sky;
-    if (score >= 75) return CAREER_COLORS.rose;
-    if (score >= 60) return CAREER_COLORS.lightRose;
-    return CAREER_COLORS.nightSky;
+    if (score >= 75) return CAREER_COLORS.green;  // Good score - green
+    if (score >= 50) return CAREER_COLORS.yellow;        // Medium score - yellow
+    return CAREER_COLORS.red;                     // Poor score - red
   };
 
   return (
-    <View style={[styles.container, expanded && styles.expandedContainer]}>
+    <View style={[
+      styles.container, 
+      expanded && styles.expandedContainer,
+    ]}>
       <TouchableOpacity 
         style={styles.header}
         onPress={onPress}
@@ -39,19 +42,26 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
         disabled={!onPress}
       >
         <View style={styles.titleContainer}>
-          <Ionicons name={icon as any} size={24} color={getScoreColor(score)} style={styles.icon} />
+          <LinearGradient
+            colors={[CAREER_COLORS.rose, CAREER_COLORS.sky]}
+            style={styles.iconContainer}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Ionicons name={icon as any} size={20} color={CAREER_COLORS.white} />
+          </LinearGradient>
           <Text style={styles.title}>{title}</Text>
         </View>
         
         <View style={styles.scoreContainer}>
-          <Text style={[styles.score, { color: getScoreColor(score) }]}>
+          <Text style={styles.score}>
             {score}%
           </Text>
           {onPress && (
             <Ionicons 
               name={expanded ? 'chevron-up' : 'chevron-down'} 
               size={20} 
-              color={CAREER_COLORS.midnight} 
+              color={CAREER_COLORS.white} 
               style={styles.chevron}
             />
           )}
@@ -74,25 +84,31 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: CAREER_COLORS.white,
+    backgroundColor: CAREER_COLORS.nightSky,
     borderRadius: 12,
     marginBottom: 12,
-    shadowColor: CAREER_COLORS.midnight,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    marginHorizontal: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
     shadowRadius: 2,
     elevation: 2,
-    overflow: 'hidden',
   },
   expandedContainer: {
-    borderWidth: 2,
+    borderWidth: 0,
     borderColor: CAREER_COLORS.nightSky,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 2,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 12,
     paddingHorizontal: 12,
   },
   titleContainer: {
@@ -100,13 +116,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  icon: {
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 12,
+    marginLeft: 4,
   },
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: CAREER_COLORS.midnight,
+    color: CAREER_COLORS.white,
   },
   scoreContainer: {
     flexDirection: 'row',
@@ -116,19 +138,26 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginRight: 8,
+    color: CAREER_COLORS.white,
   },
   chevron: {
-    marginLeft: 4,
+    marginLeft: 0,
+    marginRight: 4,
+    color: CAREER_COLORS.white,
   },
   progressBarContainer: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingBottom: 16,
   },
   content: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingTop: 0,
     paddingBottom: 16,
-    backgroundColor: CAREER_COLORS.salt,
+    backgroundColor: CAREER_COLORS.nightSky,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
 });
 

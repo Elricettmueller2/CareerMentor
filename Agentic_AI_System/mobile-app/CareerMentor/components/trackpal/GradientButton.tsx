@@ -48,7 +48,10 @@ const GradientButton: React.FC<GradientButtonProps> = ({
           <View style={styles.loadingContainer}>
             <ActivityIndicator color="white" size={small ? "small" : "small"} />
             {loadingText && (
-              <Text style={[styles.text, styles.loadingText, small ? styles.smallText : {}, textStyle]}>
+              <Text 
+                style={[styles.text, styles.loadingText, small ? styles.smallText : {}, textStyle]}
+                numberOfLines={1}
+              >
                 {loadingText}
               </Text>
             )}
@@ -56,7 +59,10 @@ const GradientButton: React.FC<GradientButtonProps> = ({
         ) : (
           <View style={styles.contentContainer}>
             {icon && <View style={styles.iconContainer}>{icon}</View>}
-            <Text style={[styles.text, small ? styles.smallText : {}, textStyle]}>
+            <Text 
+              style={[styles.text, small ? styles.smallText : {}, textStyle]}
+              numberOfLines={1}
+            >
               {title}
             </Text>
           </View>
@@ -69,13 +75,19 @@ const GradientButton: React.FC<GradientButtonProps> = ({
 const styles = StyleSheet.create({
   button: {
     overflow: 'hidden',
-    borderRadius: 25, // More rounded corners
+    borderRadius: 25,
     height: 48,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+  },
+  headerSaveButton: {
+    height: 36,
+    minWidth: 80,
+    borderRadius: 18,
+    marginVertical: 0,
   },
   smallButton: {
     height: 40,
@@ -88,13 +100,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
-    borderRadius: 25, // Match button borderRadius
+    borderRadius: 25,
   },
   text: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
+    flexShrink: 1,
   },
   smallText: {
     fontSize: 14,
@@ -103,14 +116,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    flexWrap: 'nowrap',
   },
   loadingText: {
     marginLeft: 8,
+    flexShrink: 1,
   },
   contentContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    flexWrap: 'nowrap',
   },
   iconContainer: {
     marginRight: 8,

@@ -3,6 +3,7 @@ from typing import Dict, List, Any, Tuple
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from litellm import completion
+import os
 
 class MatchAgent:
     """
@@ -61,9 +62,12 @@ class MatchAgent:
             Dictionary with match results
         """
         # Extract job details
-        job_id = job.get("job_id", "unknown")
-        job_title = job.get("job_title", "Unknown Position")
+        job_id = job.get("id", job.get("job_id", "unknown"))
+        job_title = job.get("title", job.get("job_title", "Unknown Position"))
         job_text = job.get("description", "")
+        
+        # Print debug info to help diagnose issues
+        print(f"Processing job: ID={job_id}, Title={job_title}")
         
         # Calculate overall similarity score
         if self.use_transformer:
@@ -400,9 +404,13 @@ Provide ONLY the JSON response with no additional text."""
             LLM response text
         """
         try:
+            # Try OLLAMA_BASE_URL first, then fall back to OLLAMA_API_BASE
+            api_base = os.getenv("OLLAMA_BASE_URL") or os.getenv("OLLAMA_API_BASE")
+            print(f"Using Ollama API base URL: {api_base}")
+            
             resp = completion(
                 model="ollama/llama3.2",
-                api_base=os.getenv("OLLAMA_BASE_URL"),
+                api_base=api_base,
                 messages=[{"role": "user", "content": prompt}]
             )
             return resp.choices[0].message.content.strip()

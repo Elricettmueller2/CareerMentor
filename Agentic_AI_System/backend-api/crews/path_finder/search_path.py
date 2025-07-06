@@ -1,10 +1,10 @@
 from .job_scraper import job_scraper_instance 
 from typing import Dict, Any, List
-from database.db_utils import (
-    save_job_for_user, 
-    unsave_job_for_user, 
-    get_saved_jobs_for_user, 
-    add_search_history, 
+from services.mongodb.mongodb_pathfinder_utils import (
+    save_job_for_user,
+    unsave_job_for_user,
+    get_saved_jobs_for_user,
+    add_search_history,
     get_search_history_for_user,
     is_job_saved
 )
@@ -267,11 +267,11 @@ def save_job(user_id: str, job_data: Dict[str, Any]) -> Dict[str, Any]:
     if 'id' not in job_data or not job_data['id']:
         job_data['id'] = f"SAVED-{str(uuid.uuid4())[:8]}" 
         
-    saved_job_id = save_job_for_user(user_id, job_data)
+    saved_job = save_job_for_user(user_id, job_data)
     return {
-        "success": True if saved_job_id else False,
-        "message": "Job saved successfully" if saved_job_id else "Failed to save job",
-        "job_id": saved_job_id if saved_job_id else job_data['id']
+        "success": True if saved_job else False,
+        "message": "Job saved successfully" if saved_job else "Failed to save job",
+        "job_id": saved_job.get('id') if saved_job else job_data['id']
     }
 
 def unsave_job(user_id: str, job_id: str) -> Dict[str, Any]:

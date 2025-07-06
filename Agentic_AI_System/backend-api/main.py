@@ -8,17 +8,25 @@ import os
 from datetime import datetime
 from dotenv import load_dotenv
 from services.mongodb.client import mongo_client
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Import crew functions
 from crews.mock_mate.run_mock_mate_crew import run_respond_to_answer, run_start_interview, run_review_interview, run_prepare_custom_interview
 from crews.track_pal.run_track_pal_crew import run_check_reminders, run_analyze_patterns, get_applications, save_application, update_application
 from crews.track_pal.crew import respond
-from crews.test.run_test_crew import run_test_crew
+#from crews.test.run_test_crew import run_test_crew
 from services.session_manager import add_message_to_history, get_conversation_history, set_session_metadata, get_session_metadata
 from crews.path_finder.run_path_finder_crew import run_path_finder_crew, run_path_finder_direct
 from crews.path_finder.search_path import get_job_details, get_job_recommendations, save_job, unsave_job, get_saved_jobs
 from crews.resume_refiner.run_resume_refiner_crew import (
-    run_upload, run_parse, run_analyze_layout, run_evaluate, run_match
+    upload_and_parse_resume as refiner_upload_and_parse,
+    analyze_resume_layout as refiner_analyze_layout,
+    evaluate_resume_quality as refiner_evaluate_quality,
+    match_resume_with_jobs as refiner_match_jobs
 )
 
 # Load environment variables
@@ -62,10 +70,18 @@ async def track_pal_endpoint(action: str, request: AgentRequest):
     data = request.data
     try:
         if action == "check_reminders":
-            result = run_check_reminders(user_id=data.get("user_id"))
+            # Pass applications data if provided in the request
+            result = run_check_reminders(
+                user_id=data.get("user_id"),
+                applications=data.get("applications")
+            )
             return {"response": result}
         elif action == "analyze_patterns":
-            result = run_analyze_patterns(user_id=data.get("user_id"))
+            # Pass applications data if provided in the request
+            result = run_analyze_patterns(
+                user_id=data.get("user_id"),
+                applications=data.get("applications")
+            )
             return {"response": result}
         elif action == "get_applications":
             applications = get_applications(user_id=data.get("user_id"))
@@ -200,19 +216,20 @@ async def mock_mate_endpoint(action: str, request: AgentRequest):
         raise HTTPException(status_code=500, detail=error_msg)
 
 
-@app.post("/agents/test", tags=["Agents", "Test"])
-async def test_agent(request: AgentRequest):
-    """Test endpoint for the agent"""
-    try:
-        # Extract request data
-        data = request.data
-        
-        result = run_test_crew(
-            text=data.get("text")
-        )
-        return {"response": result}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+# Test endpoint commented out due to missing module
+# @app.post("/agents/test", tags=["Agents", "Test"])
+# async def test_agent(request: AgentRequest):
+#     """Test endpoint for the agent"""
+#     try:
+#         # Extract request data
+#         data = request.data
+#         
+#         result = run_test_crew(
+#             text=data.get("text")
+#         )
+#         return {"response": result}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
 
 # Note: The direct_test endpoint has been removed as part of the chat feature removal
 
@@ -384,136 +401,234 @@ async def path_finder_get_saved_jobs(user_id: str = "default_user"):
         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
 
 #Resume Refiner Agent Endpoints
-@app.post("/resumes/upload", tags=["ResumeRefiner"])
-async def upload_resume(file: UploadFile = File(...)):
-    """Upload a resume PDF or image (JPEG, PNG, HEIC) and get an upload_id"""
-    print("🖨️ upload_resume called")
-    
-    # Check if the file is a supported type (PDF, JPEG, PNG, HEIC)
-    content_type = file.content_type.lower() if file.content_type else ""
-    filename = file.filename.lower() if file.filename else ""
-    
-    is_pdf = "pdf" in content_type or filename.endswith(".pdf")
-    is_jpeg = any(img_type in content_type for img_type in ["jpeg", "jpg"]) or filename.endswith((".jpg", ".jpeg"))
-    is_png = "png" in content_type or filename.endswith(".png")
-    is_heic = "heic" in content_type or filename.endswith(".heic")
-    
-    if not (is_pdf or is_jpeg or is_png or is_heic):
-        raise HTTPException(400, "Only PDF, JPEG, PNG, and HEIC files are supported")
-    
+@app.post("/resume/upload")
+async def upload_resume(file: UploadFile, user_id: Optional[str] = None):
+    """Upload and parse a resume document"""
     try:
-        # Debug logging to inspect the file
-        print(f"📄 File received: name={file.filename}, content_type={file.content_type}")
-        
-        # Check file position - Note: file.file.tell() is not an async method
-        position = file.file.tell()
-        print(f"📄 Initial file position: {position}")
-        
-        # Try to read a small chunk to check if file has content
-        # Note: seek() is not an async method on the underlying file object
-        file.file.seek(0)
-        # But read() might be async depending on the implementation
-        chunk = await file.read(1024)  # Read first 1KB
-        chunk_size = len(chunk)
-        print(f"📄 First chunk size: {chunk_size} bytes")
-        
-        # Important: Reset file position for subsequent reads
-        file.file.seek(0)
-        
-        # Check if SpooledTemporaryFile was created (if using SpooledTemporaryFile)
-        if hasattr(file, 'file') and hasattr(file.file, '_file'):
-            print(f"📄 File is spooled: {file.file._file is not None}")
-        
-        upload_id = run_upload(file)
-        return {"upload_id": upload_id}
+        result = refiner_upload_and_parse(file, user_id)
+        return {"status": "success", "data": result}
     except Exception as e:
-        print(f"❌ Error in upload_resume: {str(e)}")
+        logger.error(f"Error uploading resume: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/resume/layout/{upload_id}")
+async def analyze_resume_layout(upload_id: str, user_id: Optional[str] = None):
+    """Analyze the layout of a parsed resume"""
+    try:
+        result = refiner_analyze_layout(upload_id, user_id)
+        return {"status": "success", "data": result}
+    except Exception as e:
+        logger.error(f"Error analyzing resume layout: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/resume/evaluate/{upload_id}")
+async def evaluate_resume(upload_id: str, user_id: Optional[str] = None):
+    """Evaluate the quality of a parsed resume"""
+    try:
+        result = refiner_evaluate_quality(upload_id, user_id)
+        return {"status": "success", "data": result}
+    except Exception as e:
+        logger.error(f"Error evaluating resume: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+@app.post("/resume/match/{upload_id}")
+async def match_resume_with_jobs(upload_id: str, job_descriptions: List[Dict[str, Any]], user_id: Optional[str] = None):
+    """Match a resume against job descriptions"""
+    try:
+        result = refiner_match_jobs(upload_id, job_descriptions, user_id)
+        return {"status": "success", "data": result}
+    except Exception as e:
+        logger.error(f"Error matching resume with jobs: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+# Configure logging
+# logging.basicConfig(level=logging.INFO)
+# logger = logging.getLogger(__name__)
+
+@app.get("/resume/match-saved-jobs/{upload_id}/{user_id}")
+async def match_resume_with_saved_jobs(upload_id: str, user_id: str):
+    """Match a resume against user's saved jobs from MongoDB"""
+    try:
+        # Get saved jobs and extract the list from the dictionary
+        saved_jobs_result = get_saved_jobs(user_id)
+        saved_jobs_list = saved_jobs_result.get("saved_jobs", [])
+        
+        # Log the number of saved jobs found
+        logger.info(f"Found {len(saved_jobs_list)} saved jobs for user {user_id}")
+        
+        # Match the resume with the saved jobs list
+        result = refiner_match_jobs(upload_id, saved_jobs_list, user_id)
+        return {"status": "success", "data": result}
+    except Exception as e:
+        logger.error(f"Error matching resume with saved jobs: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/resume/get/{user_id}/{upload_id}")
+async def get_resume_data(user_id: str, upload_id: str):
+    """Get a parsed resume from MongoDB"""
+    try:
+        from services.mongodb.mongodb_resume_utils import get_parsed_resume
+        result = get_parsed_resume(user_id, upload_id)
+        if result:
+            return {"status": "success", "data": result}
+        else:
+            return {"status": "error", "message": "Resume not found"}
+    except Exception as e:
+        logger.error(f"Error getting resume data: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/resume/get-matches/{user_id}/{upload_id}")
+async def get_resume_job_matches(user_id: str, upload_id: str, job_id: Optional[str] = None):
+    """Get job matching results for a resume"""
+    try:
+        from services.mongodb.mongodb_resume_utils import get_job_matching_results
+        result = get_job_matching_results(user_id, upload_id, job_id)
+        return {"status": "success", "data": result}
+    except Exception as e:
+        logger.error(f"Error getting resume job matches: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/resume/saved-jobs/{user_id}")
+async def resume_refiner_get_saved_jobs(user_id: str = "default_user"):
+    """Get saved jobs for a user in a format suitable for ResumeRefiner"""
+    try:
+        # Get saved jobs from MongoDB
+        from services.mongodb.mongodb_resume_utils import get_saved_jobs_for_matching
+        
+        # Get formatted jobs for matching
+        saved_jobs = get_saved_jobs_for_matching(user_id)
+        
+        return {
+            "status": "success", 
+            "data": saved_jobs,
+            "count": len(saved_jobs)
+        }
+    except Exception as e:
+        logger.error(f"Error getting saved jobs for ResumeRefiner: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+# Legacy Resume Refiner endpoints for mobile app compatibility
+@app.post("/resumes/upload", tags=["ResumeRefiner"])
+async def legacy_upload_resume(file: UploadFile = File(...), user_id: Optional[str] = None):
+    """Legacy endpoint for uploading a resume PDF or image (JPEG, PNG, HEIC)"""
+    try:
+        # Check if the file is a supported type (PDF, JPEG, PNG, HEIC)
+        content_type = file.content_type.lower() if file.content_type else ""
+        filename = file.filename.lower() if file.filename else ""
+        
+        is_pdf = "pdf" in content_type or filename.endswith(".pdf")
+        is_jpeg = any(img_type in content_type for img_type in ["jpeg", "jpg"]) or filename.endswith((".jpg", ".jpeg"))
+        is_png = "png" in content_type or filename.endswith(".png")
+        is_heic = "heic" in content_type or filename.endswith(".heic")
+        
+        if not (is_pdf or is_jpeg or is_png or is_heic):
+            raise HTTPException(400, "Only PDF, JPEG, PNG, and HEIC files are supported")
+        
+        # Use default user ID if none provided
+        effective_user_id = user_id if user_id else "default_user"
+        
+        # Use our new implementation but format the response to match the old format
+        result = refiner_upload_and_parse(file, effective_user_id)
+        return {"upload_id": result["upload_id"]}
+    except Exception as e:
+        logger.error(f"Error in legacy_upload_resume: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error uploading file: {str(e)}")
 
-
 @app.get("/resumes/{upload_id}/layout", tags=["ResumeRefiner"])
-async def analyze_layout(upload_id: str):
-    """Analyze the layout of a resume PDF"""
+async def legacy_analyze_layout(upload_id: str):
+    """Legacy endpoint for analyzing the layout of a resume PDF"""
     try:
-        result = run_analyze_layout(upload_id)
+        result = refiner_analyze_layout(upload_id)
         return {"response": result}
     except FileNotFoundError:
         raise HTTPException(404, f"Resume with ID {upload_id} not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error analyzing layout: {str(e)}")
 
-
 @app.get("/resumes/{upload_id}/parse", tags=["ResumeRefiner"])
-async def parse_resume(upload_id: str):
-    """Parse a resume PDF and extract sections"""
+async def legacy_parse_resume(upload_id: str):
+    """Legacy endpoint for parsing a resume PDF and extracting sections"""
     try:
-        result = run_parse(upload_id)
-        return {"response": result}
+        # Get the parsed data from our new implementation
+        from services.mongodb.mongodb_resume_utils import get_parsed_resume
+        
+        # First try to get it from MongoDB if it was saved there
+        result = get_parsed_resume("test_user", upload_id)
+        
+        # If not found in MongoDB, parse it directly
+        if not result or "parsed_data" not in result:
+            # Get the parsed data directly from the parser
+            crew = ResumeRefinerCrew()
+            result = {"parsed_data": crew.parser.parse_with_sections(upload_id)}
+            
+        return {"response": result["parsed_data"]}
     except FileNotFoundError:
         raise HTTPException(404, f"Resume with ID {upload_id} not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error parsing resume: {str(e)}")
 
-
 @app.get("/resumes/{upload_id}/evaluate", tags=["ResumeRefiner"])
-async def evaluate_resume(upload_id: str):
-    """Evaluate resume quality with layout analysis"""
+async def legacy_evaluate_quality(upload_id: str):
+    """Legacy endpoint for evaluating the quality of a resume"""
     try:
-        result = run_evaluate(upload_id)
+        result = refiner_evaluate_quality(upload_id)
         return {"response": result}
     except FileNotFoundError:
         raise HTTPException(404, f"Resume with ID {upload_id} not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error evaluating resume: {str(e)}")
 
-
 @app.post("/resumes/{upload_id}/match", tags=["ResumeRefiner"])
-async def match_resume(upload_id: str, request: JobMatchRequest):
-    """Match resume against job descriptions"""
+async def legacy_match_with_jobs(upload_id: str, job_descriptions: List[Dict[str, Any]]):
+    """Legacy endpoint for matching a resume with job descriptions"""
     try:
-        result = run_match(upload_id, request.job_descriptions)
+        result = refiner_match_jobs(upload_id, job_descriptions)
         return {"response": result}
     except FileNotFoundError:
         raise HTTPException(404, f"Resume with ID {upload_id} not found")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error matching resume: {str(e)}")
-
+        raise HTTPException(status_code=500, detail=f"Error matching resume with jobs: {str(e)}")
 
 # Legacy endpoints for backward compatibility
-@app.post("/agents/resume_refiner/parse", tags=["ResumeRefiner", "Legacy"])
-async def legacy_parse_resume(request: AgentRequest):
-    """Legacy endpoint for parsing resumes"""
-    uid = request.data.get("upload_id")
-    if not uid:
-        raise HTTPException(400, "upload_id is required")
+@app.post("/resume/upload-pdf")
+async def upload_pdf(file: UploadFile):
+    """Legacy endpoint - use /resume/upload instead"""
     try:
-        result = run_parse(uid)
-        return {"response": result}
+        result = refiner_upload_and_parse(file)
+        return {"status": "success", "data": result}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+        logger.error(f"Error uploading PDF: {str(e)}")
+        return {"status": "error", "message": str(e)}
 
-
-@app.post("/agents/resume_refiner/refine/{upload_id}", tags=["ResumeRefiner", "Legacy"])
-async def legacy_refine_resume(upload_id: str):
-    """Legacy endpoint for refining resumes"""
+@app.get("/resume/analyze-layout/{upload_id}")
+async def analyze_pdf_layout(upload_id: str):
+    """Legacy endpoint - use /resume/layout instead"""
     try:
-        result = run_evaluate(upload_id)
-        return {"response": result}
+        result = refiner_analyze_layout(upload_id)
+        return {"status": "success", "data": result}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+        logger.error(f"Error analyzing PDF layout: {str(e)}")
+        return {"status": "error", "message": str(e)}
 
-
-@app.post("/agents/resume_refiner/match/{upload_id}", tags=["ResumeRefiner", "Legacy"])
-async def legacy_match_resume(upload_id: str, request: dict):
-    """Legacy endpoint for matching resumes"""
-    job_text = request.get("data", {}).get("job_text")
-    if not job_text:
-        raise HTTPException(400, "job_text is required")
+@app.get("/resume/evaluate-pdf/{upload_id}")
+async def evaluate_pdf(upload_id: str):
+    """Legacy endpoint - use /resume/evaluate instead"""
     try:
-        result = run_match(upload_id, job_text)
-        return {"response": result}
+        result = refiner_evaluate_quality(upload_id)
+        return {"status": "success", "data": result}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+        logger.error(f"Error evaluating PDF: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+@app.post("/resume/match-pdf/{upload_id}")
+async def match_pdf(upload_id: str, job_descriptions: List[Dict[str, Any]]):
+    """Legacy endpoint - use /resume/match instead"""
+    try:
+        result = refiner_match_jobs(upload_id, job_descriptions)
+        return {"status": "success", "data": result}
+    except Exception as e:
+        logger.error(f"Error matching PDF: {str(e)}")
+        return {"status": "error", "message": str(e)}
 
 # Global State endpoints
 @app.get("/global-state", tags=["GlobalState"])

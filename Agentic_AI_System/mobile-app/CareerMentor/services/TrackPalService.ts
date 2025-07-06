@@ -1,49 +1,15 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../constants/ApiEndpoints';
 
-// API base URLs - try different options based on environment
-const API_URLS = {
-  emulator: 'http://10.0.2.2:8000/agents/track_pal', // Android emulator
-  localhost: 'http://localhost:8000/agents/track_pal', // iOS simulator or web
-  device: 'http://192.168.1.218:8000/agents/track_pal' // Adjust this IP to your computer's IP when testing on physical device
-};
+// Using API_BASE_URL from ApiEndpoints.ts
+// This ensures we're using the same URL that is updated by the start_careermentor.sh script
+// We'll append the TrackPal endpoint path when making API calls
 
-// Default to localhost, but you can change this based on your environment
-let API_BASE_URL = API_URLS.localhost;
-
-// Helper function to try different API URLs if one fails
-const tryAPIUrls = async (apiCall: (url: string) => Promise<any>): Promise<any> => {
-  // Try the current API URL first
-  try {
-    return await apiCall(API_BASE_URL);
-  } catch (error: any) {
-    console.log(`Failed with URL ${API_BASE_URL}: ${error.message}`);
-    
-    // If that fails, try other URLs
-    for (const [key, url] of Object.entries(API_URLS)) {
-      if (url === API_BASE_URL) continue; // Skip the one we already tried
-      
-      try {
-        console.log(`Trying alternative URL: ${url}`);
-        const result = await apiCall(url);
-        // If successful, update the default URL for future calls
-        API_BASE_URL = url;
-        console.log(`Success with URL ${url}, updating default`);
-        return result;
-      } catch (innerError: any) {
-        console.log(`Failed with URL ${url}: ${innerError.message}`);
-        // Continue to the next URL
-      }
-    }
-    
-    // If all URLs fail, throw the original error
-    throw error;
-  }
-};
 const USER_ID_KEY = 'user_id';
 
 // Default user ID for testing
-const DEFAULT_USER_ID = 'test_user';
+const DEFAULT_USER_ID = 'default_user';
 
 export interface Reminder {
   message: string;
@@ -84,28 +50,31 @@ export const TrackPalService = {
       const userId = await TrackPalService.getUserId();
       console.log('Calling check_reminders with userId:', userId);
       
-      return await tryAPIUrls(async (baseUrl) => {
-        console.log('API URL:', `${baseUrl}/check_reminders`);
-        
-        const response = await axios.post(`${baseUrl}/check_reminders`, {
-          data: { user_id: userId } // Wrap in data object to match AgentRequest model
-        });
-        
-        console.log('Reminders API response:', response.data);
-        
-        // Handle different response formats
-        if (response.data && response.data.response) {
-          if (typeof response.data.response === 'string') {
-            return response.data.response;
-          } else if (response.data.response.raw) {
-            return response.data.response.raw;
-          } else if (response.data.response.content) {
-            return response.data.response.content;
-          }
+      // Use only the main API endpoint
+      const baseUrl = `${API_BASE_URL}/agents/track_pal`;
+      console.log('API URL:', `${baseUrl}/check_reminders`);
+      
+      // Send the user ID to the backend (backend will fetch applications from MongoDB)
+      const response = await axios.post(`${baseUrl}/check_reminders`, {
+        data: { 
+          user_id: userId
         }
-        
-        return 'No reminders available.';
       });
+      
+      console.log('Reminders API response:', response.data);
+      
+      // Handle different response formats
+      if (response.data && response.data.response) {
+        if (typeof response.data.response === 'string') {
+          return response.data.response;
+        } else if (response.data.response.raw) {
+          return response.data.response.raw;
+        } else if (response.data.response.content) {
+          return response.data.response.content;
+        }
+      }
+      
+      return 'No reminders available.';
     } catch (error: any) {
       console.error('Error getting reminders:', error);
       console.error('Error details:', error.response?.data || 'No response data');
@@ -174,38 +143,41 @@ export const TrackPalService = {
     }
   },
 
-  // Get application pattern analysis
+  // Get pattern analysis from TrackPal agent
   getPatternAnalysis: async (): Promise<string> => {
     try {
       const userId = await TrackPalService.getUserId();
       console.log('Calling analyze_patterns with userId:', userId);
       
-      return await tryAPIUrls(async (baseUrl) => {
-        console.log('API URL:', `${baseUrl}/analyze_patterns`);
-        
-        const response = await axios.post(`${baseUrl}/analyze_patterns`, {
-          data: { user_id: userId } // Wrap in data object to match AgentRequest model
-        });
-        
-        console.log('Pattern analysis API response:', response.data);
-        
-        // Handle different response formats
-        if (response.data && response.data.response) {
-          if (typeof response.data.response === 'string') {
-            return response.data.response;
-          } else if (response.data.response.raw) {
-            return response.data.response.raw;
-          } else if (response.data.response.content) {
-            return response.data.response.content;
-          }
+      // Use only the main API endpoint
+      const baseUrl = `${API_BASE_URL}/agents/track_pal`;
+      console.log('API URL:', `${baseUrl}/analyze_patterns`);
+      
+      // Send the user ID to the backend (backend will fetch applications from MongoDB)
+      const response = await axios.post(`${baseUrl}/analyze_patterns`, {
+        data: { 
+          user_id: userId
         }
-        
-        return 'No pattern analysis available.';
       });
+      
+      console.log('Pattern analysis API response:', response.data);
+      
+      // Handle different response formats
+      if (response.data && response.data.response) {
+        if (typeof response.data.response === 'string') {
+          return response.data.response;
+        } else if (response.data.response.raw) {
+          return response.data.response.raw;
+        } else if (response.data.response.content) {
+          return response.data.response.content;
+        }
+      }
+      
+      return 'No pattern analysis available.';
     } catch (error: any) {
       console.error('Error getting pattern analysis:', error);
       console.error('Error details:', error.response?.data || 'No response data');
-      return `Failed to analyze patterns. Error: ${error.message}`;
+      return `Failed to get pattern analysis. Error: ${error.message}`;
     }
   },
 

@@ -67,15 +67,27 @@ export default function JobDetailsScreen() {
       setIsSaved(!isSaved);
     } catch (err: any) {
       console.error('Error saving/unsaving job:', err);
+      Alert.alert('Error', 'Failed to save job. Please try again.');
     } finally {
       setSavingJob(false);
+    }
+  };
+
+  const handleApplyNow = () => {
+    if (job && job.application_link) {
+      Linking.openURL(job.application_link).catch(err => {
+        console.error('Error opening application link:', err);
+        Alert.alert('Error', 'Could not open application link.');
+      });
+    } else {
+      Alert.alert('Info', 'No application link available for this job.');
     }
   };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2f95dc" />
+        <ActivityIndicator size="large" color="#5A5D80" />
         <Text style={styles.loadingText}>Loading job details...</Text>
       </View>
     );
@@ -96,7 +108,7 @@ export default function JobDetailsScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#2f95dc" />
+          <Ionicons name="arrow-back" size={24} color="#fff" />
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
         
@@ -108,7 +120,7 @@ export default function JobDetailsScreen() {
           <Ionicons 
             name={isSaved ? "bookmark" : "bookmark-outline"} 
             size={20} 
-            color={isSaved ? "#fff" : "#2f95dc"} 
+            color={isSaved ? "#5A5D80" : "#fff"} 
           />
           <Text style={[styles.saveButtonText, isSaved ? styles.savedButtonText : {}]}>
             {savingJob ? 'Saving...' : (isSaved ? 'Saved' : 'Save Job')}
@@ -118,41 +130,54 @@ export default function JobDetailsScreen() {
 
       <ScrollView style={styles.scrollContainer}>
         <Text style={styles.jobTitle}>{job.title}</Text>
-        <Text style={styles.companyName}>{job.company}</Text>
+        <Text style={styles.companyName}>{job.company_name}</Text>
         
         <View style={styles.infoRow}>
-          <View style={styles.infoItem}>
-            <Ionicons name="location-outline" size={16} color="#666" />
-            <Text style={styles.infoText}>{job.location || 'Remote'}</Text>
-          </View>
+          {job.location && (
+            <View style={styles.infoItem}>
+              <Ionicons name="location-outline" size={18} color="#666" />
+              <Text style={styles.infoText}>{job.location}</Text>
+            </View>
+          )}
           
           {job.salary && (
             <View style={styles.infoItem}>
-              <Ionicons name="cash-outline" size={16} color="#666" />
+              <Ionicons name="cash-outline" size={18} color="#666" />
               <Text style={styles.infoText}>{job.salary}</Text>
             </View>
           )}
           
           {job.job_type && (
             <View style={styles.infoItem}>
-              <Ionicons name="time-outline" size={16} color="#666" />
+              <Ionicons name="briefcase-outline" size={18} color="#666" />
               <Text style={styles.infoText}>{job.job_type}</Text>
             </View>
           )}
-        </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Description</Text>
-          <Text style={styles.descriptionText}>{job.description}</Text>
+          {job.resume_match_score !== undefined && (
+            <View style={styles.matchScoreContainer}>
+              <Ionicons name="star" size={18} color="#5A5D80" />
+              <Text style={styles.matchScoreText}>
+                {Math.round(job.resume_match_score)}% Match
+              </Text>
+            </View>
+          )}
         </View>
-
+        
+        {job.description && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Description</Text>
+            <Text style={styles.descriptionText}>{job.description}</Text>
+          </View>
+        )}
+        
         {job.requirements && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Requirements</Text>
             <Text style={styles.requirementsText}>{job.requirements}</Text>
           </View>
         )}
-
+        
         {job.skills && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Skills</Text>
@@ -178,7 +203,10 @@ export default function JobDetailsScreen() {
         )}
 
         <View style={styles.applySection}>
-          <TouchableOpacity style={styles.applyButton}>
+          <TouchableOpacity 
+            style={styles.applyButton}
+            onPress={handleApplyNow}
+          >
             <Text style={styles.applyButtonText}>Apply Now</Text>
           </TouchableOpacity>
           <Text style={styles.postedDate}>
@@ -224,10 +252,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    paddingTop: 50,
+    paddingBottom: 16,
+    backgroundColor: '#5A5D80',
   },
   backButton: {
     flexDirection: 'row',
@@ -237,28 +264,26 @@ const styles = StyleSheet.create({
   backButtonText: {
     marginLeft: 4,
     fontSize: 16,
-    color: '#2f95dc',
+    color: '#fff',
   },
   saveButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#2f95dc',
+    backgroundColor: '#fff',
     borderRadius: 20,
     paddingVertical: 6,
     paddingHorizontal: 12,
   },
   savedButton: {
-    backgroundColor: '#2f95dc',
-    borderColor: '#2f95dc',
+    backgroundColor: '#fff',
   },
   saveButtonText: {
     marginLeft: 4,
     fontSize: 14,
-    color: '#2f95dc',
+    color: '#5A5D80',
   },
   savedButtonText: {
-    color: '#fff',
+    color: '#5A5D80',
   },
   scrollContainer: {
     flex: 1,
@@ -291,6 +316,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
+  matchScoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(90, 93, 128, 0.1)',
+    borderRadius: 16,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    marginRight: 16,
+  },
+  matchScoreText: {
+    marginLeft: 4,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#5A5D80',
+  },
   section: {
     marginBottom: 24,
   },
@@ -319,7 +359,7 @@ const styles = StyleSheet.create({
     color: '#444',
   },
   skillBadge: {
-    backgroundColor: '#e8f4fd',
+    backgroundColor: 'rgba(90, 93, 128, 0.1)',
     borderRadius: 16,
     paddingVertical: 4,
     paddingHorizontal: 12,
@@ -327,7 +367,7 @@ const styles = StyleSheet.create({
   },
   skillBadgeText: {
     fontSize: 14,
-    color: '#2f95dc',
+    color: '#5A5D80',
   },
   benefitsText: {
     fontSize: 15,
@@ -340,7 +380,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   applyButton: {
-    backgroundColor: '#2f95dc',
+    backgroundColor: '#5A5D80',
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 24,
