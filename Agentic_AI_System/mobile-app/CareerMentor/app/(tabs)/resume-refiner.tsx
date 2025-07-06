@@ -765,6 +765,40 @@ const styles = StyleSheet.create({
     padding: 8,
     zIndex: 10,
   },
+  noJobsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  noJobsText: {
+    fontSize: 16,
+    color: COLORS.midnight,
+    textAlign: 'center',
+  },
+  findJobsButtonContainer: {
+    marginTop: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  findJobsButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 25,
+    borderRadius: 30,
+    maxWidth: '50%',
+  },
+  findJobsButtonText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 10,
+  },
+  findMoreJobsButtonContainer: {
+    marginTop: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
 
 // Helper function to determine the color based on match percentage
@@ -1614,15 +1648,58 @@ export default function ResumeRefinerScreen() {
                   
                   <ScrollView style={styles.jobListScrollView}>
                     <View style={styles.jobList}>
-                      {jobs.map((job) => (
-                        <TrackpalStyleJobCard
-                          key={job.id}
-                          job={job}
-                          onPress={handleJobSelect}
-                          isSelected={selectedJob?.id === job.id}
-                          showMatchScore={job.match ? true : false}
-                        />
-                      ))}
+                      {jobs.length === 0 ? (
+                        <View style={styles.noJobsContainer}>
+                          <Text style={styles.noJobsText}>No saved jobs found to match with your resume.</Text>
+                          <View style={styles.findJobsButtonContainer}>
+                            <LinearGradient
+                              colors={[COLORS.rose, COLORS.sky]}
+                              style={styles.findJobsButtonGradient}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 0 }}
+                            >
+                              <TouchableOpacity 
+                                onPress={() => router.push('/pathfinder')}
+                                style={{ flexDirection: 'row', alignItems: 'center' }}
+                              >
+                                <Ionicons name="search" size={20} color={COLORS.white} />
+                                <Text style={styles.findJobsButtonText}>Find Jobs</Text>
+                              </TouchableOpacity>
+                            </LinearGradient>
+                          </View>
+                        </View>
+                      ) : (
+                        <>
+                          {jobs.map((job) => (
+                            <TrackpalStyleJobCard
+                              key={job.id}
+                              job={job}
+                              onPress={handleJobSelect}
+                              isSelected={selectedJob?.id === job.id}
+                              showMatchScore={job.match ? true : false}
+                            />
+                          ))}
+                          
+                          {jobs.length < 3 && (
+                            <View style={styles.findMoreJobsButtonContainer}>
+                              <LinearGradient
+                                colors={[COLORS.rose, COLORS.sky]}
+                                style={styles.findJobsButtonGradient}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                              >
+                                <TouchableOpacity 
+                                  onPress={() => router.push('/pathfinder')}
+                                  style={{ flexDirection: 'row', alignItems: 'center' }}
+                                >
+                                  <Ionicons name="search" size={20} color={COLORS.white} />
+                                  <Text style={styles.findJobsButtonText}>Find More Jobs</Text>
+                                </TouchableOpacity>
+                              </LinearGradient>
+                            </View>
+                          )}
+                        </>
+                      )}
                     </View>
                   </ScrollView>
                   
