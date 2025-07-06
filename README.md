@@ -1,6 +1,6 @@
-# CareerMentor
+# CareerDaddy
 
-CareerMentor is an AI-powered career development platform that helps users navigate their professional journey through specialized AI agents. The platform offers mock interviews, career path recommendations, resume refinement, and application tracking in a mobile-friendly interface.
+CareerDaddy is an AI-powered career development platform that helps users navigate their professional journey through specialized AI agents. The platform offers mock interviews, career path recommendations, resume refinement, and application tracking in a mobile-friendly interface.
 
 ## 🌟 Features
 
@@ -11,7 +11,7 @@ CareerMentor is an AI-powered career development platform that helps users navig
 
 ## 🏗️ Architecture
 
-CareerMentor follows an agent-based architecture using CrewAI:
+CareerDaddy follows an agent-based architecture using CrewAI:
 
 ```
 ┌─────────────────┐     ┌─────────────────┐
