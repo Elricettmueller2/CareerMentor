@@ -227,19 +227,20 @@ async def mock_mate_endpoint(action: str, request: AgentRequest):
         raise HTTPException(status_code=500, detail=error_msg)
 
 
-#@app.post("/agents/test", tags=["Agents", "Test"])
-#async def test_agent(request: AgentRequest):
-#    """Test endpoint for the agent"""
-#    try:
- #       # Extract request data
-  #      data = request.data
-   #     
-    #    result = run_test_crew(
-     #       text=data.get("text")
-      #  )
-       # return {"response": result}
-    #except Exception as e:
-     #   raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
+# Test endpoint commented out due to missing module
+# @app.post("/agents/test", tags=["Agents", "Test"])
+# async def test_agent(request: AgentRequest):
+#     """Test endpoint for the agent"""
+#     try:
+#         # Extract request data
+#         data = request.data
+#         
+#         result = run_test_crew(
+#             text=data.get("text")
+#         )
+#         return {"response": result}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
 
 # Note: The direct_test endpoint has been removed as part of the chat feature removal
 
