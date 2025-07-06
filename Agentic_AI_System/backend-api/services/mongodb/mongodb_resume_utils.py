@@ -240,8 +240,10 @@ def get_saved_jobs_for_matching(user_id: str) -> List[Dict[str, Any]]:
             "id": job.get("id", ""),
             "title": job.get("position", ""),
             "company": job.get("company", ""),
+            "location": job.get("location", ""),
             "description": job.get("description", ""),
-            "requirements": job.get("requirements", "")
+            "requirements": job.get("requirements", ""),
+            "skills": job.get("skills", [])
         }
         
         # Combine description and requirements if needed

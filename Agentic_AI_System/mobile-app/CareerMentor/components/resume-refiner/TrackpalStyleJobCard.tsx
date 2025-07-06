@@ -36,10 +36,19 @@ const TrackpalStyleJobCard: React.FC<TrackpalStyleJobCardProps> = ({
       activeOpacity={0.7}
     >
       <View style={styles.applicationHeader}>
-        <Text style={styles.jobTitle}>{job.title}</Text>
+        <Text style={styles.jobTitle} numberOfLines={2} ellipsizeMode="tail">
+          {job.title}
+        </Text>
       </View>
       <Text style={styles.companyText}>{job.company}</Text>
-      <Text style={styles.locationText}>{job.location || 'Location not specified'}</Text>
+      
+      {/* Always show location with a fallback message if not available */}
+      <View style={styles.locationContainer}>
+        <Ionicons name="location-outline" size={16} color="rgba(255, 255, 255, 0.8)" />
+        <Text style={styles.locationText}>
+          {job.location ? job.location : 'Location not specified'}
+        </Text>
+      </View>
       
       <View style={styles.applicationFooter}>
         {job.skills && job.skills.length > 0 && (
@@ -112,13 +121,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
+    width: '100%',
   },
 
   jobTitle: {
     fontSize: 18,
     fontWeight: '600',
-    flex: 1,
     color: CAREER_COLORS.white,
+    width: '80%', // Limit job title to 80% of card width
   },
 
   statusBadge: {
@@ -139,10 +149,16 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
 
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+
   locationText: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 8,
+    marginLeft: 4,
   },
 
   applicationFooter: {
