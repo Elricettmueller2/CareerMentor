@@ -1,6 +1,7 @@
 import NotificationService from './NotificationService';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../constants/ApiEndpoints';
 
 export interface SavedJob {
   id: string;
@@ -115,56 +116,13 @@ const convertApplicationToSavedJob = (application: JobApplication, existingSaved
   };
 };
 
-// API base URLs - try different options based on environment
-const API_URLS = {
-  emulator: 'http://10.0.2.2:8000/agents/track_pal', // Android emulator
-  localhost: 'http://localhost:8000/agents/track_pal', // iOS simulator or web
-  device: 'http://192.168.1.218:8000/agents/track_pal', // Adjust this IP to your computer's IP when testing on physical device
-  docker: 'http://host.docker.internal:8000/agents/track_pal' // Docker container
-};
-
-// Default to localhost, but you can change this based on your environment
-let API_BASE_URL = API_URLS.localhost;
-
-// Helper function to try different API URLs if one fails
-const tryAPIUrls = async (apiCall: (url: string) => Promise<any>): Promise<any> => {
-  // Try the current API URL first
-  try {
-    return await apiCall(API_BASE_URL);
-  } catch (error: any) {
-    console.log(`Failed with URL ${API_BASE_URL}: ${error.message}`);
-    
-    // If that fails, try other URLs
-    for (const [key, url] of Object.entries(API_URLS)) {
-      if (url === API_BASE_URL) continue; // Skip the one we already tried
-      
-      try {
-        console.log(`Trying alternative URL: ${url}`);
-        const result = await apiCall(url);
-        // If successful, update the default URL for future calls
-        API_BASE_URL = url;
-        console.log(`Success with URL ${url}, updating default`);
-        return result;
-      } catch (innerError: any) {
-        console.log(`Failed with URL ${url}: ${innerError.message}`);
-        // Continue to the next URL
-      }
-    }
-    
-    // If all URLs fail, throw the original error
-    throw error;
-  }
-};
-
-const USER_ID_KEY = 'user_id';
-
 // Default user ID for testing
 const DEFAULT_USER_ID = 'test_user';
 
 // Get the current user ID or use default
 const getUserId = async (): Promise<string> => {
   try {
-    const userId = await AsyncStorage.getItem(USER_ID_KEY);
+    const userId = await AsyncStorage.getItem('user_id');
     return userId || DEFAULT_USER_ID;
   } catch (error) {
     console.error('Error getting user ID:', error);
@@ -178,21 +136,21 @@ export const JobService = {
     try {
       const userId = await getUserId();
       
-      return await tryAPIUrls(async (baseUrl) => {
-        console.log('API URL:', `${baseUrl}/get_applications`);
-        
-        const response = await axios.post(`${baseUrl}/get_applications`, {
-          data: { user_id: userId }
-        });
-        
-        console.log('Get applications response:', response.data);
-        
-        if (response.data && response.data.applications) {
-          return response.data.applications;
-        }
-        
-        return [];
+      // Use only the main API endpoint
+      const baseUrl = `${API_BASE_URL}/agents/track_pal`;
+      console.log('API URL:', `${baseUrl}/get_applications`);
+      
+      const response = await axios.post(`${baseUrl}/get_applications`, {
+        data: { user_id: userId }
       });
+      
+      console.log('Get applications response:', response.data);
+      
+      if (response.data && response.data.applications) {
+        return response.data.applications;
+      }
+      
+      return [];
     } catch (error) {
       console.error('Error getting jobs:', error);
       return [];
@@ -204,44 +162,37 @@ export const JobService = {
     try {
       const userId = await getUserId();
       
-      return await tryAPIUrls(async (baseUrl) => {
-        console.log('API URL:', `${baseUrl}/save_application`);
+      // Use only the main API endpoint
+      const baseUrl = `${API_BASE_URL}/agents/track_pal`;
+      console.log('API URL:', `${baseUrl}/add_application`);
+      
+      const response = await axios.post(`${baseUrl}/add_application`, {
+        data: { 
+          user_id: userId,
+          application
+        }
+      });
+      
+      console.log('Add application response:', response.data);
+      
+      if (response.data && response.data.application) {
+        const newJob = response.data.application;
         
-        const response = await axios.post(`${baseUrl}/save_application`, {
-          data: { 
-            user_id: userId,
-            application: {
-              ...application,
-              appliedDate: new Date().toISOString(),
-            }
-          }
-        });
-        
-        console.log('Save application response:', response.data);
-        
-        if (response.data && response.data.application) {
-          const newApplication = response.data.application;
-          
-          // Schedule notification if follow-up date is set
-          if (newApplication.followUpDate) {
-            try {
-              const followUpDate = new Date(newApplication.followUpDate);
-              await NotificationService.scheduleFollowUpReminder(
-                newApplication.id,
-                newApplication.company,
-                newApplication.jobTitle,
-                followUpDate
-              );
-            } catch (notificationError) {
-              console.error('Error scheduling notification:', notificationError);
-            }
-          }
-          
-          return newApplication;
+        // Schedule follow-up notification if a follow-up date is set
+        if (application.followUpDate) {
+          const followUpDate = new Date(application.followUpDate);
+          await NotificationService.scheduleFollowUpReminder(
+            newJob.id,
+            application.company,
+            application.jobTitle,
+            followUpDate
+          );
         }
         
-        throw new Error('Failed to save application');
-      });
+        return newJob;
+      }
+      
+      throw new Error('Failed to add application');
     } catch (error) {
       console.error('Error adding job:', error);
       throw error;
@@ -331,24 +282,24 @@ export const JobService = {
       }
       
       // Then delete the application from the backend
-      return await tryAPIUrls(async (baseUrl) => {
-        console.log('API URL:', `${baseUrl}/delete_application`);
-        
-        const response = await axios.post(`${baseUrl}/delete_application`, {
-          data: { 
-            user_id: userId,
-            app_id: id
-          }
-        });
-        
-        console.log('Delete application response:', response.data);
-        
-        if (response.data && response.data.success) {
-          return true;
+      // Use only the main API endpoint
+      const baseUrl = `${API_BASE_URL}/agents/track_pal`;
+      console.log('API URL:', `${baseUrl}/delete_application`);
+      
+      const response = await axios.post(`${baseUrl}/delete_application`, {
+        data: { 
+          user_id: userId,
+          app_id: id
         }
-        
-        return false;
       });
+      
+      console.log('Delete application response:', response.data);
+      
+      if (response.data && response.data.success) {
+        return true;
+      }
+      
+      return false;
     } catch (error) {
       console.error('Error deleting job:', error);
       throw error;
@@ -376,7 +327,7 @@ export const JobService = {
   // Set user ID
   setUserId: async (userId: string): Promise<void> => {
     try {
-      await AsyncStorage.setItem(USER_ID_KEY, userId);
+      await AsyncStorage.setItem('user_id', userId);
     } catch (error) {
       console.error('Error setting user ID:', error);
     }
