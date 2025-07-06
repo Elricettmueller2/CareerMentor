@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
-    paddingRight: 16, // Added padding to create more space between text and arrow
+    paddingRight: 16,
   },
   title: {
     fontSize: 16,

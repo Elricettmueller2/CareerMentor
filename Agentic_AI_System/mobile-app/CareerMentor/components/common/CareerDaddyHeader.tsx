@@ -65,8 +65,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
     shadowRadius: 10,
-    elevation: 10, // for Android
-    zIndex: 10, // ensure shadow is visible
+    elevation: 10,
+    zIndex: 10,
   },
   headerContent: {
     flexDirection: 'row',

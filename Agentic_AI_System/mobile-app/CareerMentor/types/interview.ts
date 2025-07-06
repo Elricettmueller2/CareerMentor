@@ -5,13 +5,13 @@ export interface InterviewEvaluation {
 }
 
 export interface InterviewMessage {
-  text?: string;  // For plain text responses
+  text?: string;
   evaluation?: string;
   follow_up?: string;
   notes?: string;
   sender: 'user' | 'agent';
   timestamp?: string;
-  isFollowUp?: boolean; // Flag to identify follow-up questions
+  isFollowUp?: boolean;
 }
 
 export interface InterviewSetupData {

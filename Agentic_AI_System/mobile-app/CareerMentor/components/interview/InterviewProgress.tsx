@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 interface InterviewProgressProps {
   currentQuestion: number;
   totalQuestions: number;
-  estimatedTimeRemaining?: number; // in minutes
+  estimatedTimeRemaining?: number;
 }
 
 const InterviewProgress: React.FC<InterviewProgressProps> = ({
@@ -15,7 +15,6 @@ const InterviewProgress: React.FC<InterviewProgressProps> = ({
   totalQuestions,
   estimatedTimeRemaining
 }) => {
-  // Calculate progress percentage
   const progressPercentage = (currentQuestion / totalQuestions) * 100;
   
   return (
@@ -73,7 +72,7 @@ const styles = StyleSheet.create({
   },
   progressBarContainer: {
     height: 6,
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.nightSky,
     borderRadius: 3,
     overflow: 'hidden',
   },

@@ -335,6 +335,13 @@ export default function PathFinderScreen() {
     { id: 'saved', label: 'Saved' }
   ];
   
+  // Reload data when activeTab changes to 'saved'
+  useEffect(() => {
+    if (activeTab === 'saved') {
+      loadSavedJobsData();
+    }
+  }, [activeTab]);
+  
   // Function to fetch recommended jobs
   const fetchRecommendations = async () => {
     try {
@@ -551,7 +558,7 @@ const toggleSaveJob = async (job: any) => {
         style={styles.jobCardContent}
         onPress={() => navigateToJobDetails(job.id)}
       >
-        <Text style={styles.resultTitle}>{job.title || 'Job Title'}</Text>
+        <Text style={styles.resultTitle}>{job.position || job.title || 'Job Title'}</Text>
         <Text style={styles.resultCompany}>
           {job.company || ''}
           {job.location ? ` | ${job.location}` : ''}
