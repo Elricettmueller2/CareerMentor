@@ -74,7 +74,7 @@ docker run -p 8000:8000 --env-file .env careermentor-backend
 
 #### Option 3: Quick Setup Script
 
-A shell script for instant setup is there. This script does automate the entire setup process, including environment configuration, dependency installation, and service startup.
+A shell script for instant setup is there. This script does automate the entire backend setup process, including environment configuration, dependency installation, and service startup.
 
 to use it run:
 
