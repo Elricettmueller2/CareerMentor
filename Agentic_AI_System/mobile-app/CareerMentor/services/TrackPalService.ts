@@ -44,7 +44,7 @@ const tryAPIUrls = async (apiCall: (url: string) => Promise<any>): Promise<any> 
 const USER_ID_KEY = 'user_id';
 
 // Default user ID for testing
-const DEFAULT_USER_ID = 'test_user';
+const DEFAULT_USER_ID = 'default_user';
 
 export interface Reminder {
   message: string;

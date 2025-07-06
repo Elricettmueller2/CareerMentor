@@ -25,95 +25,216 @@ class ApplicationManager:
         pass
     
     def get_applications(self, user_id: str) -> List[Dict[str, Any]]:
-        """Get all applications for a user from MongoDB"""
+        """Get all applications for a user from MongoDB using saved_jobs collection"""
         try:
+            # Use default_user if user_id is test_user or not provided
+            if not user_id or user_id == "test_user":
+                user_id = "default_user"
+                
             # Get the global state for the user
             state = global_state.get_state(user_id)
             
-            # Extract applications from agent_knowledge
+            # First check if there are applications in the old location (for backward compatibility)
             applications = state.get('agent_knowledge', {}).get('applications', {})
+            if applications:
+                # Convert old format to new format and move to saved_jobs
+                self._migrate_applications_to_saved_jobs(user_id, state, applications)
+                # Get the updated state after migration
+                state = global_state.get_state(user_id)
             
-            # Convert from dict to list if needed (MongoDB stores as dict with ID keys)
-            if isinstance(applications, dict):
-                return list(applications.values())
-            elif isinstance(applications, list):
-                return applications
-            else:
-                return []
+            # Extract saved_jobs from agent_knowledge.job_search
+            saved_jobs = state.get('agent_knowledge', {}).get('job_search', {}).get('saved_jobs', [])
+            
+            # Return the list of saved jobs
+            return saved_jobs
                 
         except Exception as e:
-            print(f"Error loading applications from MongoDB: {e}")
+            print(f"Error loading saved jobs from MongoDB: {e}")
             return []
     
-    def save_application(self, user_id: str, application: Dict[str, Any]) -> Dict[str, Any]:
-        """Save a new application to MongoDB"""
+    def _migrate_applications_to_saved_jobs(self, user_id: str, state: Dict[str, Any], applications: Dict[str, Any]) -> None:
+        """Migrate applications from old format to new format"""
+        # Use default_user if user_id is test_user or not provided
+        if not user_id or user_id == "test_user":
+            user_id = "default_user"
         try:
-            # Get current state and applications
-            state = global_state.get_state(user_id)
-            
-            # Ensure agent_knowledge and applications exist
+            # Ensure agent_knowledge and job_search exist
             if 'agent_knowledge' not in state:
                 state['agent_knowledge'] = {}
             
-            if 'applications' not in state['agent_knowledge']:
-                state['agent_knowledge']['applications'] = {}
+            if 'job_search' not in state['agent_knowledge']:
+                state['agent_knowledge']['job_search'] = {}
+                
+            if 'saved_jobs' not in state['agent_knowledge']['job_search']:
+                state['agent_knowledge']['job_search']['saved_jobs'] = []
             
-            # Generate ID if not provided
-            if "id" not in application:
-                # Use timestamp-based ID to ensure uniqueness
-                application["id"] = f"app_{int(datetime.now().timestamp())}"
+            # Convert each application to the new format and add to saved_jobs
+            for app_id, app_data in applications.items():
+                # Format according to PathFinder schema
+                formatted_job = {
+                    "id": app_data.get("id", app_id),
+                    "position": app_data.get("jobTitle", "Unknown Title"),
+                    "company": app_data.get("company", "Unknown Company"),
+                    "location": app_data.get("location", ""),
+                    "description": app_data.get("description", ""),
+                    "application_link": app_data.get("jobUrl", ""),
+                    "match_score": 0,
+                    "status": app_data.get("status", SAVED),
+                    "notes": app_data.get("notes", ""),
+                    "application_status": "not applied" if app_data.get("status") == SAVED else "applied",
+                    "created_at": app_data.get("created_at", app_data.get("appliedDate", datetime.now().isoformat())),
+                    "updated_at": app_data.get("updated_at", datetime.now().isoformat()),
+                    "source": "TrackPal"
+                }
+                
+                # Add to saved_jobs if not already present
+                job_exists = False
+                for job in state['agent_knowledge']['job_search']['saved_jobs']:
+                    if job.get("id") == formatted_job["id"]:
+                        job_exists = True
+                        break
+                
+                if not job_exists:
+                    state['agent_knowledge']['job_search']['saved_jobs'].append(formatted_job)
             
-            # Set default status if not provided
-            if "status" not in application:
-                application["status"] = SAVED
+            # Clear the old applications data
+            state['agent_knowledge']['applications'] = {}
             
-            # Add timestamp
-            application["created_at"] = datetime.now().isoformat()
-            application["updated_at"] = application["created_at"]
-            
-            # Add to applications dict with ID as key
-            state['agent_knowledge']['applications'][application["id"]] = application
-            
-            # Save updated state
+            # Update the state
             global_state.set_state(state, user_id)
-            
-            return application
+            print(f"Successfully migrated {len(applications)} applications to saved_jobs for user {user_id}")
             
         except Exception as e:
-            print(f"Error saving application to MongoDB: {e}")
+            print(f"Error migrating applications to saved_jobs: {e}")
+    
+    def save_application(self, user_id: str, application: Dict[str, Any]) -> Dict[str, Any]:
+        """Save a new job application to MongoDB using saved_jobs collection"""
+        try:
+            # Use default_user if user_id is test_user or not provided
+            if not user_id or user_id == "test_user":
+                user_id = "default_user"
+                
+            # Get the current state
+            state = global_state.get_state(user_id)
+            
+            # Ensure agent_knowledge and job_search exist
+            if 'agent_knowledge' not in state:
+                state['agent_knowledge'] = {}
+            
+            if 'job_search' not in state['agent_knowledge']:
+                state['agent_knowledge']['job_search'] = {}
+                
+            if 'saved_jobs' not in state['agent_knowledge']['job_search']:
+                state['agent_knowledge']['job_search']['saved_jobs'] = []
+            
+            # Format the job data according to PathFinder schema
+            formatted_job = {
+                "id": application.get("id", f"app_{int(datetime.now().timestamp())}"),
+                "position": application.get("jobTitle", application.get("title", "Unknown Title")),
+                "company": application.get("company", "Unknown Company"),
+                "location": application.get("location", ""),
+                "description": application.get("description", ""),
+                "application_link": application.get("jobUrl", application.get("url", "")),
+                "match_score": application.get("match_score", 0),
+                "status": application.get("status", SAVED),
+                "notes": application.get("notes", ""),
+                "application_status": "not applied" if application.get("status") == SAVED else "applied",
+                "created_at": application.get("created_at", application.get("appliedDate", datetime.now().isoformat())),
+                "updated_at": datetime.now().isoformat(),
+                "source": "TrackPal"
+            }
+            
+            # Check if job already exists
+            saved_jobs = state['agent_knowledge']['job_search']['saved_jobs']
+            for i, job in enumerate(saved_jobs):
+                if job.get("id") == formatted_job["id"]:
+                    # Job already exists, return it
+                    return job
+            
+            # Job doesn't exist, add it to saved_jobs
+            saved_jobs.append(formatted_job)
+            
+            # Update the user state
+            state['agent_knowledge']['job_search']['saved_jobs'] = saved_jobs
+            global_state.set_state(state, user_id)
+            
+            # Return the job in the format expected by the frontend
+            return self._convert_to_frontend_format(formatted_job)
+            
+        except Exception as e:
+            print(f"Error saving job to MongoDB: {e}")
             return application  # Return the application anyway for client-side use
     
     def update_application(self, user_id: str, app_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Update an existing application in MongoDB"""
+        """Update an existing job application in MongoDB using saved_jobs collection"""
         try:
-            # Get current state
+            # Use default_user if user_id is test_user or not provided
+            if not user_id or user_id == "test_user":
+                user_id = "default_user"
+                
+            # Get the current state
             state = global_state.get_state(user_id)
             
-            # Check if applications exist
-            if 'agent_knowledge' not in state or 'applications' not in state['agent_knowledge']:
+            # Check if saved_jobs exist
+            if 'agent_knowledge' not in state or 'job_search' not in state['agent_knowledge'] or 'saved_jobs' not in state['agent_knowledge']['job_search']:
                 return None
                 
-            applications = state['agent_knowledge']['applications']
+            saved_jobs = state['agent_knowledge']['job_search']['saved_jobs']
             
-            # Check if application exists
-            if app_id not in applications:
+            # Find the job to update
+            job_index = None
+            for i, job in enumerate(saved_jobs):
+                if job.get("id") == app_id:
+                    job_index = i
+                    break
+                    
+            if job_index is None:
                 return None
                 
             # Update fields
             for key, value in updates.items():
-                applications[app_id][key] = value
+                # Map TrackPal fields to PathFinder fields if needed
+                if key == "jobTitle":
+                    saved_jobs[job_index]["position"] = value
+                elif key == "jobUrl":
+                    saved_jobs[job_index]["application_link"] = value
+                else:
+                    saved_jobs[job_index][key] = value
             
             # Update timestamp
-            applications[app_id]["updated_at"] = datetime.now().isoformat()
+            saved_jobs[job_index]["updated_at"] = datetime.now().isoformat()
             
             # Save updated state
+            state['agent_knowledge']['job_search']['saved_jobs'] = saved_jobs
             global_state.set_state(state, user_id)
             
-            return applications[app_id]
+            # Return the job in the format expected by the frontend
+            return self._convert_to_frontend_format(saved_jobs[job_index])
             
         except Exception as e:
-            print(f"Error updating application in MongoDB: {e}")
+            print(f"Error updating job in MongoDB: {e}")
             return None
+            
+    def _convert_to_frontend_format(self, saved_job: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert a saved job from PathFinder format to TrackPal frontend format"""
+        return {
+            "id": saved_job.get("id", ""),
+            "jobTitle": saved_job.get("position", ""),
+            "company": saved_job.get("company", ""),
+            "location": saved_job.get("location", ""),
+            "description": saved_job.get("description", ""),
+            "applicationDeadline": None,  # Not stored in PathFinder format
+            "applicationDeadlineReminder": None,
+            "status": saved_job.get("status", SAVED),
+            "followUpDate": None,  # Could be calculated from days_until_followup if needed
+            "followUpTime": "12:00",  # Default time
+            "notes": saved_job.get("notes", ""),
+            "jobUrl": saved_job.get("application_link", ""),
+            "appliedDate": saved_job.get("created_at", datetime.now().isoformat()),
+            "interviewReminder": None,
+            "created_at": saved_job.get("created_at", datetime.now().isoformat()),
+            "updated_at": saved_job.get("updated_at", datetime.now().isoformat())
+        }
 
 # Initialize LLM with Ollama
 llm = LLM(
