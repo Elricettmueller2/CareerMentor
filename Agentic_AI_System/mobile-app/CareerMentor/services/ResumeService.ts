@@ -1,5 +1,6 @@
 import { API_BASE_URL, ENDPOINTS, API_FALLBACK_URLS } from '../constants/ApiEndpoints';
 import { FileUploadService } from './FileUploadService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
  * Service for resume-related operations
@@ -209,48 +210,19 @@ export class ResumeService {
     try {
       console.log(`Matching resume ${resumeId} with job ${jobId}`);
       
-      // Get job details if available
-      let jobTitle = "Job Position";
-      let jobDescription = "";
+      // Get the user ID from AsyncStorage (default to "default_user" if not found)
+      const userId = await AsyncStorage.getItem('userId') || 'default_user';
       
-      try {
-        // Try to get the job from local data
-        const jobs = await this.loadJobs();
-        const job = jobs.find(j => j.id === jobId);
-        if (job) {
-          jobTitle = job.title || jobTitle;
-          jobDescription = job.description || jobDescription;
-          console.log(`Found job details for ${jobId}: ${jobTitle}`);
-        } else {
-          console.warn(`Job with ID ${jobId} not found in loaded jobs`);
-        }
-      } catch (jobError) {
-        console.error(`Could not get job details: ${jobError.message}`);
-        // Continue with default values
-      }
+      // Use the endpoint that matches with saved jobs from MongoDB
+      const endpoint = `/resume/match-saved-jobs/${resumeId}/${userId}`;
       
-      // Use the new endpoint for resume matching
-      const endpoint = ENDPOINTS.RESUME.MATCH.replace('{upload_id}', resumeId);
-      
-      console.log(`Calling resume match API: ${API_BASE_URL}${endpoint}`);
-      console.log('With job data:', {
-        id: jobId,
-        title: jobTitle,
-        description: jobDescription
-      });
+      console.log(`Calling resume match API with saved jobs: ${API_BASE_URL}${endpoint}`);
       
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: 'POST',
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          job_descriptions: [{
-            id: jobId,
-            title: jobTitle,
-            description: jobDescription || "Software Developer position requiring React Native and TypeScript skills"
-          }]
-        })
+        }
       });
       
       if (!response.ok) {
@@ -269,33 +241,28 @@ export class ResumeService {
           try {
             console.log(`Trying fallback URL: ${fallbackUrl}${endpoint}`);
             const fallbackResponse = await fetch(`${fallbackUrl}${endpoint}`, {
-              method: 'POST',
+              method: 'GET',
               headers: {
                 'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                job_descriptions: [{
-                  id: jobId,
-                  title: jobTitle,
-                  description: jobDescription || "Software Developer position requiring React Native and TypeScript skills"
-                }]
-              }),
-              // Add a shorter timeout for fallback URLs
-              signal: AbortSignal.timeout(15000)
+              }
             });
             
             if (fallbackResponse.ok) {
               const fallbackData = await fallbackResponse.json();
               console.log('Fallback job match response:', JSON.stringify(fallbackData, null, 2));
               
-              const fallbackResult = fallbackData.response && Array.isArray(fallbackData.response) 
-                ? fallbackData.response[0] 
-                : (fallbackData.response || fallbackData);
+              // Find the job match for the specific job ID
+              const jobMatches = fallbackData.data || [];
+              const jobMatch = jobMatches.find(match => match.id === jobId || match.job_id === jobId);
+              
+              if (!jobMatch) {
+                throw new Error(`Job with ID ${jobId} not found in match results`);
+              }
               
               return {
-                match_score: fallbackResult.overall_score || fallbackResult.skill_match_percentage || 0,
-                missing_keywords: fallbackResult.missing_skills || [],
-                improvement_suggestions: fallbackResult.improvement_suggestions || []
+                match_score: jobMatch.overall_score || jobMatch.skill_match_percentage || 0,
+                missing_keywords: jobMatch.missing_skills || [],
+                improvement_suggestions: jobMatch.improvement_suggestions || []
               };
             }
           } catch (fallbackError) {
@@ -310,18 +277,24 @@ export class ResumeService {
       const data = await response.json();
       console.log('Job match response:', JSON.stringify(data, null, 2));
       
-      const result = data.response && Array.isArray(data.response) ? data.response[0] : (data.response || data);
+      // Find the job match for the specific job ID
+      const jobMatches = data.data || [];
+      const jobMatch = jobMatches.find(match => match.id === jobId || match.job_id === jobId);
+      
+      if (!jobMatch) {
+        throw new Error(`Job with ID ${jobId} not found in match results`);
+      }
       
       // Validate the result to ensure we have actual data
-      if (!result || (typeof result.overall_score !== 'number' && typeof result.skill_match_percentage !== 'number')) {
-        console.error('Invalid match result format:', result);
+      if (!jobMatch || (typeof jobMatch.overall_score !== 'number' && typeof jobMatch.skill_match_percentage !== 'number')) {
+        console.error('Invalid match result format:', jobMatch);
         throw new Error('Invalid match result format from API');
       }
       
       return {
-        match_score: result.overall_score || result.skill_match_percentage || 0,
-        missing_keywords: result.missing_skills || [],
-        improvement_suggestions: result.improvement_suggestions || []
+        match_score: jobMatch.overall_score || jobMatch.skill_match_percentage || 0,
+        missing_keywords: jobMatch.missing_skills || [],
+        improvement_suggestions: jobMatch.improvement_suggestions || []
       };
     } catch (error) {
       console.error('Error matching resume with job:', error);
@@ -342,6 +315,102 @@ export class ResumeService {
       return await loadJobs();
     } catch (error) {
       console.error('Error loading jobs:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * Get saved jobs for a user from MongoDB
+   * @returns Array of saved job objects
+   */
+  static async getSavedJobs() {
+    try {
+      // Get the user ID from AsyncStorage (default to "default_user" if not found)
+      const userId = await AsyncStorage.getItem('userId') || 'default_user';
+      
+      // Endpoint to get saved jobs from MongoDB for ResumeRefiner
+      const endpoint = `/resume/saved-jobs/${userId}`;
+      
+      console.log(`Fetching saved jobs for ResumeRefiner: ${API_BASE_URL}${endpoint}`);
+      
+      // Try to fetch jobs from the main API
+      try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (!response.ok) {
+          console.error(`Saved jobs API returned status: ${response.status}`);
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Saved jobs response:', JSON.stringify(data, null, 2));
+        
+        if (!data.data || !Array.isArray(data.data)) {
+          console.warn('API returned invalid data format:', data);
+          throw new Error('Invalid data format received from API');
+        }
+        
+        // Transform the saved jobs to match our Job interface
+        return data.data.map(job => ({
+          id: job.id,
+          title: job.title || '',
+          company: job.company || '',
+          location: job.location || '',
+          description: job.description || '',
+          skills: job.skills || [],
+          match: job.match_score || 0
+        }));
+      } catch (apiError) {
+        console.error('Error fetching saved jobs from main API:', apiError);
+        
+        // Try fallback URLs if the main API fails
+        for (const fallbackUrl of API_FALLBACK_URLS) {
+          try {
+            console.log(`Trying fallback URL: ${fallbackUrl}${endpoint}`);
+            const fallbackResponse = await fetch(`${fallbackUrl}${endpoint}`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+              }
+            });
+            
+            if (fallbackResponse.ok) {
+              const data = await fallbackResponse.json();
+              console.log('Saved jobs fetched successfully from fallback:', data);
+              
+              if (!data.data || !Array.isArray(data.data)) {
+                console.warn('Fallback API returned invalid data format:', data);
+                continue;
+              }
+              
+              // Transform the saved jobs to match our Job interface
+              return data.data.map(job => ({
+                id: job.id,
+                title: job.title || '',
+                company: job.company || '',
+                location: job.location || '',
+                description: job.description || '',
+                skills: job.skills || [],
+                match: job.match_score || 0
+              }));
+            }
+          } catch (fallbackError) {
+            console.error(`Fallback URL failed: ${fallbackError.message}`);
+            // Continue to the next fallback URL
+          }
+        }
+        
+        // If all API calls fail, fall back to mock data with a warning
+        console.warn('All API calls failed, falling back to mock data');
+        return this.loadJobs();
+      }
+    } catch (error) {
+      console.error('Error getting saved jobs:', error);
       return [];
     }
   }

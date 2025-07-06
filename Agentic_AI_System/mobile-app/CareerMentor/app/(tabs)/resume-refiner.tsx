@@ -838,7 +838,8 @@ export default function ResumeRefinerScreen() {
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        const loadedJobs = await loadJobs();
+        // Use ResumeService.getSavedJobs() to fetch jobs from MongoDB
+        const loadedJobs = await ResumeService.getSavedJobs();
         // Convert loaded jobs to match our Job interface
         const convertedJobs: Job[] = loadedJobs.map(job => ({
           id: job.id || '',

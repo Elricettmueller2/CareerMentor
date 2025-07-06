@@ -8,6 +8,11 @@ import os
 from datetime import datetime
 from dotenv import load_dotenv
 from services.mongodb.client import mongo_client
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Import crew functions
 from crews.mock_mate.run_mock_mate_crew import run_respond_to_answer, run_start_interview, run_review_interview, run_prepare_custom_interview
@@ -446,11 +451,23 @@ async def match_resume_with_jobs(upload_id: str, job_descriptions: List[Dict[str
         logger.error(f"Error matching resume with jobs: {str(e)}")
         return {"status": "error", "message": str(e)}
 
+# Configure logging
+# logging.basicConfig(level=logging.INFO)
+# logger = logging.getLogger(__name__)
+
 @app.get("/resume/match-saved-jobs/{upload_id}/{user_id}")
 async def match_resume_with_saved_jobs(upload_id: str, user_id: str):
     """Match a resume against user's saved jobs from MongoDB"""
     try:
-        result = refiner_match_jobs(upload_id, get_saved_jobs(user_id), user_id)
+        # Get saved jobs and extract the list from the dictionary
+        saved_jobs_result = get_saved_jobs(user_id)
+        saved_jobs_list = saved_jobs_result.get("saved_jobs", [])
+        
+        # Log the number of saved jobs found
+        logger.info(f"Found {len(saved_jobs_list)} saved jobs for user {user_id}")
+        
+        # Match the resume with the saved jobs list
+        result = refiner_match_jobs(upload_id, saved_jobs_list, user_id)
         return {"status": "success", "data": result}
     except Exception as e:
         logger.error(f"Error matching resume with saved jobs: {str(e)}")
@@ -479,6 +496,25 @@ async def get_resume_job_matches(user_id: str, upload_id: str, job_id: Optional[
         return {"status": "success", "data": result}
     except Exception as e:
         logger.error(f"Error getting resume job matches: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/resume/saved-jobs/{user_id}")
+async def resume_refiner_get_saved_jobs(user_id: str = "default_user"):
+    """Get saved jobs for a user in a format suitable for ResumeRefiner"""
+    try:
+        # Get saved jobs from MongoDB
+        from services.mongodb.mongodb_resume_utils import get_saved_jobs_for_matching
+        
+        # Get formatted jobs for matching
+        saved_jobs = get_saved_jobs_for_matching(user_id)
+        
+        return {
+            "status": "success", 
+            "data": saved_jobs,
+            "count": len(saved_jobs)
+        }
+    except Exception as e:
+        logger.error(f"Error getting saved jobs for ResumeRefiner: {str(e)}")
         return {"status": "error", "message": str(e)}
 
 # Legacy Resume Refiner endpoints for mobile app compatibility
