@@ -42,21 +42,21 @@ export const formatStatusText = (status: string): string => {
 export const getStatusColor = (status: string): string => {
   switch (status.toLowerCase()) {
     case 'saved':
-      return CAREER_COLORS.nightSky; // NightSky from CareerMentor colors
+      return CAREER_COLORS.nightSky;
     case 'applied':
-      return CAREER_COLORS.nightSky; // NightSky from CareerMentor colors
+      return CAREER_COLORS.nightSky;
     case 'interview':
-      return CAREER_COLORS.nightSky; // NightSky from CareerMentor colors
+      return CAREER_COLORS.nightSky;
     case 'offer':
-      return CAREER_COLORS.nightSky; // NightSky from CareerMentor colors
+      return CAREER_COLORS.nightSky;
     case 'rejected':
-      return CAREER_COLORS.red; // Red from CareerMentor colors
+      return CAREER_COLORS.red;
     case 'accepted':
-      return CAREER_COLORS.green; // Green from CareerMentor colors
+      return CAREER_COLORS.green;
     case 'declined':
-      return CAREER_COLORS.nightSky; // NightSky from CareerMentor colors
+      return CAREER_COLORS.nightSky;
     default:
-      return CAREER_COLORS.nightSky; // Default to nightSky
+      return CAREER_COLORS.nightSky;
   }
 };
 

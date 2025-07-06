@@ -52,7 +52,7 @@ const NotificationTest: React.FC = () => {
           body: 'This is a test notification from CareerMentor',
           data: { test: true },
         },
-        trigger: null, // null means send immediately
+        trigger: null,
       });
       
       console.log('Test notification sent with ID:', notificationId);
@@ -79,7 +79,7 @@ const NotificationTest: React.FC = () => {
       
       // Schedule a notification for 10 seconds from now
       const now = new Date();
-      const notificationTime = new Date(now.getTime() + 10000); // 10 seconds from now
+      const notificationTime = new Date(now.getTime() + 10000); 
       
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {

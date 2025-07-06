@@ -1,7 +1,7 @@
-from .crew import TrackPalCrew, respond
+from crews.track_pal.crew import TrackPalCrew
 from typing import Dict, Any, List, Optional
 
-# Create a singleton instance
+# Create a singleton instance with MongoDB backend
 track_pal = TrackPalCrew()
 
 # AGENT FEATURES - Functions that use CrewAI for AI capabilities

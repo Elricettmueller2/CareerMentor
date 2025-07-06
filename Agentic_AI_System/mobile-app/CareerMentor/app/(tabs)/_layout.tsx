@@ -56,7 +56,7 @@ export default function TabLayout() {
           shadowOffset: { width: 0, height: -3 },
           shadowOpacity: 0.2,
           shadowRadius: 10,
-          elevation: 10, // for Android
+          elevation: 10,
         },
         tabBarInactiveTintColor: CAREER_COLORS.salt,
         tabBarLabelStyle: {
@@ -67,7 +67,7 @@ export default function TabLayout() {
         // Disable the static render of the header on web
         // to prevent a hydration error in React Navigation v6.
         headerShown: useClientOnlyValue(false, true),
-        tabBarLabel: ({ focused, color }) => null, // Hide default label, we'll use our custom one
+        tabBarLabel: ({ focused, color }) => null,
         tabBarIcon: ({ focused, color }) => {
           let iconComponent;
           let label = '';
