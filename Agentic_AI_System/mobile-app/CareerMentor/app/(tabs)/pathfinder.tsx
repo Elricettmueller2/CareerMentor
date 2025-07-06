@@ -534,7 +534,30 @@ const toggleSaveJob = async (job: any) => {
   }
 };
 
-  const renderJobCard = (job: any) => (
+// Function to render a job card with proper company name display
+const renderJobCard = (job: any) => {
+  // Debug the job data to see what fields are available
+  console.log('Job data structure:', JSON.stringify(job, null, 2));
+  
+  // WICHTIG: Firmenname mit höchster Priorität extrahieren
+  // Wir versuchen alle möglichen Felder, die den Firmennamen enthalten könnten
+  let companyName = 'Unknown Company';
+  
+  // Explizite Prüfung aller möglichen Felder
+  if (job.company_name && job.company_name !== 'Unknown Company') {
+    companyName = job.company_name;
+  } else if (job.company && job.company !== 'Unknown Company') {
+    companyName = job.company;
+  } else if (job.employer && job.employer !== 'Unknown Company') {
+    companyName = job.employer;
+  } else if (job.company_details && job.company_details.name) {
+    companyName = job.company_details.name;
+  }
+  
+  // Für Debugging
+  console.log('Using company name:', companyName);
+  
+  return (
     <View style={styles.resultCard}>
       <TouchableOpacity 
         style={styles.saveButton} 
@@ -556,11 +579,11 @@ const toggleSaveJob = async (job: any) => {
       
       <TouchableOpacity 
         style={styles.jobCardContent}
-        onPress={() => navigateToJobDetails(job.id)}
+        onPress={() => navigateToJobDetails(job.id || job._id)}
       >
         <Text style={styles.resultTitle}>{job.position || job.title || 'Job Title'}</Text>
         <Text style={styles.resultCompany}>
-          {job.company || ''}
+          {companyName}
           {job.location ? ` | ${job.location}` : ''}
         </Text>
         
@@ -578,9 +601,11 @@ const toggleSaveJob = async (job: any) => {
       </TouchableOpacity>
     </View>
   );
+};
 
-  const renderSearchContent = () => (
-    <ScrollView 
+// Define renderSearchContent function
+const renderSearchContent = () => (
+    <ScrollView
       style={styles.searchScrollView}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
@@ -747,20 +772,38 @@ const toggleSaveJob = async (job: any) => {
           </View>
         )}
 
-        {savedJobs.map((job, idx) => (
-          <View key={job.id || idx}>
-            {renderJobCard({...job, is_saved: true})}
-          </View>
-        ))}
+        {savedJobs.map((job, idx) => {
+          console.log('Saved job data:', JSON.stringify(job, null, 2));
+          // Ensure company name is set for saved jobs
+          const enhancedJob = {
+            ...job, 
+            is_saved: true,
+            // Explicitly copy company_name if available
+            company_name: job.company_name || job.company || job.employer || 'Unknown Company'
+          };
+          return (
+            <View key={job.id || job._id || idx}>
+              {renderJobCard(enhancedJob)}
+            </View>
+          );
+        })}
 
         {recommendations.length > 0 && (
           <>
             <Text style={[styles.sectionTitle, {marginTop: 24}]}>Recommended Jobs</Text>
-            {recommendations.map((job, idx) => (
-              <View key={job.id || idx}>
-                {renderJobCard(job)}
-              </View>
-            ))}
+            {recommendations.map((job, idx) => {
+          // Ensure company name is set for recommendations too
+          const enhancedJob = {
+            ...job,
+            // Explicitly set company_name for display
+            company_name: job.company_name || job.company || job.employer || 'Unknown Company'
+          };
+          return (
+            <View key={job.id || job._id || idx}>
+              {renderJobCard(enhancedJob)}
+            </View>
+          );
+        })}
           </>
         )}
       </ScrollView>
