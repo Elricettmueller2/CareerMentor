@@ -84,7 +84,6 @@ export default function TrackPalAddJobScreen() {
           );
         } catch (notificationError) {
           console.error('Error scheduling notification:', notificationError);
-          // Don't alert the user about notification errors, just log them
         }
       }
       
@@ -159,7 +158,7 @@ export default function TrackPalAddJobScreen() {
             iconName="location-outline"
           />
           
-          {/* Custom Description Field with icon in top left */}
+          {/* Custom Description Field */}
           <View style={styles.descriptionContainer}>
             <Text style={styles.label}>Description</Text>
             <View style={styles.descriptionInputContainer}>
@@ -201,7 +200,7 @@ export default function TrackPalAddJobScreen() {
             mode="date"
           />
           
-          {/* Custom Notes Field with icon in top left */}
+          {/* Custom Notes Field */}
           <View style={styles.descriptionContainer}>
             <Text style={styles.label}>Notes</Text>
             <View style={styles.descriptionInputContainer}>
@@ -285,11 +284,10 @@ const styles = StyleSheet.create({
   headerSaveButton: {
     height: 36,
     minWidth: 80,
-    width: 80,
+    paddingHorizontal: 12,
     borderRadius: 18,
     marginVertical: 0,
   },
-  // Custom description field styles
   descriptionContainer: {
     marginBottom: 16,
   },
@@ -310,7 +308,7 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 16,
     textAlignVertical: 'top',
-    paddingLeft: 30, // Add padding to prevent text from overlapping with the icon
+    paddingLeft: 30,
   },
   iconTopLeft: {
     position: 'absolute',
