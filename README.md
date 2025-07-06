@@ -78,8 +78,11 @@ A shell script for instant setup is there. This script does automate the entire 
 
 to use it run:
 
+
 ```bash
-./setup.sh
+# From the project root directory
+chmod +x start_careermentor.sh  # Make the script executable (first time only)
+./start_careermentor.sh
 ```
 
 #### Option 2: Local Development Setup
