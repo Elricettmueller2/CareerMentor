@@ -951,20 +951,20 @@ export default function ResumeRefinerScreen() {
         if (prev.length >= 3) return '';
         return prev + '.';
       });
-    }, 150); // Even faster dot animation (reduced from 250ms to 150ms)
+    }, 450); // Slowed down dot animation even more from 300ms to 450ms
     
     // Simulate progress for demo purposes - much faster increase
     const progressInterval = setInterval(() => {
       setLoadingProgress(prev => {
-        // Much faster increment for job matching
-        const newProgress = prev + (Math.random() * 8 + 5); // Add minimum 5% each time, up to 13%
+        // Even slower increment for job matching
+        const newProgress = prev + (Math.random() * 2 + 1); // Add minimum 1% each time, up to 3%
         if (newProgress >= 100) {
           clearInterval(progressInterval);
           return 100;
         }
         return newProgress;
       });
-    }, 100); // Even faster progress updates (reduced from 200ms to 100ms)
+    }, 400); // Slowed down progress updates even more from 250ms to 400ms
     
     // Store cleanup function in ref
     const cleanup = () => {
