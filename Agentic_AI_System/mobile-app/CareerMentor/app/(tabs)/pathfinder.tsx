@@ -302,7 +302,7 @@ export default function PathFinderScreen() {
   
   // Using a temporary userId for testing/demo purposes
   // In a real app, this would come from authentication
-  const userId = '12345';
+  const userId = 'default_user';
   
   // Function to navigate to job details
   const navigateToJobDetails = (jobId: string) => {
