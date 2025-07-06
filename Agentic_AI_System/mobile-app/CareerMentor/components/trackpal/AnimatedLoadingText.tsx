@@ -26,7 +26,7 @@ const AnimatedLoadingText: React.FC<AnimatedLoadingTextProps> = ({ style, type =
     'Refreshing your opportunities',
     'Scanning for updates',
     'Fetching your job data',
-    'One sec — getting everything ready',
+    'One sec, getting everything ready',
   ];
   
   // AI Insights-related loading messages
@@ -61,14 +61,14 @@ const AnimatedLoadingText: React.FC<AnimatedLoadingTextProps> = ({ style, type =
         if (prev === '') return '.';
         if (prev === '.') return '..';
         if (prev === '..') return '...';
-        return '...'; // Default to three dots if somehow in an invalid state
+        return '...';
       });
     }, 400); // Change dots every 400ms
     
     return () => clearInterval(dotsInterval);
   }, []);
 
-  // Cycle through messages every 3 seconds
+  // Cycle through messages every 5 seconds
   useEffect(() => {
     const messageInterval = setInterval(() => {
       // Get the correct message array length based on type
@@ -77,10 +77,9 @@ const AnimatedLoadingText: React.FC<AnimatedLoadingTextProps> = ({ style, type =
         type === 'insights' ? insightsLoadingMessages.length : 
         defaultLoadingMessages.length;
       
-      // Randomly select the next message index
-      const nextIndex = Math.floor(Math.random() * messagesLength);
-      setMessageIndex(nextIndex);
-    }, 3000);
+      // Move to the next message in sequence
+      setMessageIndex(prevIndex => (prevIndex + 1) % messagesLength);
+    }, 5000);
     
     return () => clearInterval(messageInterval);
   }, [type]);
@@ -94,10 +93,10 @@ const AnimatedLoadingText: React.FC<AnimatedLoadingTextProps> = ({ style, type =
 
 const styles = StyleSheet.create({
   loadingText: {
-    marginTop: 12,
     fontSize: 16,
-    color: CAREER_COLORS.nightSky,
     textAlign: 'center',
+    color: CAREER_COLORS.nightSky,
+    marginVertical: 10,
   },
 });
 

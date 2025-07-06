@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import InsightCard from './InsightCard';
 import AnimatedLoadingText from './AnimatedLoadingText';
 import { PatternInsight } from '../../services/TrackPalService';
+import { CAREER_COLORS } from '@/constants/Colors';
 
 interface AIInsightsSectionProps {
   insights: PatternInsight[];
@@ -21,13 +22,13 @@ const AIInsightsSection: React.FC<AIInsightsSectionProps> = ({
       <View style={styles.sectionHeader}>
         <Text style={styles.insightsSectionTitle}>AI Insights</Text>
         <TouchableOpacity onPress={onRefresh} disabled={loading}>
-          <Ionicons name="refresh" size={20} color="#4a6da7" />
+          <Ionicons name="refresh" size={20} color={CAREER_COLORS.nightSky} />
         </TouchableOpacity>
       </View>
       
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#4a6da7" />
+          <ActivityIndicator size="small" color={CAREER_COLORS.nightSky} />
           <AnimatedLoadingText style={styles.insightLoadingText} type="insights" />
         </View>
       ) : (
