@@ -5,6 +5,7 @@
 
 # Configuration
 CONTAINER_NAME="careermentor-backend"
+MONGODB_CONTAINER_NAME="career-mentor-mongodb"
 NGROK_AUTH_TOKEN="2zDpejeNtHCsBDVnn5zPPVjEsli_6GNhAU5z8syBUcpceWJZY"
 NGROK_STATIC_DOMAIN="evident-hyena-lately.ngrok-free.app"
 MOBILE_APP_ENDPOINTS_PATH="Agentic_AI_System/mobile-app/CareerMentor/constants/ApiEndpoints.ts"
@@ -31,8 +32,34 @@ if [ ! -f "$MOBILE_APP_ENDPOINTS_PATH" ]; then
     exit 1
 fi
 
-# Stop and remove existing container if it exists
-echo -e "${YELLOW}Stopping and removing existing container (if any)...${NC}"
+# Start MongoDB container
+echo -e "${YELLOW}Starting MongoDB container...${NC}"
+if docker ps | grep -q $MONGODB_CONTAINER_NAME; then
+    echo -e "${GREEN}MongoDB container is already running.${NC}"
+else
+    if docker ps -a | grep -q $MONGODB_CONTAINER_NAME; then
+        echo -e "${YELLOW}MongoDB container exists but is not running. Starting it...${NC}"
+        docker start $MONGODB_CONTAINER_NAME
+    else
+        echo -e "${YELLOW}Creating and starting MongoDB container...${NC}"
+        docker run -d --name $MONGODB_CONTAINER_NAME -p 27017:27017 mongo:latest
+    fi
+    
+    # Wait a moment for MongoDB to start
+    echo -e "${YELLOW}Waiting for MongoDB to start...${NC}"
+    sleep 5
+    
+    # Check if MongoDB container is running
+    if ! docker ps | grep -q $MONGODB_CONTAINER_NAME; then
+        echo -e "${RED}MongoDB container failed to start.${NC}"
+        exit 1
+    else
+        echo -e "${GREEN}MongoDB container started successfully.${NC}"
+    fi
+fi
+
+# Stop and remove existing backend container if it exists
+echo -e "${YELLOW}Stopping and removing existing backend container (if any)...${NC}"
 docker stop $CONTAINER_NAME 2>/dev/null
 docker rm $CONTAINER_NAME 2>/dev/null
 
@@ -42,14 +69,16 @@ cd $BACKEND_DIR
 docker build -t $CONTAINER_NAME .
 
 # Start the container
-echo -e "${YELLOW}Starting container...${NC}"
+echo -e "${YELLOW}Starting backend container...${NC}"
 docker run -d --name $CONTAINER_NAME -p 8000:8000 \
     --add-host=host.docker.internal:host-gateway \
+    --link $MONGODB_CONTAINER_NAME:mongodb \
     -e OLLAMA_BASE_URL=http://host.docker.internal:11434 \
     -e ADZUNA_APP_ID=ac7d329d \
     -e ADZUNA_API_KEY=fd74aa940604de795dcd178d167fc279 \
     -e NGROK_AUTH_TOKEN=$NGROK_AUTH_TOKEN \
     -e NGROK_STATIC_DOMAIN=$NGROK_STATIC_DOMAIN \
+    -e MONGODB_URI=mongodb://mongodb:27017 \
     $CONTAINER_NAME
 
 # Using static domain for ngrok
@@ -99,34 +128,7 @@ sed -i '' "/export const API_FALLBACK_URLS = \[/a\\
   \"$NGROK_URL\",
 " "$MOBILE_APP_ENDPOINTS_PATH"
 
-# Verify the changes
-echo -e "${YELLOW}Verifying changes...${NC}"
-
-# Check if the API_BASE_URL constant was updated
-BASE_URL_UPDATED=$(grep -c "$NGROK_URL" "$MOBILE_APP_ENDPOINTS_PATH")
-
-if [ "$BASE_URL_UPDATED" -lt 1 ]; then
-    echo -e "${RED}Warning: API_BASE_URL was not updated correctly.${NC}"
-    echo -e "${YELLOW}Manually updating the file now...${NC}"
-    
-    # Show the current state
-    echo -e "\n${YELLOW}Current state of important lines:${NC}"
-    grep -n "export const API_BASE_URL" "$MOBILE_APP_ENDPOINTS_PATH"
-    
-    # Manually edit the file with direct replacements as a fallback
-    echo "Manually updating API_BASE_URL..."
-    
-    # Fix the API_BASE_URL constant with sed
-    sed -i '' "s|export const API_BASE_URL = '.*'|export const API_BASE_URL = '$NGROK_URL'|g" "$MOBILE_APP_ENDPOINTS_PATH"
-    sed -i '' "s|export const API_BASE_URL = \".*\"|export const API_BASE_URL = '$NGROK_URL'|g" "$MOBILE_APP_ENDPOINTS_PATH"
-    
-    echo -e "${YELLOW}Manual update completed.${NC}"
-else
-    echo -e "${GREEN}API_BASE_URL updated successfully!${NC}"
-fi
-
-echo -e "${GREEN}Mobile app API endpoints updated successfully!${NC}"
-echo -e "${GREEN}Backend is now running at: http://localhost:8000${NC}"
-echo -e "${GREEN}Public ngrok URL: $NGROK_URL${NC}"
-echo -e "${YELLOW}To view backend logs:${NC} docker logs $CONTAINER_NAME"
-echo -e "${YELLOW}To stop the backend:${NC} docker stop $CONTAINER_NAME"
+echo -e "${GREEN}=== CareerMentor Setup Complete ===${NC}"
+echo -e "${GREEN}MongoDB is running on: mongodb://localhost:27017${NC}"
+echo -e "${GREEN}Backend API is running on: $NGROK_URL${NC}"
+echo -e "${GREEN}You can now start the mobile app with: cd Agentic_AI_System/mobile-app/CareerMentor && npm start${NC}"
