@@ -49,9 +49,9 @@ export default function TrackPalScreen() {
   const [loadingInsights, setLoadingInsights] = useState(false);
 
   // Auto-loading of insights when the component mounts
-  useEffect(() => {
-    loadPatternInsights();
-  }, []);
+  // useEffect(() => {
+  //   loadPatternInsights();
+  // }, []);
 
   // Load applications when screen comes into focus
   useFocusEffect(
