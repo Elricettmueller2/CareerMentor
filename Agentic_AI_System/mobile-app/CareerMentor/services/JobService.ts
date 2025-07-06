@@ -1,7 +1,35 @@
 import NotificationService from './NotificationService';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_BASE_URL } from '../constants/ApiEndpoints';
+import { API_BASE_URL, API_FALLBACK_URLS } from '../constants/ApiEndpoints';
+
+// Helper function to try different API URLs if one fails
+const tryAPIUrls = async <T>(apiCall: (baseUrl: string) => Promise<T>): Promise<T> => {
+  // Try the current API URL first
+  try {
+    return await apiCall(API_BASE_URL);
+  } catch (error: any) {
+    console.log(`Failed with URL ${API_BASE_URL}: ${error.message}`);
+    
+    // If that fails, try fallback URLs
+    for (const url of API_FALLBACK_URLS) {
+      if (url === API_BASE_URL) continue; // Skip the one we already tried
+      
+      try {
+        console.log(`Trying alternative URL: ${url}`);
+        const result = await apiCall(url);
+        console.log(`Success with URL ${url}`);
+        return result;
+      } catch (innerError: any) {
+        console.log(`Failed with URL ${url}: ${innerError.message}`);
+        // Continue to the next URL
+      }
+    }
+    
+    // If all URLs fail, throw the original error
+    throw error;
+  }
+};
 
 export interface SavedJob {
   id: string;
@@ -142,22 +170,22 @@ export const JobService = {
     try {
       const userId = await getUserId();
       
-      return await tryAPIUrls(async (baseUrl) => {
-        console.log('API URL:', `${baseUrl}/get_applications`);
-        
-        const response = await axios.post(`${baseUrl}/get_applications`, {
-          data: { user_id: userId }
-        });
-        
-        console.log('Get applications response:', response.data);
-        
-        if (response.data && response.data.applications) {
-          // Convert each saved job to JobApplication format
-          return response.data.applications.map((job: SavedJob) => convertSavedJobToApplication(job));
-        }
-        
-        return [];
+      // Use only the main API endpoint
+      const baseUrl = `${API_BASE_URL}/agents/track_pal`;
+      console.log('API URL:', `${baseUrl}/get_applications`);
+      
+      const response = await axios.post(`${baseUrl}/get_applications`, {
+        data: { user_id: userId }
       });
+      
+      console.log('Get applications response:', response.data);
+      
+      if (response.data && response.data.applications) {
+        // Convert each saved job to JobApplication format
+        return response.data.applications.map((job: SavedJob) => convertSavedJobToApplication(job));
+      }
+      
+      return [];
     } catch (error) {
       console.error('Error getting jobs:', error);
       return [];
@@ -211,60 +239,60 @@ export const JobService = {
     try {
       const userId = await getUserId();
       
-      return await tryAPIUrls(async (baseUrl) => {
-        console.log('API URL:', `${baseUrl}/update_application`);
+      // Use only the main API endpoint
+      const baseUrl = `${API_BASE_URL}/agents/track_pal`;
+      console.log('API URL:', `${baseUrl}/update_application`);
+      
+      const response = await axios.post(`${baseUrl}/update_application`, {
+        data: { 
+          user_id: userId,
+          app_id: id,
+          updates: updatedData
+        }
+      });
+      
+      console.log('Update application response:', response.data);
+      
+      if (response.data && response.data.application) {
+        const updatedJob = response.data.application;
         
-        const response = await axios.post(`${baseUrl}/update_application`, {
-          data: { 
-            user_id: userId,
-            app_id: id,
-            updates: updatedData
-          }
-        });
+        // Get the original job to check if follow-up date changed
+        const jobs = await JobService.getJobs();
+        const originalJob = jobs.find(job => job.id === id);
         
-        console.log('Update application response:', response.data);
-        
-        if (response.data && response.data.application) {
-          const updatedJob = response.data.application;
-          
-          // Get the original job to check if follow-up date changed
-          const jobs = await JobService.getJobs();
-          const originalJob = jobs.find(job => job.id === id);
-          
-          // Handle notification updates if follow-up date changed
-          if (originalJob && updatedData.followUpDate !== undefined && 
-              updatedData.followUpDate !== originalJob.followUpDate) {
-            try {
-              // Get existing notifications for this job
-              const notifications = await NotificationService.getApplicationNotifications(id);
-              
-              // Cancel existing notifications
-              for (const notification of notifications) {
-                if (notification.notificationId) {
-                  await NotificationService.cancelNotification(notification.notificationId);
-                }
+        // Handle notification updates if follow-up date changed
+        if (originalJob && updatedData.followUpDate !== undefined && 
+            updatedData.followUpDate !== originalJob.followUpDate) {
+          try {
+            // Get existing notifications for this job
+            const notifications = await NotificationService.getApplicationNotifications(id);
+            
+            // Cancel existing notifications
+            for (const notification of notifications) {
+              if (notification.notificationId) {
+                await NotificationService.cancelNotification(notification.notificationId);
               }
-              
-              // Schedule new notification if follow-up date is set
-              if (updatedData.followUpDate) {
-                const followUpDate = new Date(updatedData.followUpDate);
-                await NotificationService.scheduleFollowUpReminder(
-                  id,
-                  updatedJob.company,
-                  updatedJob.jobTitle,
-                  followUpDate
-                );
-              }
-            } catch (notificationError) {
-              console.error('Error updating notification:', notificationError);
             }
+            
+            // Schedule new notification if follow-up date is set
+            if (updatedData.followUpDate) {
+              const followUpDate = new Date(updatedData.followUpDate);
+              await NotificationService.scheduleFollowUpReminder(
+                id,
+                updatedJob.company,
+                updatedJob.jobTitle,
+                followUpDate
+              );
+            }
+          } catch (notificationError) {
+            console.error('Error updating notification:', notificationError);
           }
-          
-          return updatedJob;
         }
         
-        return null;
-      });
+        return updatedJob;
+      }
+      
+      return null;
     } catch (error) {
       console.error('Error updating job:', error);
       throw error;
