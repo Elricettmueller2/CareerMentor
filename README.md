@@ -72,6 +72,16 @@ docker build -t careermentor-backend .
 docker run -p 8000:8000 --env-file .env careermentor-backend
 ```
 
+#### Option 3: Quick Setup Script
+
+A shell script for instant setup is there. This script does automate the entire setup process, including environment configuration, dependency installation, and service startup.
+
+to use it run:
+
+```bash
+./setup.sh
+```
+
 #### Option 2: Local Development Setup
 
 1. **Install Ollama and Pull Required Model**
@@ -181,7 +191,7 @@ The backend implements multiple AI agents, each with specific capabilities:
 - **Framework**: FastAPI
 - **Agent Framework**: CrewAI
 - **Language Model**: Ollama with Llama 3.2
-- **Database**: SQLite
+- **Database**: MongoDB
 - **Key Dependencies**:
   - `crewai`: Framework for building AI agent systems
   - `langchain`: Framework for LLM applications
