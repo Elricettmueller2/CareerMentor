@@ -15,10 +15,8 @@ litellm._turn_on_debug()
 SAVED = "SAVED"
 APPLIED = "APPLIED"
 INTERVIEW = "INTERVIEW"
-OFFER = "OFFER"
 REJECTED = "REJECTED"
 ACCEPTED = "ACCEPTED"
-DECLINED = "DECLINED"
 
 # Application data storage and retrieval using MongoDB
 class ApplicationManager:
@@ -358,7 +356,7 @@ def clean_ai_response(response):
                 continue
                 
             # Skip insights suggesting follow-ups for rejected or accepted applications
-            if re.search(r'\b(follow.?up|reach.?out|contact|email)\b.*\b(rejected|declined|accepted|offer)\b', description, re.IGNORECASE):
+            if re.search(r'\b(follow.?up|reach.?out|contact|email)\b.*\b(rejected|accepted)\b', description, re.IGNORECASE):
                 continue
                 
             actionable_insights.append(description)

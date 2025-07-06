@@ -234,7 +234,6 @@ export default function TrackPalJobDetailsScreen() {
         }
       );
     } else {
-      // For Android, show a custom modal picker instead of Alert
       setShowAndroidStatusPicker(true);
     }
   };
@@ -317,21 +316,20 @@ export default function TrackPalJobDetailsScreen() {
   const getStatusColor = (status: string): string => {
     // Use different colors for rejected and accepted statuses
     if (status.toLowerCase() === 'rejected') {
-      return CAREER_COLORS.red; // Red for rejected
+      return CAREER_COLORS.red;
     } else if (status.toLowerCase() === 'accepted') {
-      return CAREER_COLORS.green; // Green for accepted
+      return CAREER_COLORS.green;
     } else {
-      return CAREER_COLORS.nightSky; // Brand purple for all other statuses
+      return CAREER_COLORS.nightSky;
     }
   };
 
   const getTimelineSteps = () => {
-    // Base steps with dates
     const steps = [
       { 
         status: 'saved', 
         label: 'Saved',
-        dates: [] // Saved status doesn't typically have dates
+        dates: []
       },
       { 
         status: 'applied', 
@@ -342,7 +340,6 @@ export default function TrackPalJobDetailsScreen() {
             value: new Date(application.appliedDate).toLocaleDateString(),
             icon: 'calendar-outline' as const
           },
-          // Add application deadline if it exists
           ...(application.applicationDeadline ? [
             { 
               label: 'Job Deadline:', 
@@ -638,8 +635,8 @@ export default function TrackPalJobDetailsScreen() {
             )}
             <StatusBadge status={application.status} style={styles.statusBadge} />
           </View>
-          
         </View>
+
         {/* Separator */}
         <View style={styles.separator} />
         
@@ -868,7 +865,7 @@ export default function TrackPalJobDetailsScreen() {
                     iconName="location-outline"
                   />
 
-                  {/* Custom Description Field with icon in top left */}
+                  {/* Custom Description Field */}
                   <View style={styles.descriptionContainer}>
                     <Text style={styles.label}>Description</Text>
                     <View style={styles.descriptionInputContainer}>
@@ -913,7 +910,7 @@ export default function TrackPalJobDetailsScreen() {
                     mode="date"
                   />
 
-                  {/* Custom Notes Field with icon in top left */}
+                  {/* Custom Notes Field */}
                   <View style={styles.descriptionContainer}>
                     <Text style={styles.label}>Notes</Text>
                     <View style={styles.descriptionInputContainer}>
@@ -1004,28 +1001,28 @@ const styles = StyleSheet.create({
     padding: 16,
     marginTop: 32,
     marginBottom: 10,
-    alignItems: 'center', // Center children horizontally
+    alignItems: 'center',
   },
   jobTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#212529',
     marginBottom: 8,
-    textAlign: 'center', // Center text
+    textAlign: 'center',
   },
   companyName: {
     fontSize: 18,
     color: '#495057',
     marginBottom: 12,
-    textAlign: 'center', // Center text
+    textAlign: 'center',
   },
   infoStatusRow: {
     flexDirection: 'row',
-    justifyContent: 'center', // Center children horizontally
+    justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
-    flexWrap: 'wrap', // Allow wrapping if needed
-    gap: 12, // Space between location and status
+    flexWrap: 'wrap',
+    gap: 12,
   },
   infoRow: {
     flexDirection: 'row',
@@ -1424,14 +1421,12 @@ const styles = StyleSheet.create({
     marginVertical: 20,
     width: '100%',
   },
-  // Status and description styles
   statusBadge: {
     marginLeft: 'auto',
   },
   descriptionContainer: {
     marginBottom: 16,
   },
-  // Input styles for multiline fields with top-left icons
   descriptionInputContainer: {
     position: 'relative',
     borderWidth: 1,
@@ -1439,7 +1434,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 10,
     backgroundColor: '#fff',
-    height: 5 * 24, // Height for 5 lines of text
+    height: 5 * 24,
     paddingTop: 8,
     paddingBottom: 8,
   },
@@ -1449,7 +1444,7 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 16,
     textAlignVertical: 'top',
-    paddingLeft: 30, // Left padding to prevent text from overlapping with the icon
+    paddingLeft: 30,
   },
   iconTopLeft: {
     position: 'absolute',
