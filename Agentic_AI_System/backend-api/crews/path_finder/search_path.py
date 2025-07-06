@@ -291,7 +291,19 @@ def get_job_details(job_id: str, user_id: str = None) -> Dict[str, Any]:
                     return {"job": saved_job}
         
         # If not found in saved jobs, try to get from scraper
-        job = job_scraper_instance.get_job_details(job_id)
+        try:
+            # Check if the scraper instance has the get_job_details method
+            if hasattr(job_scraper_instance, 'get_job_details') and callable(getattr(job_scraper_instance, 'get_job_details')):
+                job = job_scraper_instance.get_job_details(job_id)
+            else:
+                # Fallback: Try to search for the job by ID
+                print(f"Scraper doesn't have get_job_details method, trying search_jobs with ID")
+                search_results = job_scraper_instance.search_jobs(query=job_id, num_jobs_to_find=1)
+                job = search_results[0] if search_results else None
+        except Exception as scraper_error:
+            print(f"Error using scraper to get job details: {scraper_error}")
+            job = None
+            
         if job:
             # Ensure company name is properly set
             company_name = None
