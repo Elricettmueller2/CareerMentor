@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 10,
-    color: '#A0A0A0', // Using a direct hex color since lightGray isn't in COLORS
+    color: '#A0A0A0',
     alignSelf: 'flex-end',
     marginTop: 4,
     marginRight: 8,

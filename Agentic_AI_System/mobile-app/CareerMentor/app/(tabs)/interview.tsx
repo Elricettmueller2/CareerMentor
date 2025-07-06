@@ -17,7 +17,6 @@ import { Ionicons } from '@expo/vector-icons';
 import GradientButton from '@/components/trackpal/GradientButton';
 import { spacing } from '@/constants/DesignSystem';
 
-// Import custom components
 import CareerDaddyHeader from '@/components/common/CareerDaddyHeader';
 import InterviewSetupForm from '@/components/interview/InterviewSetupForm';
 import MessageBubble from '@/components/interview/MessageBubble';
@@ -25,12 +24,10 @@ import EnhancedMessageBubble from '@/components/interview/EnhancedMessageBubble'
 import ChatInput from '@/components/interview/ChatInput';
 import InterviewProgress from '@/components/interview/InterviewProgress';
 
-// Import types
 import { InterviewMessage, InterviewSetupData } from '@/types/interview';
 
 const API_BASE_URL = 'http://localhost:8000';
 
-// Define interface for parsed interview responses
 interface ParsedInterviewResponse {
   introduction?: string;
   response?: string;
@@ -46,17 +43,15 @@ export default function InterviewScreen() {
   const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
   
-  // State variables
   const [interviewStarted, setInterviewStarted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<InterviewMessage[]>([]);
   const [sessionId, setSessionId] = useState(`session_${Date.now()}`);
   const [interviewType, setInterviewType] = useState<'Technical' | 'Behavioral'>('Technical');
   const [currentQuestion, setCurrentQuestion] = useState(1);
-  const [totalQuestions, setTotalQuestions] = useState(5); // Default value, will be updated from API
-  const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState(15); // Default 15 minutes
+  const [totalQuestions, setTotalQuestions] = useState(5); 
+  const [estimatedTimeRemaining, setEstimatedTimeRemaining] = useState(15); 
 
-  // Load fonts
   let [fontsLoaded] = useFonts({
     Manrope_400Regular,
     Manrope_500Medium,
@@ -65,7 +60,6 @@ export default function InterviewScreen() {
     Manrope_800ExtraBold,
   });
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     if (scrollViewRef.current) {
       setTimeout(() => {
@@ -74,18 +68,16 @@ export default function InterviewScreen() {
     }
   }, [messages]);
 
-  // Update time remaining periodically
   useEffect(() => {
     if (interviewStarted && estimatedTimeRemaining > 0) {
       const timer = setTimeout(() => {
         setEstimatedTimeRemaining(prev => Math.max(0, prev - 1));
-      }, 60000); // Update every minute
+      }, 60000); 
       
       return () => clearTimeout(timer);
     }
   }, [interviewStarted, estimatedTimeRemaining]);
 
-  // Start interview with form data
   const startInterview = async (formData: InterviewSetupData) => {
     setLoading(true);
     try {
@@ -93,7 +85,6 @@ export default function InterviewScreen() {
       setSessionId(newSessionId);
       setInterviewType(formData.interviewType);
       
-      // Simplest possible fetch request with session ID
       const response = await fetch(`${API_BASE_URL}/agents/mock_mate/start_interview`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -114,14 +105,12 @@ export default function InterviewScreen() {
       
       const data = await response.json();
       
-      // Try to parse the JSON response if it's a string
       let parsedResponse: ParsedInterviewResponse;
       try {
         parsedResponse = typeof data.response === 'string'
           ? JSON.parse(data.response)
           : data.response;
         
-        // If we have metadata about the interview, update our state
         if (parsedResponse.total_questions) {
           setTotalQuestions(parsedResponse.total_questions);
         }
@@ -130,9 +119,7 @@ export default function InterviewScreen() {
           setEstimatedTimeRemaining(parsedResponse.estimated_duration_minutes);
         }
         
-        // Check if we have a structured response with evaluation fields
         if (parsedResponse.evaluation) {
-          // First add the evaluation message
           setMessages([{ 
             evaluation: parsedResponse.evaluation,
             notes: parsedResponse.notes,
@@ -140,7 +127,6 @@ export default function InterviewScreen() {
             timestamp: new Date().toLocaleTimeString() 
           }]);
           
-          // Then, if there's a follow-up question, add it as a separate message
           if (parsedResponse.follow_up) {
             setTimeout(() => {
               setMessages(prev => [...prev, { 
@@ -149,10 +135,9 @@ export default function InterviewScreen() {
                 isFollowUp: true,
                 timestamp: new Date().toLocaleTimeString() 
               }]);
-            }, 500); // Small delay for better UX
+            }, 500);
           }
         } else {
-          // Extract the introduction text
           const introText = parsedResponse.introduction || parsedResponse.response || data.response;
           
           setMessages([{ 
@@ -162,7 +147,6 @@ export default function InterviewScreen() {
           }]);
         }
       } catch (e) {
-        // If parsing fails, just use the raw response
         setMessages([{ 
           text: data.response, 
           sender: 'agent',
@@ -183,11 +167,9 @@ export default function InterviewScreen() {
     }
   };
 
-  // Send user response
   const sendResponse = async (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
     
-    // Add user message to chat
     setMessages(prev => [...prev, { 
       text: message, 
       sender: 'user',
@@ -197,7 +179,6 @@ export default function InterviewScreen() {
     setLoading(true);
     
     try {
-      // Simplest possible fetch request with session ID
       const response = await fetch(`${API_BASE_URL}/agents/mock_mate/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -216,7 +197,6 @@ export default function InterviewScreen() {
       
       const data = await response.json();
       
-      // Try to parse the JSON response if it's a string
       let parsedResponse: ParsedInterviewResponse;
       try {
         parsedResponse = 
@@ -224,17 +204,13 @@ export default function InterviewScreen() {
             ? JSON.parse(data.response) 
             : data.response;
         
-        // If we have question number information, update our state
         if (parsedResponse.question_number) {
           setCurrentQuestion(parsedResponse.question_number);
         } else {
-          // If no specific question number, just increment
           setCurrentQuestion(prev => Math.min(prev + 1, totalQuestions));
         }
         
-        // Check if we have a structured response with evaluation fields
         if (parsedResponse.evaluation) {
-          // First add the evaluation message
           setMessages(prev => [...prev, { 
             evaluation: parsedResponse.evaluation,
             notes: parsedResponse.notes,
@@ -242,7 +218,6 @@ export default function InterviewScreen() {
             timestamp: new Date().toLocaleTimeString() 
           }]);
           
-          // Then, if there's a follow-up question, add it as a separate message
           if (parsedResponse.follow_up) {
             setTimeout(() => {
               setMessages(prev => [...prev, { 
@@ -251,7 +226,7 @@ export default function InterviewScreen() {
                 isFollowUp: true,
                 timestamp: new Date().toLocaleTimeString() 
               }]);
-            }, 500); // Small delay for better UX
+            }, 500);
           }
         } else {
           // Extract the agent response text
@@ -264,14 +239,12 @@ export default function InterviewScreen() {
           }]);
         }
       } catch (e) {
-        // If parsing fails, just use the raw response
         setMessages(prev => [...prev, { 
           text: data.response, 
           sender: 'agent',
           timestamp: new Date().toLocaleTimeString() 
         }]);
         
-        // Increment question counter
         setCurrentQuestion(prev => Math.min(prev + 1, totalQuestions));
       }
     } catch (error: any) {
@@ -286,9 +259,7 @@ export default function InterviewScreen() {
     }
   };
 
-  // End interview and go to review
   const handleEndInterview = () => {
-    // Navigate to the interview-review screen outside the tab navigation
     router.push({ 
       pathname: '/interview-review', 
       params: { 
@@ -449,5 +420,4 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: 'center',
   },
-  // End button styles now handled by GradientButton component
 });
